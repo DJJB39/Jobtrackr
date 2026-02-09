@@ -13,22 +13,14 @@ import {
 import { COLUMNS, type ColumnId, type JobApplication } from "@/types/job";
 import KanbanColumn from "./KanbanColumn";
 import JobCard from "./JobCard";
-import AddJobDialog from "./AddJobDialog";
 import JobDetailPanel from "./JobDetailPanel";
-import { Briefcase } from "lucide-react";
 
-const defaultFields = { notes: "", contacts: [], nextSteps: [], links: [] };
+interface KanbanBoardProps {
+  jobs: JobApplication[];
+  setJobs: React.Dispatch<React.SetStateAction<JobApplication[]>>;
+}
 
-const SAMPLE_JOBS: JobApplication[] = [
-  { id: "1", company: "Stripe", role: "Senior Frontend Engineer", columnId: "applied", createdAt: new Date().toISOString(), ...defaultFields },
-  { id: "2", company: "Vercel", role: "Full Stack Developer", columnId: "found", createdAt: new Date().toISOString(), ...defaultFields },
-  { id: "3", company: "Linear", role: "Product Engineer", columnId: "phone", createdAt: new Date().toISOString(), ...defaultFields },
-  { id: "4", company: "Figma", role: "Design Engineer", columnId: "found", createdAt: new Date().toISOString(), ...defaultFields },
-  { id: "5", company: "Notion", role: "Software Engineer", columnId: "interview2", createdAt: new Date().toISOString(), ...defaultFields },
-];
-
-const KanbanBoard = () => {
-  const [jobs, setJobs] = useState<JobApplication[]>(SAMPLE_JOBS);
+const KanbanBoard = ({ jobs, setJobs }: KanbanBoardProps) => {
   const [activeJob, setActiveJob] = useState<JobApplication | null>(null);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -73,21 +65,9 @@ const KanbanBoard = () => {
     setActiveJob(null);
   };
 
-  const addJob = useCallback((company: string, role: string, columnId: ColumnId) => {
-    const newJob: JobApplication = {
-      id: crypto.randomUUID(),
-      company,
-      role,
-      columnId,
-      createdAt: new Date().toISOString(),
-      ...defaultFields,
-    };
-    setJobs((prev) => [...prev, newJob]);
-  }, []);
-
   const deleteJob = useCallback((id: string) => {
     setJobs((prev) => prev.filter((j) => j.id !== id));
-  }, []);
+  }, [setJobs]);
 
   const handleCardClick = useCallback((job: JobApplication) => {
     setSelectedJob(job);
@@ -97,32 +77,13 @@ const KanbanBoard = () => {
   const handleSaveJob = useCallback((updated: JobApplication) => {
     setJobs((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
     setSelectedJob(updated);
-  }, []);
+  }, [setJobs]);
 
   const getColumnJobs = (columnId: ColumnId) =>
     jobs.filter((j) => j.columnId === columnId);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Briefcase className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight text-foreground">
-                JobTrackr
-              </h1>
-              <p className="text-xs text-muted-foreground font-mono">
-                {jobs.length} application{jobs.length !== 1 ? "s" : ""}
-              </p>
-            </div>
-          </div>
-          <AddJobDialog onAdd={addJob} />
-        </div>
-      </header>
-
+    <>
       <div className="flex-1 overflow-x-auto kanban-scrollbar p-6">
         <DndContext
           sensors={sensors}
@@ -159,7 +120,7 @@ const KanbanBoard = () => {
         onOpenChange={setPanelOpen}
         onSave={handleSaveJob}
       />
-    </div>
+    </>
   );
 };
 
