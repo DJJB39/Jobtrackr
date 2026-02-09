@@ -1,0 +1,34 @@
+export type ColumnId =
+  | "found"
+  | "applied"
+  | "phone"
+  | "interview2"
+  | "final"
+  | "offer"
+  | "accepted"
+  | "rejected";
+
+export interface JobApplication {
+  id: string;
+  company: string;
+  role: string;
+  columnId: ColumnId;
+  createdAt: string;
+}
+
+export interface Column {
+  id: ColumnId;
+  title: string;
+  colorClass: string;
+}
+
+export const COLUMNS: Column[] = [
+  { id: "found", title: "Found", colorClass: "bg-status-found" },
+  { id: "applied", title: "Applied", colorClass: "bg-status-applied" },
+  { id: "phone", title: "Phone Screen", colorClass: "bg-status-phone" },
+  { id: "interview2", title: "2nd Interview", colorClass: "bg-status-interview2" },
+  { id: "final", title: "Final Interview", colorClass: "bg-status-final" },
+  { id: "offer", title: "Offer", colorClass: "bg-status-offer" },
+  { id: "accepted", title: "Accepted", colorClass: "bg-status-accepted" },
+  { id: "rejected", title: "Rejected", colorClass: "bg-status-rejected" },
+];

@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -46,6 +50,20 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        column: {
+          DEFAULT: "hsl(var(--column-bg))",
+          header: "hsl(var(--column-header))",
+        },
+        status: {
+          found: "hsl(var(--status-found))",
+          applied: "hsl(var(--status-applied))",
+          phone: "hsl(var(--status-phone))",
+          interview2: "hsl(var(--status-interview2))",
+          final: "hsl(var(--status-final))",
+          offer: "hsl(var(--status-offer))",
+          accepted: "hsl(var(--status-accepted))",
+          rejected: "hsl(var(--status-rejected))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
