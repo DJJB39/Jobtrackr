@@ -8,12 +8,29 @@ export type ColumnId =
   | "accepted"
   | "rejected";
 
+export interface Contact {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+}
+
+export interface NextStep {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
 export interface JobApplication {
   id: string;
   company: string;
   role: string;
   columnId: ColumnId;
   createdAt: string;
+  notes: string;
+  contacts: Contact[];
+  nextSteps: NextStep[];
+  links: string[];
 }
 
 export interface Column {
