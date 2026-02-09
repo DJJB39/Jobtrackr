@@ -7,9 +7,10 @@ interface KanbanColumnProps {
   column: Column;
   jobs: JobApplication[];
   onDeleteJob: (id: string) => void;
+  onClickJob?: (job: JobApplication) => void;
 }
 
-const KanbanColumn = ({ column, jobs, onDeleteJob }: KanbanColumnProps) => {
+const KanbanColumn = ({ column, jobs, onDeleteJob, onClickJob }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   return (
@@ -36,7 +37,7 @@ const KanbanColumn = ({ column, jobs, onDeleteJob }: KanbanColumnProps) => {
       >
         <SortableContext items={jobs.map((j) => j.id)} strategy={verticalListSortingStrategy}>
           {jobs.map((job) => (
-            <JobCard key={job.id} job={job} onDelete={onDeleteJob} />
+            <JobCard key={job.id} job={job} onDelete={onDeleteJob} onClick={onClickJob} />
           ))}
         </SortableContext>
       </div>

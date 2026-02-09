@@ -14,19 +14,24 @@ import { COLUMNS, type ColumnId, type JobApplication } from "@/types/job";
 import KanbanColumn from "./KanbanColumn";
 import JobCard from "./JobCard";
 import AddJobDialog from "./AddJobDialog";
+import JobDetailPanel from "./JobDetailPanel";
 import { Briefcase } from "lucide-react";
 
+const defaultFields = { notes: "", contacts: [], nextSteps: [], links: [] };
+
 const SAMPLE_JOBS: JobApplication[] = [
-  { id: "1", company: "Stripe", role: "Senior Frontend Engineer", columnId: "applied", createdAt: new Date().toISOString() },
-  { id: "2", company: "Vercel", role: "Full Stack Developer", columnId: "found", createdAt: new Date().toISOString() },
-  { id: "3", company: "Linear", role: "Product Engineer", columnId: "phone", createdAt: new Date().toISOString() },
-  { id: "4", company: "Figma", role: "Design Engineer", columnId: "found", createdAt: new Date().toISOString() },
-  { id: "5", company: "Notion", role: "Software Engineer", columnId: "interview2", createdAt: new Date().toISOString() },
+  { id: "1", company: "Stripe", role: "Senior Frontend Engineer", columnId: "applied", createdAt: new Date().toISOString(), ...defaultFields },
+  { id: "2", company: "Vercel", role: "Full Stack Developer", columnId: "found", createdAt: new Date().toISOString(), ...defaultFields },
+  { id: "3", company: "Linear", role: "Product Engineer", columnId: "phone", createdAt: new Date().toISOString(), ...defaultFields },
+  { id: "4", company: "Figma", role: "Design Engineer", columnId: "found", createdAt: new Date().toISOString(), ...defaultFields },
+  { id: "5", company: "Notion", role: "Software Engineer", columnId: "interview2", createdAt: new Date().toISOString(), ...defaultFields },
 ];
 
 const KanbanBoard = () => {
   const [jobs, setJobs] = useState<JobApplication[]>(SAMPLE_JOBS);
   const [activeJob, setActiveJob] = useState<JobApplication | null>(null);
+  const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -44,7 +49,6 @@ const KanbanBoard = () => {
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Check if dropping over a column
     const overColumn = COLUMNS.find((c) => c.id === overId);
     if (overColumn) {
       setJobs((prev) =>
@@ -55,7 +59,6 @@ const KanbanBoard = () => {
       return;
     }
 
-    // Dropping over another job card
     const overJob = jobs.find((j) => j.id === overId);
     if (overJob) {
       setJobs((prev) =>
@@ -77,6 +80,7 @@ const KanbanBoard = () => {
       role,
       columnId,
       createdAt: new Date().toISOString(),
+      ...defaultFields,
     };
     setJobs((prev) => [...prev, newJob]);
   }, []);
@@ -85,12 +89,21 @@ const KanbanBoard = () => {
     setJobs((prev) => prev.filter((j) => j.id !== id));
   }, []);
 
+  const handleCardClick = useCallback((job: JobApplication) => {
+    setSelectedJob(job);
+    setPanelOpen(true);
+  }, []);
+
+  const handleSaveJob = useCallback((updated: JobApplication) => {
+    setJobs((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
+    setSelectedJob(updated);
+  }, []);
+
   const getColumnJobs = (columnId: ColumnId) =>
     jobs.filter((j) => j.columnId === columnId);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Header */}
       <header className="border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -110,7 +123,6 @@ const KanbanBoard = () => {
         </div>
       </header>
 
-      {/* Board */}
       <div className="flex-1 overflow-x-auto kanban-scrollbar p-6">
         <DndContext
           sensors={sensors}
@@ -126,6 +138,7 @@ const KanbanBoard = () => {
                 column={column}
                 jobs={getColumnJobs(column.id)}
                 onDeleteJob={deleteJob}
+                onClickJob={handleCardClick}
               />
             ))}
           </div>
@@ -139,6 +152,13 @@ const KanbanBoard = () => {
           </DragOverlay>
         </DndContext>
       </div>
+
+      <JobDetailPanel
+        job={selectedJob}
+        open={panelOpen}
+        onOpenChange={setPanelOpen}
+        onSave={handleSaveJob}
+      />
     </div>
   );
 };

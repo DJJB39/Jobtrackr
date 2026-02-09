@@ -6,9 +6,10 @@ import { GripVertical, Building2, Briefcase, Trash2 } from "lucide-react";
 interface JobCardProps {
   job: JobApplication;
   onDelete: (id: string) => void;
+  onClick?: (job: JobApplication) => void;
 }
 
-const JobCard = ({ job, onDelete }: JobCardProps) => {
+const JobCard = ({ job, onDelete, onClick }: JobCardProps) => {
   const {
     attributes,
     listeners,
@@ -27,7 +28,8 @@ const JobCard = ({ job, onDelete }: JobCardProps) => {
     <div
       ref={setNodeRef}
       style={style}
-      className={`group relative rounded-lg border border-border bg-card p-3 shadow-sm transition-all hover:shadow-md hover:bg-[hsl(var(--card-hover))] ${
+      onClick={() => onClick?.(job)}
+      className={`group relative cursor-pointer rounded-lg border border-border bg-card p-3 shadow-sm transition-all hover:shadow-md hover:bg-[hsl(var(--card-hover))] ${
         isDragging ? "opacity-50 shadow-lg scale-105 z-50" : ""
       }`}
     >
