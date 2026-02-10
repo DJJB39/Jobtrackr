@@ -18,9 +18,11 @@ import JobDetailPanel from "./JobDetailPanel";
 interface KanbanBoardProps {
   jobs: JobApplication[];
   setJobs: React.Dispatch<React.SetStateAction<JobApplication[]>>;
+  onUpdateJob: (job: JobApplication) => void;
+  onDeleteJob: (id: string) => void;
 }
 
-const KanbanBoard = ({ jobs, setJobs }: KanbanBoardProps) => {
+const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardProps) => {
   const [activeJob, setActiveJob] = useState<JobApplication | null>(null);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -62,12 +64,14 @@ const KanbanBoard = ({ jobs, setJobs }: KanbanBoardProps) => {
   };
 
   const handleDragEnd = (_event: DragEndEvent) => {
+    if (activeJob) {
+      const updated = jobs.find((j) => j.id === activeJob.id);
+      if (updated && updated.columnId !== activeJob.columnId) {
+        onUpdateJob(updated);
+      }
+    }
     setActiveJob(null);
   };
-
-  const deleteJob = useCallback((id: string) => {
-    setJobs((prev) => prev.filter((j) => j.id !== id));
-  }, [setJobs]);
 
   const handleCardClick = useCallback((job: JobApplication) => {
     setSelectedJob(job);
@@ -75,9 +79,9 @@ const KanbanBoard = ({ jobs, setJobs }: KanbanBoardProps) => {
   }, []);
 
   const handleSaveJob = useCallback((updated: JobApplication) => {
-    setJobs((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
+    onUpdateJob(updated);
     setSelectedJob(updated);
-  }, [setJobs]);
+  }, [onUpdateJob]);
 
   const getColumnJobs = (columnId: ColumnId) =>
     jobs.filter((j) => j.columnId === columnId);
@@ -98,7 +102,7 @@ const KanbanBoard = ({ jobs, setJobs }: KanbanBoardProps) => {
                 key={column.id}
                 column={column}
                 jobs={getColumnJobs(column.id)}
-                onDeleteJob={deleteJob}
+                onDeleteJob={onDeleteJob}
                 onClickJob={handleCardClick}
               />
             ))}
