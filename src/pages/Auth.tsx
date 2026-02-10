@@ -9,7 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
-  const [isLogin, setIsLogin] = useState(searchParams.get("tab") !== "signup");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">(
+    searchParams.get("tab") === "signup" ? "signup" : "login"
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,7 +32,17 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (isLogin) {
+      if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin,
+        });
+        if (error) throw error;
+        toast({
+          title: "Check your email",
+          description: "We sent you a password reset link.",
+        });
+        setMode("login");
+      } else if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
@@ -60,10 +72,10 @@ const Auth = () => {
             <Briefcase className="h-6 w-6 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">
-            {isLogin ? "Welcome back" : "Create your account"}
+            {mode === "login" ? "Welcome back" : mode === "signup" ? "Create your account" : "Reset password"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {isLogin ? "Sign in to your JobTrackr account" : "Start tracking your job applications"}
+            {mode === "login" ? "Sign in to your JobTrackr account" : mode === "signup" ? "Start tracking your job applications" : "Enter your email to receive a reset link"}
           </p>
         </div>
 
@@ -79,32 +91,64 @@ const Auth = () => {
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-            />
-          </div>
+          {mode !== "forgot" && (
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+            </div>
+          )}
+          {mode === "login" && (
+            <button
+              type="button"
+              onClick={() => setMode("forgot")}
+              className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+            >
+              Forgot password?
+            </button>
+          )}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLogin ? "Sign In" : "Sign Up"}
+            {mode === "login" ? "Sign In" : mode === "signup" ? "Sign Up" : "Send Reset Link"}
           </Button>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            {isLogin ? "Sign up" : "Sign in"}
-          </button>
+          {mode === "forgot" ? (
+            <button
+              onClick={() => setMode("login")}
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              Back to sign in
+            </button>
+          ) : mode === "login" ? (
+            <>
+              Don't have an account?{" "}
+              <button
+                onClick={() => setMode("signup")}
+                className="font-medium text-foreground underline-offset-4 hover:underline"
+              >
+                Sign up
+              </button>
+            </>
+          ) : (
+            <>
+              Already have an account?{" "}
+              <button
+                onClick={() => setMode("login")}
+                className="font-medium text-foreground underline-offset-4 hover:underline"
+              >
+                Sign in
+              </button>
+            </>
+          )}
         </p>
       </div>
     </div>
