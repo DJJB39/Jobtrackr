@@ -46,6 +46,8 @@ export interface JobApplication {
   applicationType: string;
   location?: string;
   description?: string;
+  salary?: string;
+  closeDate?: string;
 }
 
 export interface Column {

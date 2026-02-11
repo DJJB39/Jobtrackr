@@ -17,6 +17,7 @@ export type Database = {
       job_applications: {
         Row: {
           application_type: string
+          close_date: string | null
           column_id: string
           company: string
           contacts: Json
@@ -28,11 +29,13 @@ export type Database = {
           next_steps: Json
           notes: string
           role: string
+          salary: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           application_type?: string
+          close_date?: string | null
           column_id?: string
           company: string
           contacts?: Json
@@ -44,11 +47,13 @@ export type Database = {
           next_steps?: Json
           notes?: string
           role: string
+          salary?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           application_type?: string
+          close_date?: string | null
           column_id?: string
           company?: string
           contacts?: Json
@@ -60,6 +65,7 @@ export type Database = {
           next_steps?: Json
           notes?: string
           role?: string
+          salary?: string | null
           updated_at?: string
           user_id?: string
         }

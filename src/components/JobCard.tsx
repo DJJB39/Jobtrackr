@@ -1,7 +1,19 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { JobApplication } from "@/types/job";
-import { GripVertical, Building2, Briefcase, Trash2, MapPin } from "lucide-react";
+import { GripVertical, Building2, Briefcase, Trash2, MapPin, DollarSign, CalendarDays, ExternalLink } from "lucide-react";
+import { differenceInDays, parseISO, format } from "date-fns";
+
+const isClosingSoon = (dateStr: string) => {
+  try {
+    return differenceInDays(parseISO(dateStr), new Date()) < 7;
+  } catch { return false; }
+};
+
+const formatDeadline = (dateStr: string) => {
+  try { return format(parseISO(dateStr), "MMM d"); }
+  catch { return dateStr; }
+};
 
 interface JobCardProps {
   job: JobApplication;
@@ -57,14 +69,35 @@ const JobCard = ({ job, onDelete, onClick }: JobCardProps) => {
               <span className="truncate">{job.location}</span>
             </div>
           )}
+          {job.salary && (
+            <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
+              <DollarSign className="h-2.5 w-2.5" />
+              <span className="truncate">{job.salary}</span>
+            </div>
+          )}
+          {job.closeDate && (
+            <div className={`mt-1 flex items-center gap-1 text-[10px] ${
+              isClosingSoon(job.closeDate) ? "text-destructive font-medium" : "text-muted-foreground"
+            }`}>
+              <CalendarDays className="h-2.5 w-2.5" />
+              <span>{formatDeadline(job.closeDate)}</span>
+            </div>
+          )}
           {job.applicationType && job.applicationType !== "Other" && (
             <span className="mt-1.5 inline-block rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
               {job.applicationType}
             </span>
           )}
         </div>
+        {job.links?.[0] && (
+          <a href={job.links[0]} target="_blank" rel="noopener noreferrer"
+             onClick={(e) => e.stopPropagation()}
+             className="mt-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100">
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        )}
         <button
-          onClick={() => onDelete(job.id)}
+          onClick={(e) => { e.stopPropagation(); onDelete(job.id); }}
           className="mt-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
           aria-label="Delete application"
         >
