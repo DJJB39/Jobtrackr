@@ -80,17 +80,30 @@ const getLocation = (ld: any): string | null => {
   return null;
 };
 
-const splitTitle = (title: string): { role: string; company: string | null } => {
+const splitTitle = (title: string): { role: string; company: string | null; location: string | null } => {
+  // LinkedIn "hiring" pattern: "Company is hiring a Role in Location"
+  const hiringMatch = title.match(/^(.+?)\s+(?:is\s+)?hiring\s+(?:a\s+|an\s+)?(.+?)(?:\s+in\s+(.+?))?(?:\s*[|\-—]|$)/i);
+  if (hiringMatch) {
+    return {
+      role: hiringMatch[2].trim(),
+      company: hiringMatch[1].trim(),
+      location: hiringMatch[3]?.trim() || null,
+    };
+  }
+  // Standard separators
   for (const sep of [" at ", " @ ", " - ", " | ", " — "]) {
     const idx = title.indexOf(sep);
     if (idx > 0) {
+      const afterSep = title.slice(idx + sep.length);
+      const parts = afterSep.split(/[|\-—]/);
       return {
         role: title.slice(0, idx).trim(),
-        company: title.slice(idx + sep.length).split(/[|\-—]/).at(0)?.trim() || null,
+        company: parts[0]?.trim() || null,
+        location: null,
       };
     }
   }
-  return { role: title, company: null };
+  return { role: title, company: null, location: null };
 };
 
 Deno.serve(async (req: Request) => {
@@ -109,15 +122,16 @@ Deno.serve(async (req: Request) => {
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
     let html: string;
     try {
       const res = await fetch(url, {
         signal: controller.signal,
         headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; JobTrackrBot/1.0; +https://brs39.lovable.app)",
-          Accept: "text/html,application/xhtml+xml",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+          "Accept-Language": "en-GB,en;q=0.9",
         },
       });
       html = await res.text();
@@ -158,7 +172,13 @@ Deno.serve(async (req: Request) => {
 
     if (ogTitle || ogSite) partial = false;
 
-    if (!title && ogTitle) title = ogTitle;
+    if (!title && ogTitle) {
+      // Try splitting OG title for hiring patterns
+      const split = splitTitle(ogTitle);
+      title = split.role;
+      if (!company) company = split.company;
+      if (!location && split.location) location = split.location;
+    }
     if (!company && ogSite) company = ogSite;
     if (!description && ogDesc) description = ogDesc?.slice(0, 500) || null;
 
@@ -169,7 +189,14 @@ Deno.serve(async (req: Request) => {
         const split = splitTitle(rawTitle);
         title = split.role;
         if (!company) company = split.company;
+        if (!location && split.location) location = split.location;
       }
+    }
+
+    // Hint for partial results
+    let hint: string | null = null;
+    if (partial && url.includes("linkedin.com")) {
+      hint = "LinkedIn may require login — partial data from title only";
     }
 
     return new Response(
@@ -184,6 +211,7 @@ Deno.serve(async (req: Request) => {
           url,
         },
         partial,
+        hint,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

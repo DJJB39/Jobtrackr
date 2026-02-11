@@ -71,7 +71,7 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
       setAutoFilled(filled);
 
       if (data.partial) {
-        toast({ title: "Partial data fetched", description: "Review and complete manually" });
+        toast({ title: "Partial data loaded", description: data.hint || "Review and complete manually" });
       } else {
         toast({ title: "Job details loaded!" });
       }
