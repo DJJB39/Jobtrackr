@@ -35,6 +35,13 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [filterType, setFilterType] = useState("All");
+  const [filterStage, setFilterStage] = useState("all_stages");
+  const [filterRole, setFilterRole] = useState("all_roles");
+
+  const uniqueRoles = useMemo(
+    () => Array.from(new Set(jobs.map((j) => j.role).filter(Boolean))).sort(),
+    [jobs]
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -92,9 +99,20 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
     setSelectedJob(updated);
   }, [onUpdateJob]);
 
-  const filteredJobs = useMemo(
-    () => filterType === "All" ? jobs : jobs.filter((j) => j.applicationType === filterType),
-    [jobs, filterType]
+  const filteredJobs = useMemo(() => {
+    let result = jobs;
+    if (filterType !== "All") {
+      result = result.filter((j) => j.applicationType === filterType);
+    }
+    if (filterRole !== "all_roles") {
+      result = result.filter((j) => j.role.toLowerCase().includes(filterRole.toLowerCase()));
+    }
+    return result;
+  }, [jobs, filterType, filterRole]);
+
+  const visibleColumns = useMemo(
+    () => filterStage === "all_stages" ? COLUMNS : COLUMNS.filter((c) => c.id === filterStage),
+    [filterStage]
   );
 
   const getColumnJobs = (columnId: ColumnId) =>
@@ -103,10 +121,10 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
   return (
     <>
       {/* Filter bar */}
-      <div className="flex items-center gap-2 px-6 pt-4 pb-0">
+      <div className="flex flex-wrap items-center gap-2 px-6 pt-4 pb-0">
         <Filter className="h-4 w-4 text-muted-foreground" />
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[200px] h-9">
+          <SelectTrigger className="w-[180px] h-9">
             <SelectValue placeholder="Filter by type" />
           </SelectTrigger>
           <SelectContent>
@@ -117,7 +135,36 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
             ))}
           </SelectContent>
         </Select>
+
+        <Select value={filterStage} onValueChange={setFilterStage}>
+          <SelectTrigger className="w-[180px] h-9">
+            <SelectValue placeholder="Filter by stage" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all_stages">All Stages</SelectItem>
+            {COLUMNS.map((col) => (
+              <SelectItem key={col.id} value={col.id}>
+                {col.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterRole} onValueChange={setFilterRole}>
+          <SelectTrigger className="w-[180px] h-9">
+            <SelectValue placeholder="Filter by role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all_roles">All Roles</SelectItem>
+            {uniqueRoles.map((role) => (
+              <SelectItem key={role} value={role}>
+                {role}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
       <div className="flex-1 overflow-x-auto kanban-scrollbar p-6">
         <DndContext
           sensors={sensors}
@@ -127,7 +174,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
           onDragEnd={handleDragEnd}
         >
           <div className="flex gap-4">
-            {COLUMNS.map((column) => (
+            {visibleColumns.map((column) => (
               <KanbanColumn
                 key={column.id}
                 column={column}
