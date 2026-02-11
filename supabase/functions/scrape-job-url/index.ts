@@ -80,6 +80,33 @@ const getLocation = (ld: any): string | null => {
   return null;
 };
 
+const getCloseDate = (ld: any): string | null => {
+  const raw = ld.validThrough || ld.applicationDeadline;
+  if (!raw) return null;
+  try {
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString().split("T")[0];
+  } catch { return null; }
+};
+
+const getCloseDateFromHtml = (html: string): string | null => {
+  const patterns = [
+    /(?:apply\s+by|closes?\s+on|deadline[:\s]+)[\s]*([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})/i,
+    /(?:apply\s+by|closes?\s+on|deadline[:\s]+)[\s]*(\d{4}-\d{2}-\d{2})/i,
+  ];
+  for (const re of patterns) {
+    const m = html.match(re);
+    if (m) {
+      try {
+        const d = new Date(m[1]);
+        if (!isNaN(d.getTime())) return d.toISOString().split("T")[0];
+      } catch {}
+    }
+  }
+  return null;
+};
+
 const splitTitle = (title: string): { role: string; company: string | null; location: string | null } => {
   // LinkedIn "hiring" pattern: "Company is hiring a Role in Location"
   const hiringMatch = title.match(/^(.+?)\s+(?:is\s+)?hiring\s+(?:a\s+|an\s+)?(.+?)(?:\s+in\s+(.+?))?(?:\s*[|\-—]|$)/i);
@@ -165,6 +192,10 @@ Deno.serve(async (req: Request) => {
       partial = false;
     }
 
+    let closeDate: string | null = null;
+    if (ld) closeDate = getCloseDate(ld);
+    if (!closeDate) closeDate = getCloseDateFromHtml(html);
+
     // OG tags (fill gaps)
     const ogTitle = getMeta(html, "og:title");
     const ogSite = getMeta(html, "og:site_name");
@@ -195,8 +226,14 @@ Deno.serve(async (req: Request) => {
 
     // Hint for partial results
     let hint: string | null = null;
-    if (partial && url.includes("linkedin.com")) {
-      hint = "LinkedIn may require login — partial data from title only";
+    if (partial) {
+      if (url.includes("linkedin.com")) {
+        hint = "LinkedIn may require login — partial data from title only";
+      } else if (url.includes("indeed.com")) {
+        hint = "Indeed may block scraping — partial data extracted";
+      } else {
+        hint = "Limited metadata found — review and complete manually";
+      }
     }
 
     return new Response(
@@ -208,6 +245,7 @@ Deno.serve(async (req: Request) => {
           description: description || null,
           location: location || null,
           salary: salary || null,
+          close_date: closeDate || null,
           url,
         },
         partial,
@@ -216,6 +254,7 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
+    console.error("scrape-job-url error:", e);
     return new Response(
       JSON.stringify({ success: false, error: "Internal error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -24,6 +24,7 @@ import {
   ExternalLink,
   MapPin,
   FileText,
+  DollarSign,
 } from "lucide-react";
 import type { JobApplication, Contact, NextStep } from "@/types/job";
 import { COLUMNS, APPLICATION_TYPES } from "@/types/job";
@@ -114,6 +115,13 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps
           <SheetTitle className="text-lg font-bold">{editedJob.company}</SheetTitle>
         </SheetHeader>
 
+        {editedJob.links?.[0] && (
+          <a href={editedJob.links[0]} target="_blank" rel="noopener noreferrer"
+             className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline px-6 pt-2">
+            <ExternalLink className="h-3 w-3" /> View Original Posting
+          </a>
+        )}
+
         <div className="space-y-6 px-6 py-5">
           {/* Company & Role */}
           <section className="space-y-3">
@@ -183,6 +191,26 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps
                 onChange={(e) => update("description", e.target.value.slice(0, 500) || undefined)}
                 className="min-h-[80px] resize-none"
                 maxLength={500}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <DollarSign className="h-3.5 w-3.5" /> Salary / Range
+              </Label>
+              <Input
+                placeholder="e.g. $120k-$150k"
+                value={editedJob.salary ?? ""}
+                onChange={(e) => update("salary", e.target.value || undefined)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CalendarDays className="h-3.5 w-3.5" /> Application Deadline
+              </Label>
+              <Input
+                type="date"
+                value={editedJob.closeDate ?? ""}
+                onChange={(e) => update("closeDate", e.target.value || undefined)}
               />
             </div>
           </section>

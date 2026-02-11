@@ -32,6 +32,8 @@ const rowToJob = (row: DbRow): JobApplication => ({
   applicationType: row.application_type ?? "Other",
   location: (row as any).location ?? undefined,
   description: (row as any).description ?? undefined,
+  salary: (row as any).salary ?? undefined,
+  closeDate: (row as any).close_date ?? undefined,
 });
 
 export const useJobs = () => {
@@ -62,7 +64,7 @@ export const useJobs = () => {
     role: string,
     columnId: ColumnId,
     applicationType: string = "Other",
-    extras?: { location?: string; description?: string; links?: string[] }
+    extras?: { location?: string; description?: string; links?: string[]; salary?: string; closeDate?: string }
   ) => {
     if (!user) return;
     const { data, error } = await supabase
@@ -76,6 +78,8 @@ export const useJobs = () => {
         ...(extras?.location ? { location: extras.location } : {}),
         ...(extras?.description ? { description: extras.description } : {}),
         ...(extras?.links ? { links: extras.links } : {}),
+        ...(extras?.salary ? { salary: extras.salary } : {}),
+        ...(extras?.closeDate ? { close_date: extras.closeDate } : {}),
       } as any)
       .select()
       .single();
@@ -104,6 +108,8 @@ export const useJobs = () => {
         application_type: job.applicationType,
         location: job.location ?? null,
         description: job.description ?? null,
+        salary: job.salary ?? null,
+        close_date: job.closeDate ?? null,
       } as any)
       .eq("id", job.id);
 

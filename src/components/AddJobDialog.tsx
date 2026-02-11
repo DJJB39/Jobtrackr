@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Link as LinkIcon, Loader2 } from "lucide-react";
+import { Plus, Link as LinkIcon, Loader2, DollarSign, CalendarDays, Undo2 } from "lucide-react";
 import { COLUMNS, APPLICATION_TYPES, type ColumnId } from "@/types/job";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +27,7 @@ interface AddJobDialogProps {
     role: string,
     columnId: ColumnId,
     applicationType: string,
-    extras?: { location?: string; description?: string; links?: string[] }
+    extras?: { location?: string; description?: string; links?: string[]; salary?: string; closeDate?: string }
   ) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -45,18 +45,24 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
   const [fetching, setFetching] = useState(false);
   const [fetchedLocation, setFetchedLocation] = useState("");
   const [fetchedDescription, setFetchedDescription] = useState("");
+  const [fetchedSalary, setFetchedSalary] = useState("");
+  const [fetchedCloseDate, setFetchedCloseDate] = useState("");
   const [autoFilled, setAutoFilled] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   const companyRef = useRef<HTMLInputElement>(null);
   const roleRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastFetchedUrl = useRef("");
 
-  const handleFetch = async () => {
-    if (!jobUrl.trim()) return;
+  const handleFetch = async (urlOverride?: string) => {
+    const targetUrl = (urlOverride ?? jobUrl).trim();
+    if (!targetUrl || fetching) return;
+    lastFetchedUrl.current = targetUrl;
     setFetching(true);
     try {
       const { data, error } = await supabase.functions.invoke("scrape-job-url", {
-        body: { url: jobUrl.trim() },
+        body: { url: targetUrl },
       });
       if (error || !data?.success) {
         toast({ title: "Couldn't fetch details", description: "Enter manually", variant: "destructive" });
@@ -68,15 +74,16 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
       if (d.title && !role) { setRole(d.title); filled.add("role"); }
       if (d.location) { setFetchedLocation(d.location); filled.add("location"); }
       if (d.description) { setFetchedDescription(d.description); filled.add("description"); }
+      if (d.salary) { setFetchedSalary(d.salary); filled.add("salary"); }
+      if (d.close_date) { setFetchedCloseDate(d.close_date); filled.add("closeDate"); }
       setAutoFilled(filled);
 
       if (data.partial) {
         toast({ title: "Partial data loaded", description: data.hint || "Review and complete manually" });
       } else {
-        toast({ title: "Job details loaded!" });
+        toast({ title: "Job details loaded!", description: d.salary ? "Salary info found" : undefined });
       }
 
-      // Focus first empty required field
       setTimeout(() => {
         if (!d.company && !company) companyRef.current?.focus();
         else if (!d.title && !role) roleRef.current?.focus();
@@ -86,6 +93,33 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
     } finally {
       setFetching(false);
     }
+  };
+
+  const triggerDebouncedFetch = (url: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => handleFetch(url), 600);
+  };
+
+  const handleUrlPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = e.clipboardData.getData("text");
+    if (pasted) triggerDebouncedFetch(pasted);
+  };
+
+  const handleUrlBlur = () => {
+    const url = jobUrl.trim();
+    if (url && url !== lastFetchedUrl.current && !fetching) {
+      triggerDebouncedFetch(url);
+    }
+  };
+
+  const undoAutoFill = () => {
+    setCompany("");
+    setRole("");
+    setFetchedLocation("");
+    setFetchedDescription("");
+    setFetchedSalary("");
+    setFetchedCloseDate("");
+    setAutoFilled(new Set());
   };
 
   const clearAutoFill = (field: string) => {
@@ -100,6 +134,8 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
       location: fetchedLocation || undefined,
       description: fetchedDescription || undefined,
       links,
+      salary: fetchedSalary || undefined,
+      closeDate: fetchedCloseDate || undefined,
     });
     setCompany("");
     setRole("");
@@ -108,7 +144,10 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
     setJobUrl("");
     setFetchedLocation("");
     setFetchedDescription("");
+    setFetchedSalary("");
+    setFetchedCloseDate("");
     setAutoFilled(new Set());
+    lastFetchedUrl.current = "";
     setOpen(false);
   };
 
@@ -137,19 +176,26 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
                 placeholder="https://..."
                 value={jobUrl}
                 onChange={(e) => setJobUrl(e.target.value)}
+                onPaste={handleUrlPaste}
+                onBlur={handleUrlBlur}
                 className="flex-1"
               />
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleFetch}
+                onClick={() => handleFetch()}
                 disabled={fetching || !jobUrl.trim()}
                 className="shrink-0"
               >
                 {fetching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Fetch"}
               </Button>
             </div>
+            {autoFilled.size > 0 && (
+              <Button type="button" variant="ghost" size="sm" onClick={undoAutoFill} className="h-7 gap-1.5 text-xs text-muted-foreground">
+                <Undo2 className="h-3 w-3" /> Undo Auto-Fill
+              </Button>
+            )}
           </div>
 
           {/* Company */}
@@ -219,6 +265,40 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Salary */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5" /> Salary / Range
+              </Label>
+              {autoFilled.has("salary") && (
+                <span className="text-[10px] text-muted-foreground">Auto-filled</span>
+              )}
+            </div>
+            <Input
+              placeholder="e.g. $120k-$150k"
+              value={fetchedSalary}
+              onChange={(e) => { setFetchedSalary(e.target.value); clearAutoFill("salary"); }}
+            />
+          </div>
+
+          {/* Application Deadline */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="flex items-center gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5" /> Application Deadline
+              </Label>
+              {autoFilled.has("closeDate") && (
+                <span className="text-[10px] text-muted-foreground">Auto-filled</span>
+              )}
+            </div>
+            <Input
+              type="date"
+              value={fetchedCloseDate}
+              onChange={(e) => { setFetchedCloseDate(e.target.value); clearAutoFill("closeDate"); }}
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
