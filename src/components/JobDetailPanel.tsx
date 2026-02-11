@@ -24,7 +24,14 @@ import {
   ExternalLink,
 } from "lucide-react";
 import type { JobApplication, Contact, NextStep } from "@/types/job";
-import { COLUMNS } from "@/types/job";
+import { COLUMNS, APPLICATION_TYPES } from "@/types/job";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { format } from "date-fns";
 
 interface JobDetailPanelProps {
@@ -133,6 +140,26 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps
               <p className="text-sm text-foreground font-mono">
                 {format(new Date(editedJob.createdAt), "PPP")}
               </p>
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Briefcase className="h-3.5 w-3.5" /> Application Type
+              </Label>
+              <Select
+                value={editedJob.applicationType}
+                onValueChange={(v) => update("applicationType", v)}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {APPLICATION_TYPES.filter((t) => t !== "All").map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </section>
 

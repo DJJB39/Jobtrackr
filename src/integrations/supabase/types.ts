@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       job_applications: {
         Row: {
+          application_type: string
           column_id: string
           company: string
           contacts: Json
@@ -29,6 +30,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          application_type?: string
           column_id?: string
           company: string
           contacts?: Json
@@ -42,6 +44,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          application_type?: string
           column_id?: string
           company?: string
           contacts?: Json

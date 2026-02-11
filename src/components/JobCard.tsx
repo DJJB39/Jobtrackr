@@ -51,6 +51,11 @@ const JobCard = ({ job, onDelete, onClick }: JobCardProps) => {
             <Briefcase className="h-3 w-3 shrink-0" />
             <span className="truncate">{job.role}</span>
           </div>
+          {job.applicationType && job.applicationType !== "Other" && (
+            <span className="mt-1.5 inline-block rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {job.applicationType}
+            </span>
+          )}
         </div>
         <button
           onClick={() => onDelete(job.id)}

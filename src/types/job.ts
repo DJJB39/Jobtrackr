@@ -21,6 +21,18 @@ export interface NextStep {
   done: boolean;
 }
 
+export const APPLICATION_TYPES = [
+  "All",
+  "Frontend",
+  "Backend",
+  "Full Stack",
+  "Design",
+  "Product",
+  "Other",
+] as const;
+
+export type ApplicationType = (typeof APPLICATION_TYPES)[number];
+
 export interface JobApplication {
   id: string;
   company: string;
@@ -31,6 +43,7 @@ export interface JobApplication {
   contacts: Contact[];
   nextSteps: NextStep[];
   links: string[];
+  applicationType: string;
 }
 
 export interface Column {
