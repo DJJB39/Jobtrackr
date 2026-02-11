@@ -67,6 +67,7 @@ export const useJobs = () => {
       toast({ title: "Error adding job", description: error.message, variant: "destructive" });
     } else {
       setJobs((prev) => [...prev, rowToJob(data as DbRow)]);
+      toast({ title: "Application added", description: `${company} — ${role} has been added` });
     }
   }, [user, toast]);
 
@@ -90,6 +91,8 @@ export const useJobs = () => {
     if (error) {
       toast({ title: "Error saving", description: error.message, variant: "destructive" });
       fetchJobs();
+    } else {
+      toast({ title: "Application saved", description: "Changes saved successfully" });
     }
   }, [toast, fetchJobs]);
 
@@ -99,6 +102,8 @@ export const useJobs = () => {
     if (error) {
       toast({ title: "Error deleting", description: error.message, variant: "destructive" });
       fetchJobs();
+    } else {
+      toast({ title: "Application deleted", description: "The application has been removed" });
     }
   }, [toast, fetchJobs]);
 

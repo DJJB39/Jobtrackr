@@ -21,10 +21,14 @@ import { COLUMNS, APPLICATION_TYPES, type ColumnId } from "@/types/job";
 
 interface AddJobDialogProps {
   onAdd: (company: string, role: string, columnId: ColumnId, applicationType: string) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const AddJobDialog = ({ onAdd }: AddJobDialogProps) => {
-  const [open, setOpen] = useState(false);
+const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenChange }: AddJobDialogProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = externalOpen ?? internalOpen;
+  const setOpen = externalOnOpenChange ?? setInternalOpen;
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
   const [columnId, setColumnId] = useState<ColumnId>("found");
@@ -43,12 +47,14 @@ const AddJobDialog = ({ onAdd }: AddJobDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Application
-        </Button>
-      </DialogTrigger>
+      {externalOpen === undefined && (
+        <DialogTrigger asChild>
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Application
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>New Job Application</DialogTitle>
