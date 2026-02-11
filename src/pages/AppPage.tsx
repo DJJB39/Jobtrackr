@@ -20,14 +20,16 @@ const AppPage = () => {
 
   const exportToCSV = () => {
     const stageMap = Object.fromEntries(COLUMNS.map((c) => [c.id, c.title]));
-    const headers = ["Company", "Role", "Stage", "Type", "Created", "Notes", "Links"];
+    const headers = ["Company", "Role", "Stage", "Type", "Created", "Location", "Notes", "Description", "Links"];
     const rows = jobs.map((j) => [
       j.company,
       j.role,
       stageMap[j.columnId] ?? j.columnId,
       j.applicationType,
       j.createdAt,
+      j.location ?? "",
       (j.notes ?? "").slice(0, 100).replace(/"/g, '""'),
+      (j.description ?? "").slice(0, 100).replace(/"/g, '""'),
       (j.links ?? []).join("; "),
     ]);
     const csv = [headers, ...rows].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");

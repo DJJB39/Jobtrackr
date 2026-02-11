@@ -44,6 +44,8 @@ export interface JobApplication {
   nextSteps: NextStep[];
   links: string[];
   applicationType: string;
+  location?: string;
+  description?: string;
 }
 
 export interface Column {

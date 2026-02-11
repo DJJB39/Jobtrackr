@@ -22,6 +22,8 @@ import {
   ListChecks,
   StickyNote,
   ExternalLink,
+  MapPin,
+  FileText,
 } from "lucide-react";
 import type { JobApplication, Contact, NextStep } from "@/types/job";
 import { COLUMNS, APPLICATION_TYPES } from "@/types/job";
@@ -160,6 +162,28 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5" /> Location
+              </Label>
+              <Input
+                placeholder="e.g. San Francisco, CA"
+                value={editedJob.location ?? ""}
+                onChange={(e) => update("location", e.target.value || undefined)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <FileText className="h-3.5 w-3.5" /> Description
+              </Label>
+              <Textarea
+                placeholder="Short description of the role..."
+                value={editedJob.description ?? ""}
+                onChange={(e) => update("description", e.target.value.slice(0, 500) || undefined)}
+                className="min-h-[80px] resize-none"
+                maxLength={500}
+              />
             </div>
           </section>
 

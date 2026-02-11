@@ -30,6 +30,8 @@ const rowToJob = (row: DbRow): JobApplication => ({
   nextSteps: (row.next_steps ?? []) as NextStep[],
   links: (row.links ?? []) as string[],
   applicationType: row.application_type ?? "Other",
+  location: (row as any).location ?? undefined,
+  description: (row as any).description ?? undefined,
 });
 
 export const useJobs = () => {
@@ -55,11 +57,26 @@ export const useJobs = () => {
 
   useEffect(() => { fetchJobs(); }, [fetchJobs]);
 
-  const addJob = useCallback(async (company: string, role: string, columnId: ColumnId, applicationType: string = "Other") => {
+  const addJob = useCallback(async (
+    company: string,
+    role: string,
+    columnId: ColumnId,
+    applicationType: string = "Other",
+    extras?: { location?: string; description?: string; links?: string[] }
+  ) => {
     if (!user) return;
     const { data, error } = await supabase
       .from("job_applications")
-      .insert({ user_id: user.id, company, role, column_id: columnId, application_type: applicationType })
+      .insert({
+        user_id: user.id,
+        company,
+        role,
+        column_id: columnId,
+        application_type: applicationType,
+        ...(extras?.location ? { location: extras.location } : {}),
+        ...(extras?.description ? { description: extras.description } : {}),
+        ...(extras?.links ? { links: extras.links } : {}),
+      } as any)
       .select()
       .single();
 
@@ -85,7 +102,9 @@ export const useJobs = () => {
         next_steps: job.nextSteps as any,
         links: job.links as any,
         application_type: job.applicationType,
-      })
+        location: job.location ?? null,
+        description: job.description ?? null,
+      } as any)
       .eq("id", job.id);
 
     if (error) {

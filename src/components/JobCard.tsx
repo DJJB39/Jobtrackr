@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { JobApplication } from "@/types/job";
-import { GripVertical, Building2, Briefcase, Trash2 } from "lucide-react";
+import { GripVertical, Building2, Briefcase, Trash2, MapPin } from "lucide-react";
 
 interface JobCardProps {
   job: JobApplication;
@@ -51,6 +51,12 @@ const JobCard = ({ job, onDelete, onClick }: JobCardProps) => {
             <Briefcase className="h-3 w-3 shrink-0" />
             <span className="truncate">{job.role}</span>
           </div>
+          {job.location && (
+            <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
+              <MapPin className="h-2.5 w-2.5" />
+              <span className="truncate">{job.location}</span>
+            </div>
+          )}
           {job.applicationType && job.applicationType !== "Other" && (
             <span className="mt-1.5 inline-block rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
               {job.applicationType}
