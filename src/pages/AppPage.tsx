@@ -3,14 +3,43 @@ import KanbanBoard from "@/components/KanbanBoard";
 import Dashboard from "@/components/Dashboard";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
-import { Briefcase, LayoutDashboard, Columns3, Loader2 } from "lucide-react";
+import { Briefcase, LayoutDashboard, Columns3, Loader2, Download } from "lucide-react";
 import { useJobs } from "@/hooks/useJobs";
+import { Button } from "@/components/ui/button";
+import { COLUMNS } from "@/types/job";
+import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 type View = "board" | "dashboard";
 
 const AppPage = () => {
   const { jobs, setJobs, loading, addJob, updateJob, deleteJob } = useJobs();
   const [view, setView] = useState<View>("board");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { toast } = useToast();
+
+  const exportToCSV = () => {
+    const stageMap = Object.fromEntries(COLUMNS.map((c) => [c.id, c.title]));
+    const headers = ["Company", "Role", "Stage", "Type", "Created", "Notes", "Links"];
+    const rows = jobs.map((j) => [
+      j.company,
+      j.role,
+      stageMap[j.columnId] ?? j.columnId,
+      j.applicationType,
+      j.createdAt,
+      (j.notes ?? "").slice(0, 100).replace(/"/g, '""'),
+      (j.links ?? []).join("; "),
+    ]);
+    const csv = [headers, ...rows].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `jobtrackr-export-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "CSV exported", description: `${jobs.length} application(s) exported` });
+  };
 
   if (loading) {
     return (
@@ -61,13 +90,30 @@ const AppPage = () => {
                 Dashboard
               </button>
             </nav>
+            <Button variant="outline" size="sm" className="gap-2" onClick={exportToCSV} disabled={jobs.length === 0}>
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Export CSV</span>
+            </Button>
             <AddJobDialog onAdd={addJob} />
             <UserMenu />
           </div>
         </div>
       </header>
 
-      {view === "board" ? (
+      {jobs.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6">
+          <Briefcase className="h-16 w-16 text-muted-foreground/50" />
+          <div className="text-center">
+            <h2 className="text-lg font-semibold text-foreground">No applications yet</h2>
+            <p className="text-sm text-muted-foreground mt-1">Add your first job to get started</p>
+          </div>
+          <Button onClick={() => setDialogOpen(true)} className="gap-2">
+            <Briefcase className="h-4 w-4" />
+            Add Application
+          </Button>
+          <AddJobDialog onAdd={addJob} open={dialogOpen} onOpenChange={setDialogOpen} />
+        </div>
+      ) : view === "board" ? (
         <KanbanBoard jobs={jobs} setJobs={setJobs} onUpdateJob={updateJob} onDeleteJob={deleteJob} />
       ) : (
         <Dashboard jobs={jobs} />

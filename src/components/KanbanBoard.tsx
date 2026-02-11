@@ -21,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Filter } from "lucide-react";
+import { Filter, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface KanbanBoardProps {
   jobs: JobApplication[];
@@ -163,6 +164,22 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
             ))}
           </SelectContent>
         </Select>
+
+        {(filterType !== "All" || filterStage !== "all_stages" || filterRole !== "all_roles") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 gap-1.5 text-muted-foreground"
+            onClick={() => {
+              setFilterType("All");
+              setFilterStage("all_stages");
+              setFilterRole("all_roles");
+            }}
+          >
+            <X className="h-3.5 w-3.5" />
+            Clear Filters
+          </Button>
+        )}
       </div>
 
       <div className="flex-1 overflow-x-auto kanban-scrollbar p-6">
