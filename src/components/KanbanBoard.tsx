@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -10,10 +10,18 @@ import {
   type DragEndEvent,
   closestCorners,
 } from "@dnd-kit/core";
-import { COLUMNS, type ColumnId, type JobApplication } from "@/types/job";
+import { COLUMNS, APPLICATION_TYPES, type ColumnId, type JobApplication } from "@/types/job";
 import KanbanColumn from "./KanbanColumn";
 import JobCard from "./JobCard";
 import JobDetailPanel from "./JobDetailPanel";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Filter } from "lucide-react";
 
 interface KanbanBoardProps {
   jobs: JobApplication[];
@@ -26,6 +34,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
   const [activeJob, setActiveJob] = useState<JobApplication | null>(null);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [filterType, setFilterType] = useState("All");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -83,11 +92,32 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
     setSelectedJob(updated);
   }, [onUpdateJob]);
 
+  const filteredJobs = useMemo(
+    () => filterType === "All" ? jobs : jobs.filter((j) => j.applicationType === filterType),
+    [jobs, filterType]
+  );
+
   const getColumnJobs = (columnId: ColumnId) =>
-    jobs.filter((j) => j.columnId === columnId);
+    filteredJobs.filter((j) => j.columnId === columnId);
 
   return (
     <>
+      {/* Filter bar */}
+      <div className="flex items-center gap-2 px-6 pt-4 pb-0">
+        <Filter className="h-4 w-4 text-muted-foreground" />
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-[200px] h-9">
+            <SelectValue placeholder="Filter by type" />
+          </SelectTrigger>
+          <SelectContent>
+            {APPLICATION_TYPES.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex-1 overflow-x-auto kanban-scrollbar p-6">
         <DndContext
           sensors={sensors}

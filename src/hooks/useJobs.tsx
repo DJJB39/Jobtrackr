@@ -14,6 +14,7 @@ interface DbRow {
   contacts: any;
   next_steps: any;
   links: any;
+  application_type: string;
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +29,7 @@ const rowToJob = (row: DbRow): JobApplication => ({
   contacts: (row.contacts ?? []) as Contact[],
   nextSteps: (row.next_steps ?? []) as NextStep[],
   links: (row.links ?? []) as string[],
+  applicationType: row.application_type ?? "Other",
 });
 
 export const useJobs = () => {
@@ -53,11 +55,11 @@ export const useJobs = () => {
 
   useEffect(() => { fetchJobs(); }, [fetchJobs]);
 
-  const addJob = useCallback(async (company: string, role: string, columnId: ColumnId) => {
+  const addJob = useCallback(async (company: string, role: string, columnId: ColumnId, applicationType: string = "Other") => {
     if (!user) return;
     const { data, error } = await supabase
       .from("job_applications")
-      .insert({ user_id: user.id, company, role, column_id: columnId })
+      .insert({ user_id: user.id, company, role, column_id: columnId, application_type: applicationType })
       .select()
       .single();
 
@@ -81,6 +83,7 @@ export const useJobs = () => {
         contacts: job.contacts as any,
         next_steps: job.nextSteps as any,
         links: job.links as any,
+        application_type: job.applicationType,
       })
       .eq("id", job.id);
 

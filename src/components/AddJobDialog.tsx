@@ -17,10 +17,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
-import { COLUMNS, type ColumnId } from "@/types/job";
+import { COLUMNS, APPLICATION_TYPES, type ColumnId } from "@/types/job";
 
 interface AddJobDialogProps {
-  onAdd: (company: string, role: string, columnId: ColumnId) => void;
+  onAdd: (company: string, role: string, columnId: ColumnId, applicationType: string) => void;
 }
 
 const AddJobDialog = ({ onAdd }: AddJobDialogProps) => {
@@ -28,14 +28,16 @@ const AddJobDialog = ({ onAdd }: AddJobDialogProps) => {
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
   const [columnId, setColumnId] = useState<ColumnId>("found");
+  const [applicationType, setApplicationType] = useState("Other");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!company.trim() || !role.trim()) return;
-    onAdd(company.trim(), role.trim(), columnId);
+    onAdd(company.trim(), role.trim(), columnId, applicationType);
     setCompany("");
     setRole("");
     setColumnId("found");
+    setApplicationType("Other");
     setOpen(false);
   };
 
@@ -81,6 +83,21 @@ const AddJobDialog = ({ onAdd }: AddJobDialogProps) => {
                 {COLUMNS.map((col) => (
                   <SelectItem key={col.id} value={col.id}>
                     {col.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Application Type</Label>
+            <Select value={applicationType} onValueChange={setApplicationType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {APPLICATION_TYPES.filter((t) => t !== "All").map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
                   </SelectItem>
                 ))}
               </SelectContent>
