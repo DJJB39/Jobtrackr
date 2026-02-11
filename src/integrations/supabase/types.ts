@@ -21,8 +21,10 @@ export type Database = {
           company: string
           contacts: Json
           created_at: string
+          description: string | null
           id: string
           links: Json
+          location: string | null
           next_steps: Json
           notes: string
           role: string
@@ -35,8 +37,10 @@ export type Database = {
           company: string
           contacts?: Json
           created_at?: string
+          description?: string | null
           id?: string
           links?: Json
+          location?: string | null
           next_steps?: Json
           notes?: string
           role: string
@@ -49,8 +53,10 @@ export type Database = {
           company?: string
           contacts?: Json
           created_at?: string
+          description?: string | null
           id?: string
           links?: Json
+          location?: string | null
           next_steps?: Json
           notes?: string
           role?: string
