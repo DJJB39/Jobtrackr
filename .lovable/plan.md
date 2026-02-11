@@ -1,195 +1,85 @@
 
 
-## Job URL Auto-Fill / Import -- Final Implementation Plan
+## Improve scrape-job-url for LinkedIn
 
-Add a "Job Posting URL" field to AddJobDialog that calls a backend function to scrape metadata and pre-fill form fields. Falls back gracefully to manual entry.
-
----
-
-### Step 1: Database Migration
-
-Add two nullable text columns:
-
-```sql
-ALTER TABLE public.job_applications
-  ADD COLUMN IF NOT EXISTS location text,
-  ADD COLUMN IF NOT EXISTS description text;
-```
+Two files to change.
 
 ---
 
-### Step 2: Backend Function -- `scrape-job-url`
+### 1. Edge Function (`supabase/functions/scrape-job-url/index.ts`)
 
-Create `supabase/functions/scrape-job-url/index.ts`.
+**Headers update (lines 111-121):**
+- Timeout: 5000 -> 8000
+- User-Agent: `"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"`
+- Accept: `"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"`
+- Add Accept-Language: `"en-GB,en;q=0.9"`
 
-- Accepts `POST { url: string }`
-- Validates URL (must start with `http://` or `https://`, max 2048 chars)
-- Fetches HTML with 5-second `AbortController` timeout and browser-like `User-Agent`
-- Extracts metadata via regex:
-  - `og:title` --> role
-  - `og:site_name` --> company
-  - `og:description` or `meta[name="description"]` --> description (capped at 500 chars)
-  - JSON-LD `application/ld+json` for `JobPosting` schema: title, hiringOrganization, jobLocation, baseSalary/salaryRange
-  - `<title>` fallback with heuristic splitting ("Role at Company | Site")
-- Returns `{ success: true, data: { title, company, description, location, salary, url }, partial: boolean }` or `{ success: false, error: string }`
-- `partial: true` when only heuristic/fallback parsing was used (no OG tags or JSON-LD found)
-- Full CORS headers for browser calls
-
-Key code snippets:
+**Aggressive title parsing -- enhance `splitTitle` (lines 83-94):**
+- Add "hiring" as a separator (LinkedIn titles often use "hiring" pattern like "Company is hiring a Role in Location")
+- Extract location from title when pattern matches (e.g., "... in London, UK")
+- Return `{ role, company, location }` instead of just `{ role, company }`
 
 ```typescript
-// URL validation
-const isValidUrl = (url: string) => {
-  if (url.length > 2048) return false;
-  try { const u = new URL(url); return ['http:', 'https:'].includes(u.protocol); }
-  catch { return false; }
-};
-
-// Regex helpers
-const getMeta = (html: string, prop: string) => {
-  const re = new RegExp(
-    `<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']*)["']`, 'i'
-  );
-  return html.match(re)?.[1]?.trim() || null;
-};
-
-// JSON-LD extraction
-const getJsonLd = (html: string) => {
-  const matches = [...html.matchAll(
-    /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
-  )];
-  for (const m of matches) {
-    try {
-      const obj = JSON.parse(m[1]);
-      if (obj["@type"] === "JobPosting") return obj;
-    } catch {}
-  }
-  return null;
-};
-
-// Salary from JSON-LD
-const getSalary = (ld: any) => {
-  const bs = ld.baseSalary;
-  if (!bs?.value) return null;
-  const v = bs.value;
-  if (v.minValue && v.maxValue)
-    return `${bs.currency ?? ''} ${v.minValue}-${v.maxValue}/${v.unitText ?? 'YEAR'}`.trim();
-  return String(v);
-};
-
-// Title heuristic: "Software Engineer at Google | Careers"
-const splitTitle = (title: string) => {
-  for (const sep of [' at ', ' @ ', ' - ', ' | ', ' — ']) {
-    const idx = title.indexOf(sep);
-    if (idx > 0) return {
-      role: title.slice(0, idx).trim(),
-      company: title.slice(idx + sep.length).split(/[|\-—]/).at(0)?.trim() || null,
+const splitTitle = (title: string): { role: string; company: string | null; location: string | null } => {
+  // LinkedIn "hiring" pattern: "Company is hiring a Role in Location"
+  const hiringMatch = title.match(/^(.+?)\s+is\s+hiring\s+(?:a\s+|an\s+)?(.+?)(?:\s+in\s+(.+?))?(?:\s*[|\-—]|$)/i);
+  if (hiringMatch) {
+    return {
+      role: hiringMatch[2].trim(),
+      company: hiringMatch[1].trim(),
+      location: hiringMatch[3]?.trim() || null,
     };
   }
-  return { role: title, company: null };
+  // Standard separators
+  for (const sep of [" at ", " @ ", " - ", " | ", " — "]) {
+    const idx = title.indexOf(sep);
+    if (idx > 0) {
+      const afterSep = title.slice(idx + sep.length);
+      const parts = afterSep.split(/[|\-—]/);
+      return {
+        role: title.slice(0, idx).trim(),
+        company: parts[0]?.trim() || null,
+        location: null,
+      };
+    }
+  }
+  return { role: title, company: null, location: null };
 };
 ```
 
-Add to `supabase/config.toml`:
-```toml
-[functions.scrape-job-url]
-verify_jwt = false
+**Add `hint` field to response when `partial: true`:**
+- Detect if URL contains "linkedin.com"
+- If partial and LinkedIn, add `hint: "LinkedIn may require login -- partial data from title only"`
+- Otherwise generic hint or null
+
+**Response shape becomes:**
+```json
+{ "success": true, "data": { ... }, "partial": true, "hint": "LinkedIn may require login..." }
 ```
 
 ---
 
-### Step 3: Update Types -- `src/types/job.ts`
+### 2. Frontend (`src/components/AddJobDialog.tsx`)
 
-Add to `JobApplication` interface:
+**Update partial toast (line 73-74):**
+- Use the `hint` from the response if present
+- Show: `"Partial data loaded (LinkedIn restriction) -- review and complete manually"` when hint is present, otherwise the existing generic message
+
 ```typescript
-location?: string;
-description?: string;
+if (data.partial) {
+  toast({
+    title: "Partial data loaded",
+    description: data.hint || "Review and complete manually",
+  });
+}
 ```
 
 ---
 
-### Step 4: Update Hook -- `src/hooks/useJobs.tsx`
-
-- `rowToJob`: map `row.location` and `row.description`
-- `addJob`: expand signature to accept optional extras `{ location?, description?, links? }`
-- `updateJob`: include `location` and `description` in update payload
-
----
-
-### Step 5: Update AddJobDialog -- `src/components/AddJobDialog.tsx`
-
-Add at the top of the form (before Company):
-
-- "Job Posting URL" input with adjacent "Fetch" button (Link icon, shows Loader2 spinner while loading)
-- On Fetch click: call `supabase.functions.invoke('scrape-job-url', { body: { url } })`
-- On success: pre-fill company, role, location, description in local state; show success toast ("Job details loaded!"); if response has `partial: true`, toast mentions "Partial data fetched -- review and complete manually"
-- After auto-fill, focus the first empty required field (company or role) using refs
-- Show subtle "Auto-filled" text badge (text-xs text-muted-foreground) next to fields that were filled; badge disappears when user edits
-- On error: destructive toast "Couldn't fetch details -- enter manually"
-- On submit: add URL to `links` array; pass location/description through `onAdd`
-- Update `onAdd` prop type:
-  ```typescript
-  onAdd: (company: string, role: string, columnId: ColumnId, applicationType: string,
-          extras?: { location?: string; description?: string; links?: string[] }) => void
-  ```
-
----
-
-### Step 6: Update JobDetailPanel -- `src/components/JobDetailPanel.tsx`
-
-After "Application Type" section, add:
-
-- **Location**: Input with MapPin icon, bound to `editedJob.location`
-- **Description**: Textarea (max 500 chars, resize-none), bound to `editedJob.description`
-
-Both use the existing `update()` helper and auto-save pattern.
-
----
-
-### Step 7: Update JobCard -- `src/components/JobCard.tsx`
-
-If `job.location` exists, show below the role line:
-```tsx
-{job.location && (
-  <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
-    <MapPin className="h-2.5 w-2.5" />
-    <span className="truncate">{job.location}</span>
-  </div>
-)}
-```
-
----
-
-### Step 8: Update CSV Export -- `src/pages/AppPage.tsx`
-
-Add "Location" and "Description" columns to CSV headers and row mapping:
-```typescript
-const headers = ["Company", "Role", "Stage", "Type", "Created", "Location", "Notes", "Description", "Links"];
-// ... add j.location ?? "", (j.description ?? "").slice(0, 100).replace(/"/g, '""')
-```
-
----
-
-### Files Changed Summary
+### Files Changed
 
 | File | Change |
 |------|--------|
-| DB migration | Add `location`, `description` columns |
-| `supabase/config.toml` | Add `scrape-job-url` config (verify_jwt = false) |
-| `supabase/functions/scrape-job-url/index.ts` | New edge function |
-| `src/types/job.ts` | Add `location?`, `description?` to JobApplication |
-| `src/hooks/useJobs.tsx` | Map new fields, expand `addJob` signature |
-| `src/components/AddJobDialog.tsx` | URL input + Fetch + auto-fill + auto-filled badges |
-| `src/components/JobDetailPanel.tsx` | Location input + Description textarea |
-| `src/components/JobCard.tsx` | Location pill |
-| `src/pages/AppPage.tsx` | CSV export columns, pass-through for addJob |
-
-### Gotchas Addressed
-
-- **CORS**: Server-side fetch via edge function
-- **Timeouts**: 5s AbortController; graceful error return
-- **Site blocking**: Partial data returned; `partial: true` flag informs user
-- **JSON-LD salary**: Extracted when `JobPosting` schema present (LinkedIn, Indeed, Greenhouse)
-- **Backward compatibility**: All new fields optional/nullable; existing callers unaffected
-- **Dark mode**: All new UI uses semantic Tailwind colors (text-foreground, text-muted-foreground, bg-background, border-border)
+| `supabase/functions/scrape-job-url/index.ts` | Updated headers, 8s timeout, aggressive LinkedIn title parsing, `hint` field |
+| `src/components/AddJobDialog.tsx` | Use `hint` in partial toast message |
 
