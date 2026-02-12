@@ -76,22 +76,22 @@ const JobCard = ({ job, onDelete, onClick, onSchedule }: JobCardProps) => {
           </div>
           {job.location && (
             <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
-              <MapPin className="h-2.5 w-2.5" />
-              <span className="truncate">{job.location}</span>
+              <MapPin className="h-2.5 w-2.5 shrink-0" />
+              <span className="truncate max-w-[120px]">{job.location}</span>
             </div>
           )}
           {job.salary && (
             <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
-              <DollarSign className="h-2.5 w-2.5" />
-              <span className="truncate">{job.salary}</span>
+              <DollarSign className="h-2.5 w-2.5 shrink-0" />
+              <span className="truncate max-w-[120px]">{job.salary}</span>
             </div>
           )}
           {job.closeDate && (
             <div className={`mt-1 flex items-center gap-1 text-[10px] ${
               isClosingSoon(job.closeDate) ? "text-destructive font-medium" : "text-muted-foreground"
             }`}>
-              <CalendarDays className="h-2.5 w-2.5" />
-              <span>{formatDeadline(job.closeDate)}</span>
+              <CalendarDays className="h-2.5 w-2.5 shrink-0" />
+              <span className="truncate max-w-[120px]">{formatDeadline(job.closeDate)}</span>
             </div>
           )}
           {nextEvent && (
