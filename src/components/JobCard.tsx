@@ -98,6 +98,11 @@ const JobCard = ({ job, onDelete, onClick, onSchedule }: JobCardProps) => {
           <div className="flex items-center gap-1.5 text-sm font-semibold text-card-foreground">
             <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             <span className="truncate">{job.company}</span>
+            {job.links?.[0] && (
+              <span className="text-[9px] text-muted-foreground/70 font-normal bg-muted rounded px-1 py-0.5 shrink-0">
+                Fetched
+              </span>
+            )}
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Briefcase className="h-3 w-3 shrink-0" />
@@ -106,13 +111,13 @@ const JobCard = ({ job, onDelete, onClick, onSchedule }: JobCardProps) => {
           {job.location && (
             <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
               <MapPin className="h-2.5 w-2.5 shrink-0" />
-              <span className="truncate max-w-[120px]">{job.location}</span>
+              <span className="truncate max-w-[140px]">{job.location}</span>
             </div>
           )}
           {job.salary && (
             <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
               <DollarSign className="h-2.5 w-2.5 shrink-0" />
-              <span className="truncate max-w-[120px]">{job.salary}</span>
+              <span className="truncate max-w-[140px]">{job.salary}</span>
             </div>
           )}
           {job.closeDate && (
@@ -122,7 +127,7 @@ const JobCard = ({ job, onDelete, onClick, onSchedule }: JobCardProps) => {
               }`}
             >
               <CalendarDays className="h-2.5 w-2.5 shrink-0" />
-              <span className="truncate max-w-[120px]">{formatDeadline(job.closeDate)}</span>
+              <span className="truncate max-w-[140px]">{formatDeadline(job.closeDate)}</span>
             </div>
           )}
           {nextEvent && (
