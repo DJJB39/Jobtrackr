@@ -1,132 +1,79 @@
 
-## Revamp Landing Page -- Final Implementation Plan
+## Dark Mode Redesign -- Full Implementation
 
-Complete rewrite of `src/pages/Landing.tsx` with sharper copy, app mockups, social proof, and a final CTA.
-
----
-
-### Section Order
-
-1. Nav (unchanged)
-2. Hero (rewritten copy)
-3. App Screenshots (NEW -- 3 browser mockup frames)
-4. Features (rewritten 2x2 grid)
-5. Social Proof (NEW -- 3 quote cards with avatars)
-6. Final CTA (NEW -- centered block)
-7. Footer (unchanged)
+Complete dark-first theme overhaul across 7 files to match the premium, vibrant screenshots.
 
 ---
 
-### Final Copy Blocks
+### 1. `src/index.css` -- Dark palette as default
 
-**Hero badge:** "Free to use . No credit card required" (keep as-is)
+- Swap `:root` to use dark values: `--background: 222 47% 6%`, `--card: 222 44% 10%`, `--primary: 36 95% 54%` (gold accent)
+- Add gradient tokens: `--gradient-start`, `--gradient-end`
+- Move current light values into a `.light` class for future toggle
+- Brighter `--muted-foreground: 215 20% 60%` for readability
+- `--ring` set to gold accent for focus states
 
-**Headline:**
-```
-Stop Losing Track of Applications
-```
+### 2. `src/components/JobCard.tsx` -- Colored left borders + richer hover
 
-**Accent line:**
-```
-Your entire job search, one board.
-```
+- Add `columnId?: ColumnId` prop
+- Add `STATUS_BORDER_COLORS` map (HSL values per stage)
+- Apply `border-l-[3px]` via inline `borderLeftColor` style
+- Card background: `bg-gradient-to-r from-card to-card/80`
+- Hover: `hover:shadow-lg hover:shadow-primary/5`
+- Dragging: `shadow-2xl shadow-primary/10` (replaces `opacity-50`)
 
-**Subheadline:**
-```
-Paste a job link and auto-fill the details. Drag applications through stages.
-Set reminders so nothing slips. Private by default -- only you see your data.
-```
+### 3. `src/components/KanbanColumn.tsx` -- Tinted headers + count badges
 
-**Features array:**
+- Add `STATUS_COLORS_HEX` map for tinting
+- Column header row gets `style={{ backgroundColor: tintColor + "15" }}`
+- Status dot: `h-3 w-3` (larger)
+- Count badge: styled pill with `backgroundColor: tintColor + "20"`
+- Column body: `bg-gradient-to-b from-column to-transparent`
+- Pass `columnId={column.id}` to each `JobCard`
 
-| Icon | Title | Description |
-|------|-------|-------------|
-| Columns3 | Kanban Board | Drag and drop applications across 8 stages, from Found to Accepted. Filter by role, type, or stage. |
-| Link (lucide) | URL Auto-Fill | Paste a job posting link and auto-fill company, role, salary, and deadline -- no manual entry. |
-| CalendarDays | Events and Reminders | Schedule interviews, deadlines, and follow-ups. Export to Google Calendar or download ICS files. |
-| Shield | Private and Secure | Your data is encrypted and accessible only to you. No sharing, no selling, no ads. |
+### 4. `src/components/KanbanBoard.tsx` -- Pass columnId in DragOverlay
 
-**Testimonials array:**
+- Single line change: add `columnId={activeJob.columnId}` to the DragOverlay JobCard
 
-| Quote | Attribution | Initials |
-|-------|------------|----------|
-| "I applied to 80+ jobs and never lost track of a single one." | Recent grad, software engineering | SG |
-| "The URL auto-fill alone saves me 5 minutes per application." | Career switcher | KM |
-| "Finally a tracker that isn't a bloated Notion template." | Product designer | JL |
+### 5. `src/components/Dashboard.tsx` -- Gradient stat cards + chart polish
 
-**Final CTA:**
-```
-Ready to take control of your job search?
-[Sign Up Free]
-It's free. No credit card required.
-```
+- StatCard gets `accentColor` prop: colored left border (`borderLeftWidth: 3`), gradient bg (`from-card to-secondary/20`), tinted icon container
+- Three accent colors: gold, blue, purple
+- Upcoming card: gradient background
+- Chart tooltip: dark background (`hsl(222, 44%, 12%)`)
+- Stage breakdown cards: `bg-gradient-to-b from-card to-secondary/10` + `hover:shadow-md`
 
----
+### 6. `src/components/JobDetailPanel.tsx` -- Section cards + gradient header
 
-### Technical Details
+- Header: `bg-gradient-to-r from-card to-secondary/30 backdrop-blur-sm`
+- Remove all `<Separator />` dividers
+- Wrap each section (Company/Role, Notes, Contacts, Next Steps, Events, Links) in `rounded-xl border border-border bg-card/50 p-4`
+- Section headings: `text-sm font-semibold` with colored icon circles (accent, blue, green, purple, orange)
+- Event cards: `border-l-[3px]` colored by event type (blue=interview, amber=follow-up, red=deadline)
 
-**Single file modified:** `src/pages/Landing.tsx`
+### 7. `src/pages/AppPage.tsx` -- Shell gradient + glass header
 
-**Icon imports** -- replace `Search, StickyNote, BarChart3` with `Link2, CalendarDays, Shield` from lucide-react. Keep `Columns3, Briefcase, CheckCircle2`.
-
-**Screenshots section** (between hero and features):
-- `section` with `mx-auto max-w-6xl px-6 pb-24`
-- `grid grid-cols-1 md:grid-cols-3 gap-6` containing 3 mockup cards
-- Each card structure:
-  ```
-  <div className="group rounded-xl border bg-card overflow-hidden shadow-lg
-                  transition-transform hover:scale-[1.02]">
-    <!-- Browser chrome bar -->
-    <div className="bg-muted/50 h-7 flex items-center gap-1.5 px-3 border-b">
-      <div className="h-2 w-2 rounded-full bg-red-400/40" />
-      <div className="h-2 w-2 rounded-full bg-yellow-400/40" />
-      <div className="h-2 w-2 rounded-full bg-green-400/40" />
-    </div>
-    <!-- Placeholder body -->
-    <div className="aspect-video flex items-center justify-center
-                    bg-gradient-to-br from-secondary to-muted/30 p-6">
-      <Icon className="h-10 w-10 text-muted-foreground/40" />
-    </div>
-  </div>
-  <!-- Caption below -->
-  <p className="mt-2 text-center text-xs text-muted-foreground font-medium">
-    Caption text
-  </p>
-  ```
-- Captions: "Kanban Board", "Application Details", "Stats Dashboard"
-- Icons inside mockups: `Columns3`, `StickyNote`, `BarChart3` (purely decorative)
-
-**Social proof section** (after features):
-- `section` with `mx-auto max-w-4xl px-6 py-20`
-- Section heading: `text-center text-lg font-semibold mb-10` -- "Why users love JobTrackr"
-- `grid grid-cols-1 md:grid-cols-3 gap-6`
-- Each card:
-  ```
-  <div className="rounded-xl border bg-card p-6 text-center">
-    <!-- Avatar circle -->
-    <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center
-                    rounded-full bg-primary/10 text-sm font-bold text-primary">
-      {initials}
-    </div>
-    <p className="text-sm text-foreground italic leading-relaxed">"{quote}"</p>
-    <p className="mt-3 text-xs text-muted-foreground">{attribution}</p>
-  </div>
-  ```
-
-**Final CTA section** (before footer):
-- `section` with `mx-auto max-w-3xl px-6 py-20 text-center`
-- Heading: `text-2xl sm:text-3xl font-bold text-foreground`
-- Large primary button: `Button size="lg" className="text-base px-10 mt-6"`
-- Reassurance line: `text-xs text-muted-foreground mt-3`
+- Main container: `bg-gradient-to-br from-[hsl(var(--gradient-start))] via-background to-[hsl(var(--gradient-end))]`
+- Header: `backdrop-blur-sm bg-background/80`
 
 ---
 
-### Quick Wins via Visual Edits
+### Implementation Order
 
-These can be done for free using the Visual Edits tool after implementation:
+1. index.css (instant global theme switch)
+2. JobCard.tsx (colored borders, gradient bg)
+3. KanbanColumn.tsx (tinted headers, pass columnId)
+4. KanbanBoard.tsx (DragOverlay fix)
+5. Dashboard.tsx (gradient stat cards, chart)
+6. JobDetailPanel.tsx (section cards, gradient header)
+7. AppPage.tsx (shell gradient, glass header)
 
-- Tweak button text (e.g., "Get Started Free" instead of "Sign Up Free")
-- Adjust headline wording or line breaks
-- Change the badge text
-- Edit testimonial quotes or attributions
-- Modify footer text
+### What This Achieves
+
+- Entire app switches to a premium dark theme matching the screenshots
+- Color-coded left borders on Kanban cards per stage
+- Tinted column headers with visual weight
+- Dashboard stat cards and charts gain depth via gradients and accent borders
+- Detail panel sections become distinct cards with colored icons
+- Glass-effect header and gradient background on the app shell
+- Zero new dependencies -- all existing Tailwind classes and CSS variables
