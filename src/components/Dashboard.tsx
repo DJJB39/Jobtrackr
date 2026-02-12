@@ -1,12 +1,15 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { COLUMNS, type JobApplication } from "@/types/job";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { TrendingUp, Activity, Layers, CalendarDays } from "lucide-react";
 import { parseISO, format, differenceInDays, isBefore, startOfDay } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import JobDetailPanel from "./JobDetailPanel";
 
 interface DashboardProps {
   jobs: JobApplication[];
+  onUpdateJob?: (job: JobApplication) => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -36,7 +39,9 @@ interface UpcomingItem {
   type: string;
 }
 
-const Dashboard = ({ jobs }: DashboardProps) => {
+const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
+  const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
   const stats = useMemo(() => {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -103,32 +108,46 @@ const Dashboard = ({ jobs }: DashboardProps) => {
     <div className="flex-1 overflow-y-auto p-6">
       <div className="mx-auto max-w-4xl space-y-6">
         {/* Upcoming This Week */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center gap-2 text-muted-foreground mb-3">
-            <CalendarDays className="h-5 w-5" />
-            <span className="text-xs font-medium uppercase tracking-wider">Upcoming This Week</span>
-          </div>
-          {upcomingItems.length > 0 ? (
-            <div className="space-y-2">
-              {upcomingItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 rounded-lg border border-border p-2.5">
-                  <span className="text-xs font-mono text-muted-foreground w-14 shrink-0">
-                    {format(parseISO(item.date), "MMM d")}
-                  </span>
-                  <Badge variant="outline" className="text-[10px] shrink-0">
-                    {EVENT_TYPE_LABELS[item.type] ?? item.type}
-                  </Badge>
-                  <span className="text-sm text-foreground truncate">{item.title}</span>
-                  {item.time && (
-                    <span className="text-xs text-muted-foreground ml-auto shrink-0">{item.time}</span>
-                  )}
-                </div>
-              ))}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <CalendarDays className="h-5 w-5" />
+              <span className="text-xs font-medium uppercase tracking-wider">Upcoming This Week</span>
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">Nothing upcoming this week</p>
-          )}
-        </div>
+          </CardHeader>
+          <CardContent>
+            {upcomingItems.length > 0 ? (
+              <div className="space-y-2">
+                {upcomingItems.map((item) => {
+                  const parentJob = jobs.find(j => j.company === item.company && j.role === item.role);
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        if (parentJob) {
+                          setSelectedJob(parentJob);
+                          setPanelOpen(true);
+                        }
+                      }}
+                      className="flex items-center gap-3 rounded-lg border border-border p-2.5 cursor-pointer hover:bg-muted/50 transition-colors"
+                    >
+                      <span className="text-xs font-mono text-muted-foreground w-14 shrink-0">
+                        {format(parseISO(item.date), "MMM d")}
+                      </span>
+                      <Badge variant="outline" className="text-[10px] shrink-0">
+                        {EVENT_TYPE_LABELS[item.type] ?? item.type}
+                      </Badge>
+                      <span className="text-sm text-foreground truncate">{item.title}</span>
+                      <span className="text-xs text-muted-foreground ml-auto shrink-0">{item.company}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Nothing this week</p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Stat Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -206,6 +225,16 @@ const Dashboard = ({ jobs }: DashboardProps) => {
           ))}
         </div>
       </div>
+
+      <JobDetailPanel
+        job={selectedJob}
+        open={panelOpen}
+        onOpenChange={setPanelOpen}
+        onSave={(updated) => {
+          onUpdateJob?.(updated);
+          setSelectedJob(updated);
+        }}
+      />
     </div>
   );
 };
