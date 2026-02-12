@@ -135,7 +135,7 @@ const AppPage = () => {
       ) : view === "board" ? (
         <KanbanBoard jobs={jobs} setJobs={setJobs} onUpdateJob={updateJob} onDeleteJob={deleteJob} />
       ) : view === "dashboard" ? (
-        <Dashboard jobs={jobs} />
+        <Dashboard jobs={jobs} onUpdateJob={updateJob} />
       ) : (
         <CalendarView jobs={jobs} />
       )}
