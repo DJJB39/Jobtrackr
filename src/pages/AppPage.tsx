@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import KanbanBoard from "@/components/KanbanBoard";
 import Dashboard from "@/components/Dashboard";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
 import { Briefcase, LayoutDashboard, Columns3, Loader2, Download, CalendarDays } from "lucide-react";
 import CalendarView from "@/components/CalendarView";
+import JobDetailPanel from "@/components/JobDetailPanel";
 import { useJobs } from "@/hooks/useJobs";
+import type { JobApplication } from "@/types/job";
 import { useLoginReminders } from "@/hooks/useLoginReminders";
 import { Button } from "@/components/ui/button";
 import { COLUMNS } from "@/types/job";
@@ -18,8 +20,15 @@ const AppPage = () => {
   const { jobs, setJobs, loading, addJob, updateJob, deleteJob } = useJobs();
   const [view, setView] = useState<View>("board");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
   const { toast } = useToast();
   useLoginReminders(jobs);
+
+  const handleSelectJob = useCallback((job: JobApplication) => {
+    setSelectedJob(job);
+    setPanelOpen(true);
+  }, []);
 
   const exportToCSV = () => {
     const stageMap = Object.fromEntries(COLUMNS.map((c) => [c.id, c.title]));
@@ -137,7 +146,15 @@ const AppPage = () => {
       ) : view === "dashboard" ? (
         <Dashboard jobs={jobs} onUpdateJob={updateJob} />
       ) : (
-        <CalendarView jobs={jobs} />
+        <CalendarView jobs={jobs} onSelectJob={handleSelectJob} />
+      )}
+      {view === "calendar" && (
+        <JobDetailPanel
+          job={selectedJob}
+          open={panelOpen}
+          onOpenChange={setPanelOpen}
+          onSave={updateJob}
+        />
       )}
     </div>
   );

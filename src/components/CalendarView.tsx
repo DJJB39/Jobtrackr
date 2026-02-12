@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 interface CalendarViewProps {
   jobs: JobApplication[];
+  onSelectJob?: (job: JobApplication) => void;
 }
 
 interface CalendarEventItem {
@@ -41,9 +42,15 @@ const TYPE_LABELS: Record<string, string> = {
   deadline: "Deadline",
 };
 
-const CalendarView = ({ jobs }: CalendarViewProps) => {
+const CalendarView = ({ jobs, onSelectJob }: CalendarViewProps) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [month, setMonth] = useState<Date>(new Date());
+
+  const jobMap = useMemo(() => {
+    const map = new Map<string, JobApplication>();
+    for (const job of jobs) map.set(job.id, job);
+    return map;
+  }, [jobs]);
 
   // Collect all events + deadlines
   const allItems = useMemo(() => {
@@ -202,8 +209,12 @@ const CalendarView = ({ jobs }: CalendarViewProps) => {
                   return (
                     <div
                       key={evt.id}
+                      onClick={() => {
+                        const fullJob = jobMap.get(item.data.jobId);
+                        if (fullJob && onSelectJob) onSelectJob(fullJob);
+                      }}
                       className={cn(
-                        "rounded-lg border border-border bg-card p-3 space-y-1.5",
+                        "rounded-lg border border-border bg-card p-3 space-y-1.5 cursor-pointer hover:bg-muted/50 transition-colors",
                         isPast && !evt.outcome && "border-accent/50"
                       )}
                     >
@@ -259,7 +270,11 @@ const CalendarView = ({ jobs }: CalendarViewProps) => {
                   return (
                     <div
                       key={item.data.jobId + "-deadline"}
-                      className="rounded-lg border border-border bg-card p-3 space-y-1.5"
+                      onClick={() => {
+                        const fullJob = jobMap.get(item.data.jobId);
+                        if (fullJob && onSelectJob) onSelectJob(fullJob);
+                      }}
+                      className="rounded-lg border border-border bg-card p-3 space-y-1.5 cursor-pointer hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-2">
                         <Badge
