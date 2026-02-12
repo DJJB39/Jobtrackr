@@ -48,6 +48,22 @@ export interface JobApplication {
   description?: string;
   salary?: string;
   closeDate?: string;
+  events: JobEvent[];
+}
+
+export type EventType = "interview" | "follow_up" | "deadline";
+export type EventOutcome = "passed" | "rejected" | "pending" | "rescheduled" | null;
+
+export interface JobEvent {
+  id: string;
+  title: string;
+  date: string;
+  time: string | null;
+  type: EventType;
+  location: string | null;
+  prepNotes: string | null;
+  outcome: EventOutcome;
+  createdAt: string;
 }
 
 export interface Column {

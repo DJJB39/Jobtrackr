@@ -1,8 +1,9 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { JobApplication } from "@/types/job";
-import { GripVertical, Building2, Briefcase, Trash2, MapPin, DollarSign, CalendarDays, ExternalLink } from "lucide-react";
-import { differenceInDays, parseISO, format } from "date-fns";
+import { GripVertical, Building2, Briefcase, Trash2, MapPin, DollarSign, CalendarDays, ExternalLink, CalendarPlus, Clock } from "lucide-react";
+import { differenceInDays, parseISO, format, isBefore, startOfDay } from "date-fns";
+import { useMemo } from "react";
 
 const isClosingSoon = (dateStr: string) => {
   try {
@@ -19,9 +20,10 @@ interface JobCardProps {
   job: JobApplication;
   onDelete: (id: string) => void;
   onClick?: (job: JobApplication) => void;
+  onSchedule?: (job: JobApplication) => void;
 }
 
-const JobCard = ({ job, onDelete, onClick }: JobCardProps) => {
+const JobCard = ({ job, onDelete, onClick, onSchedule }: JobCardProps) => {
   const {
     attributes,
     listeners,
@@ -35,6 +37,15 @@ const JobCard = ({ job, onDelete, onClick }: JobCardProps) => {
     transform: CSS.Transform.toString(transform),
     transition,
   };
+
+  const nextEvent = useMemo(() => {
+    const today = startOfDay(new Date());
+    return (job.events ?? [])
+      .filter((e) => {
+        try { return !isBefore(parseISO(e.date), today); } catch { return false; }
+      })
+      .sort((a, b) => a.date.localeCompare(b.date))[0] ?? null;
+  }, [job.events]);
 
   return (
     <div
@@ -83,12 +94,27 @@ const JobCard = ({ job, onDelete, onClick }: JobCardProps) => {
               <span>{formatDeadline(job.closeDate)}</span>
             </div>
           )}
+          {nextEvent && (
+            <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Clock className="h-2.5 w-2.5" />
+              <span>{formatDeadline(nextEvent.date)}{nextEvent.time ? ` ${nextEvent.time}` : ""}</span>
+            </div>
+          )}
           {job.applicationType && job.applicationType !== "Other" && (
             <span className="mt-1.5 inline-block rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
               {job.applicationType}
             </span>
           )}
         </div>
+        {onSchedule && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onSchedule(job); }}
+            className="mt-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+            aria-label="Schedule event"
+          >
+            <CalendarPlus className="h-3.5 w-3.5" />
+          </button>
+        )}
         {job.links?.[0] && (
           <a href={job.links[0]} target="_blank" rel="noopener noreferrer"
              onClick={(e) => e.stopPropagation()}

@@ -5,6 +5,7 @@ import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
 import { Briefcase, LayoutDashboard, Columns3, Loader2, Download } from "lucide-react";
 import { useJobs } from "@/hooks/useJobs";
+import { useLoginReminders } from "@/hooks/useLoginReminders";
 import { Button } from "@/components/ui/button";
 import { COLUMNS } from "@/types/job";
 import { format } from "date-fns";
@@ -17,10 +18,11 @@ const AppPage = () => {
   const [view, setView] = useState<View>("board");
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
+  useLoginReminders(jobs);
 
   const exportToCSV = () => {
     const stageMap = Object.fromEntries(COLUMNS.map((c) => [c.id, c.title]));
-    const headers = ["Company", "Role", "Stage", "Type", "Created", "Location", "Salary", "Deadline", "Notes", "Description", "Links"];
+    const headers = ["Company", "Role", "Stage", "Type", "Created", "Location", "Salary", "Deadline", "Events", "Notes", "Description", "Links"];
     const rows = jobs.map((j) => [
       j.company,
       j.role,
@@ -30,6 +32,7 @@ const AppPage = () => {
       j.location ?? "",
       j.salary ?? "",
       j.closeDate ?? "",
+      String((j.events ?? []).length),
       (j.notes ?? "").slice(0, 100).replace(/"/g, '""'),
       (j.description ?? "").slice(0, 100).replace(/"/g, '""'),
       (j.links ?? []).join("; "),

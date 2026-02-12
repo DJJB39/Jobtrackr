@@ -14,6 +14,7 @@ import { COLUMNS, APPLICATION_TYPES, type ColumnId, type JobApplication } from "
 import KanbanColumn from "./KanbanColumn";
 import JobCard from "./JobCard";
 import JobDetailPanel from "./JobDetailPanel";
+import ScheduleEventDialog from "./ScheduleEventDialog";
 import {
   Select,
   SelectContent,
@@ -38,6 +39,10 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
   const [filterType, setFilterType] = useState("All");
   const [filterStage, setFilterStage] = useState("all_stages");
   const [filterRole, setFilterRole] = useState("all_roles");
+
+  // Schedule dialog state
+  const [scheduleTarget, setScheduleTarget] = useState<JobApplication | null>(null);
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
 
   const uniqueRoles = useMemo(
     () => Array.from(new Set(jobs.map((j) => j.role).filter(Boolean))).sort(),
@@ -98,6 +103,15 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
   const handleSaveJob = useCallback((updated: JobApplication) => {
     onUpdateJob(updated);
     setSelectedJob(updated);
+  }, [onUpdateJob]);
+
+  const handleScheduleFromCard = useCallback((job: JobApplication) => {
+    setScheduleTarget(job);
+    setScheduleDialogOpen(true);
+  }, []);
+
+  const handleScheduleSave = useCallback((updatedJob: JobApplication) => {
+    onUpdateJob(updatedJob);
   }, [onUpdateJob]);
 
   const filteredJobs = useMemo(() => {
@@ -198,6 +212,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
                 jobs={getColumnJobs(column.id)}
                 onDeleteJob={onDeleteJob}
                 onClickJob={handleCardClick}
+                onScheduleJob={handleScheduleFromCard}
               />
             ))}
           </div>
@@ -218,6 +233,15 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
         onOpenChange={setPanelOpen}
         onSave={handleSaveJob}
       />
+
+      {scheduleTarget && (
+        <ScheduleEventDialog
+          open={scheduleDialogOpen}
+          onOpenChange={setScheduleDialogOpen}
+          job={scheduleTarget}
+          onSave={handleScheduleSave}
+        />
+      )}
     </>
   );
 };
