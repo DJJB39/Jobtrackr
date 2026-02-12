@@ -1,48 +1,66 @@
 
 
-## Consistent Location, Salary, and Deadline Pills on JobCard
+## Fix Critical UX Blockers
 
-The three pills already exist conditionally (lines 77-96). The changes needed are minor consistency fixes:
+Four targeted changes across three files to address the most impactful UX issues.
 
-### What Changes
+---
 
-1. **Add `max-w-[120px]` to location and salary `<span>` elements** so long values like "$150,000 - $200,000 + equity" or "San Francisco, CA (Remote)" truncate cleanly instead of stretching the card.
+### 1. Delete Confirmation Dialog (JobCard.tsx)
 
-2. **Add `shrink-0` to all three pill icons** (MapPin, DollarSign, CalendarDays) so icons never get squished by long text -- matching the pattern already used by Building2 and Briefcase above.
+Wrap the trash button with a shadcn `AlertDialog` to prevent accidental deletions.
 
-3. **Ensure consistent ordering**: location -> salary -> deadline -> next event. Already correct, no change needed.
+- Import `AlertDialog`, `AlertDialogTrigger`, `AlertDialogContent`, `AlertDialogHeader`, `AlertDialogTitle`, `AlertDialogDescription`, `AlertDialogFooter`, `AlertDialogAction`, `AlertDialogCancel` from `@/components/ui/alert-dialog`
+- Add local state `const [deleteOpen, setDeleteOpen] = useState(false)` to JobCard
+- Replace the bare trash `<button>` (lines 165-174) with an `AlertDialog` wrapping the trigger button
+- Dialog text: title "Delete application?", description "This will permanently delete {job.company} - {job.role} and all associated events."
+- Destructive-styled confirm button calls `onDelete(job.id)`
+- Both trigger and confirm buttons use `e.stopPropagation()` to avoid opening the detail panel
 
-### Exact Code Change
+---
 
-Replace lines 77-96 with:
+### 2. Debounce Detail Panel Saves (JobDetailPanel.tsx)
 
-```tsx
-{job.location && (
-  <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
-    <MapPin className="h-2.5 w-2.5 shrink-0" />
-    <span className="truncate max-w-[120px]">{job.location}</span>
-  </div>
-)}
-{job.salary && (
-  <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
-    <DollarSign className="h-2.5 w-2.5 shrink-0" />
-    <span className="truncate max-w-[120px]">{job.salary}</span>
-  </div>
-)}
-{job.closeDate && (
-  <div className={`mt-1 flex items-center gap-1 text-[10px] ${
-    isClosingSoon(job.closeDate) ? "text-destructive font-medium" : "text-muted-foreground"
-  }`}>
-    <CalendarDays className="h-2.5 w-2.5 shrink-0" />
-    <span className="truncate max-w-[120px]">{formatDeadline(job.closeDate)}</span>
-  </div>
-)}
-```
+Currently `update()` (line 72-76) calls `onSave()` on every keystroke, triggering an API call and toast each time.
 
-### Summary of Differences from Current Code
+- Add a `useRef` for a debounce timer and a `savingState` indicator (`idle` | `saving` | `saved`)
+- Split `update()` into two parts:
+  - Immediate: `setEditedJob(updated)` for responsive UI
+  - Debounced (500ms): call `onSave(updated)` after user stops typing
+- Add a subtle saving indicator in the sheet header (e.g., small text "Saving..." / "Saved" that fades after 1.5s) instead of per-keystroke toasts
+- The `onSave` callback in `KanbanBoard.tsx` already handles the API call -- no changes needed there
+- Clean up the timer on unmount via `useEffect` cleanup
 
-- Added `shrink-0` to MapPin, DollarSign, CalendarDays icons (3 additions)
-- Added `max-w-[120px]` to all three `<span>` elements (3 additions)
+---
 
-Single file changed: `src/components/JobCard.tsx`, lines 77-96. No new files, no new dependencies.
+### 3. Remove Duplicate Next Event Pill (JobCard.tsx)
+
+Lines 117-125 show the event title/count. Lines 127-135 duplicate with date/time. Merge into one pill.
+
+- Delete the second `{nextEvent && (...)}` block (lines 127-135)
+- Modify the first block (lines 117-125) to append the date and optional time after the title/count text
+- Result format: `"Interview at Google -- MMM d 2:00 PM"` or `"3 events -- MMM d"` (showing the nearest date)
+
+---
+
+### 4. Global Search Input (KanbanBoard.tsx)
+
+Add a text input to the existing filter bar that filters jobs client-side by company, role, or notes.
+
+- Add `searchQuery` state (default `""`)
+- Import `Search` icon from lucide-react and `Input` from `@/components/ui/input`
+- Insert an `Input` at the start of the filter bar (before the Filter icon) with placeholder "Search company, role..."
+- Extend the `filteredJobs` memo to also filter by `searchQuery` matching against `job.company`, `job.role`, and `job.notes` (case-insensitive substring)
+- Include `searchQuery` in the "Clear Filters" reset logic
+
+---
+
+### Technical Details
+
+**Files modified:**
+- `src/components/JobCard.tsx` -- AlertDialog for delete, merge event pills
+- `src/components/JobDetailPanel.tsx` -- debounced save with indicator
+- `src/components/KanbanBoard.tsx` -- search input and filter logic
+
+**No new dependencies.** All components (AlertDialog, Input, icons) already exist in the project.
 
