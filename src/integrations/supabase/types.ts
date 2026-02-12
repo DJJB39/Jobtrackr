@@ -23,6 +23,7 @@ export type Database = {
           contacts: Json
           created_at: string
           description: string | null
+          events: Json
           id: string
           links: Json
           location: string | null
@@ -41,6 +42,7 @@ export type Database = {
           contacts?: Json
           created_at?: string
           description?: string | null
+          events?: Json
           id?: string
           links?: Json
           location?: string | null
@@ -59,6 +61,7 @@ export type Database = {
           contacts?: Json
           created_at?: string
           description?: string | null
+          events?: Json
           id?: string
           links?: Json
           location?: string | null

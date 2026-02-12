@@ -34,6 +34,7 @@ const rowToJob = (row: DbRow): JobApplication => ({
   description: (row as any).description ?? undefined,
   salary: (row as any).salary ?? undefined,
   closeDate: (row as any).close_date ?? undefined,
+  events: (row as any).events ?? [],
 });
 
 export const useJobs = () => {
@@ -110,6 +111,7 @@ export const useJobs = () => {
         description: job.description ?? null,
         salary: job.salary ?? null,
         close_date: job.closeDate ?? null,
+        events: job.events as any,
       } as any)
       .eq("id", job.id);
 

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import {
   Building2,
   Briefcase,
@@ -25,8 +26,11 @@ import {
   MapPin,
   FileText,
   DollarSign,
+  Download,
+  Pencil,
+  AlertCircle,
 } from "lucide-react";
-import type { JobApplication, Contact, NextStep } from "@/types/job";
+import type { JobApplication, Contact, NextStep, JobEvent } from "@/types/job";
 import { COLUMNS, APPLICATION_TYPES } from "@/types/job";
 import {
   Select,
@@ -35,7 +39,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format } from "date-fns";
+import { format, parseISO, isBefore, startOfDay } from "date-fns";
+import { generateICS, downloadICS, googleCalendarUrl } from "@/lib/ics";
+import ScheduleEventDialog from "./ScheduleEventDialog";
 
 interface JobDetailPanelProps {
   job: JobApplication | null;
@@ -44,8 +50,16 @@ interface JobDetailPanelProps {
   onSave: (job: JobApplication) => void;
 }
 
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  interview: "Interview",
+  follow_up: "Follow-up",
+  deadline: "Deadline",
+};
+
 const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps) => {
   const [editedJob, setEditedJob] = useState<JobApplication | null>(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<JobEvent | undefined>(undefined);
 
   useEffect(() => {
     if (job) setEditedJob({ ...job });
@@ -100,6 +114,15 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps
   const removeLink = (index: number) => {
     update("links", editedJob.links.filter((_, i) => i !== index));
   };
+
+  const handleEventSave = (updatedJob: JobApplication) => {
+    setEditedJob(updatedJob);
+    onSave(updatedJob);
+  };
+
+  const pastEventsWithoutOutcome = (editedJob.events ?? []).filter(
+    (e) => isBefore(parseISO(e.date), startOfDay(new Date())) && !e.outcome
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -320,6 +343,112 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps
 
           <Separator />
 
+          {/* Events */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CalendarDays className="h-3.5 w-3.5" /> Events
+              </Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setEditingEvent(undefined); setScheduleOpen(true); }}
+                className="h-7 gap-1 text-xs"
+              >
+                <Plus className="h-3 w-3" /> Schedule Event
+              </Button>
+            </div>
+
+            {pastEventsWithoutOutcome.length > 0 && (
+              <div className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 p-2.5">
+                <AlertCircle className="h-4 w-4 text-accent shrink-0" />
+                <span className="text-xs text-foreground">
+                  {pastEventsWithoutOutcome.length} past event{pastEventsWithoutOutcome.length > 1 ? "s" : ""} need{pastEventsWithoutOutcome.length === 1 ? "s" : ""} an outcome —{" "}
+                  <button
+                    className="underline font-medium"
+                    onClick={() => { setEditingEvent(pastEventsWithoutOutcome[0]); setScheduleOpen(true); }}
+                  >
+                    Record now
+                  </button>
+                </span>
+              </div>
+            )}
+
+            {(editedJob.events ?? []).map((evt) => {
+              const isPast = isBefore(parseISO(evt.date), startOfDay(new Date()));
+              return (
+                <div key={evt.id} className="rounded-lg border border-border p-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px] font-medium">
+                        {EVENT_TYPE_LABELS[evt.type] ?? evt.type}
+                      </Badge>
+                      <span className="text-sm font-medium text-foreground truncate">{evt.title}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground"
+                        onClick={() => {
+                          const ics = generateICS({ title: evt.title, date: evt.date, time: evt.time, location: evt.location, notes: evt.prepNotes });
+                          downloadICS(ics, `${evt.title.replace(/\s+/g, "-")}.ics`);
+                        }}
+                        title="Download .ics"
+                      >
+                        <Download className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground"
+                        asChild
+                        title="Add to Google Calendar"
+                      >
+                        <a href={googleCalendarUrl({ title: evt.title, date: evt.date, time: evt.time, location: evt.location })} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground"
+                        onClick={() => { setEditingEvent(evt); setScheduleOpen(true); }}
+                        title="Edit event"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{format(parseISO(evt.date), "MMM d, yyyy")}</span>
+                    {evt.time && <span>at {evt.time}</span>}
+                    {evt.location && <span>· {evt.location}</span>}
+                  </div>
+                  {evt.outcome && (
+                    <Badge variant={evt.outcome === "passed" ? "default" : evt.outcome === "rejected" ? "destructive" : "secondary"} className="text-[10px]">
+                      {evt.outcome.charAt(0).toUpperCase() + evt.outcome.slice(1)}
+                    </Badge>
+                  )}
+                  {isPast && !evt.outcome && (
+                    <button
+                      className="text-xs text-accent underline"
+                      onClick={() => { setEditingEvent(evt); setScheduleOpen(true); }}
+                    >
+                      How did it go?
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+
+            {(!editedJob.events || editedJob.events.length === 0) && (
+              <p className="text-xs text-muted-foreground italic">No events scheduled</p>
+            )}
+          </section>
+
+          <Separator />
+
           {/* Links */}
           <section className="space-y-3">
             <div className="flex items-center justify-between">
@@ -363,6 +492,14 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps
             )}
           </section>
         </div>
+
+        <ScheduleEventDialog
+          open={scheduleOpen}
+          onOpenChange={setScheduleOpen}
+          job={editedJob}
+          event={editingEvent}
+          onSave={handleEventSave}
+        />
       </SheetContent>
     </Sheet>
   );

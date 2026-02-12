@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 import { COLUMNS, type JobApplication } from "@/types/job";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { TrendingUp, Activity, Layers } from "lucide-react";
+import { TrendingUp, Activity, Layers, CalendarDays } from "lucide-react";
+import { parseISO, format, differenceInDays, isBefore, startOfDay } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 interface DashboardProps {
   jobs: JobApplication[];
@@ -17,6 +19,22 @@ const STATUS_COLORS: Record<string, string> = {
   accepted: "hsl(142, 72%, 35%)",
   rejected: "hsl(0, 72%, 51%)",
 };
+
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  interview: "Interview",
+  follow_up: "Follow-up",
+  deadline: "Deadline",
+};
+
+interface UpcomingItem {
+  id: string;
+  title: string;
+  company: string;
+  role: string;
+  date: string;
+  time: string | null;
+  type: string;
+}
 
 const Dashboard = ({ jobs }: DashboardProps) => {
   const stats = useMemo(() => {
@@ -38,9 +56,80 @@ const Dashboard = ({ jobs }: DashboardProps) => {
     return { thisWeek: thisWeek.length, responseRate, breakdown, total: jobs.length };
   }, [jobs]);
 
+  const upcomingItems = useMemo(() => {
+    const today = startOfDay(new Date());
+    const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const items: UpcomingItem[] = [];
+
+    for (const job of jobs) {
+      for (const evt of job.events ?? []) {
+        try {
+          const d = parseISO(evt.date);
+          if (!isBefore(d, today) && isBefore(d, in7Days)) {
+            items.push({
+              id: evt.id,
+              title: evt.title,
+              company: job.company,
+              role: job.role,
+              date: evt.date,
+              time: evt.time,
+              type: evt.type,
+            });
+          }
+        } catch { /* skip invalid */ }
+      }
+      if (job.closeDate) {
+        try {
+          const d = parseISO(job.closeDate);
+          if (!isBefore(d, today) && isBefore(d, in7Days)) {
+            items.push({
+              id: `deadline-${job.id}`,
+              title: `Deadline: ${job.company}`,
+              company: job.company,
+              role: job.role,
+              date: job.closeDate,
+              time: null,
+              type: "deadline",
+            });
+          }
+        } catch { /* skip invalid */ }
+      }
+    }
+
+    return items.sort((a, b) => a.date.localeCompare(b.date));
+  }, [jobs]);
+
   return (
     <div className="flex-1 overflow-y-auto p-6">
       <div className="mx-auto max-w-4xl space-y-6">
+        {/* Upcoming This Week */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 text-muted-foreground mb-3">
+            <CalendarDays className="h-5 w-5" />
+            <span className="text-xs font-medium uppercase tracking-wider">Upcoming This Week</span>
+          </div>
+          {upcomingItems.length > 0 ? (
+            <div className="space-y-2">
+              {upcomingItems.map((item) => (
+                <div key={item.id} className="flex items-center gap-3 rounded-lg border border-border p-2.5">
+                  <span className="text-xs font-mono text-muted-foreground w-14 shrink-0">
+                    {format(parseISO(item.date), "MMM d")}
+                  </span>
+                  <Badge variant="outline" className="text-[10px] shrink-0">
+                    {EVENT_TYPE_LABELS[item.type] ?? item.type}
+                  </Badge>
+                  <span className="text-sm text-foreground truncate">{item.title}</span>
+                  {item.time && (
+                    <span className="text-xs text-muted-foreground ml-auto shrink-0">{item.time}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground italic">Nothing upcoming this week</p>
+          )}
+        </div>
+
         {/* Stat Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <StatCard
