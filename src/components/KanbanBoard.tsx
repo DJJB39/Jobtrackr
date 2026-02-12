@@ -241,7 +241,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
           <DragOverlay>
             {activeJob ? (
               <div className="rotate-3 scale-105">
-                <JobCard job={activeJob} onDelete={() => {}} />
+                <JobCard job={activeJob} onDelete={() => {}} columnId={activeJob.columnId} />
               </div>
             ) : null}
           </DragOverlay>
