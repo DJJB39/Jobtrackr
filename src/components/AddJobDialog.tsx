@@ -16,8 +16,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Plus, Link as LinkIcon, Loader2, DollarSign, CalendarDays, Undo2 } from "lucide-react";
 import { COLUMNS, APPLICATION_TYPES, type ColumnId } from "@/types/job";
+import type { JobApplication } from "@/types/job";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,9 +42,10 @@ interface AddJobDialogProps {
   ) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  jobs?: JobApplication[];
 }
 
-const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenChange }: AddJobDialogProps) => {
+const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenChange, jobs = [] }: AddJobDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen ?? internalOpen;
   const setOpen = externalOnOpenChange ?? setInternalOpen;
@@ -126,8 +138,9 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
     setAutoFilled((prev) => { const s = new Set(prev); s.delete(field); return s; });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const [duplicateWarning, setDuplicateWarning] = useState(false);
+
+  const doSubmit = () => {
     if (!company.trim() || !role.trim()) return;
     const links = jobUrl.trim() ? [jobUrl.trim()] : undefined;
     onAdd(company.trim(), role.trim(), columnId, applicationType, {
@@ -149,6 +162,19 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
     setAutoFilled(new Set());
     lastFetchedUrl.current = "";
     setOpen(false);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!company.trim() || !role.trim()) return;
+    const isDuplicate = jobs.some(
+      (j) => j.company.toLowerCase() === company.trim().toLowerCase() && j.role.toLowerCase() === role.trim().toLowerCase()
+    );
+    if (isDuplicate) {
+      setDuplicateWarning(true);
+      return;
+    }
+    doSubmit();
   };
 
   return (
@@ -311,6 +337,23 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
           </div>
         </form>
       </DialogContent>
+
+      <AlertDialog open={duplicateWarning} onOpenChange={setDuplicateWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Duplicate application?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You already have an application for {company} — {role}. Add anyway?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setDuplicateWarning(false); doSubmit(); }}>
+              Add Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

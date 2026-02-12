@@ -1,15 +1,18 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "next-themes";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut } from "lucide-react";
+import { LogOut, Sun, Moon } from "lucide-react";
 
 const UserMenu = () => {
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   if (!user) return null;
 
   const initials = (user.email ?? "U")
@@ -32,6 +35,12 @@ const UserMenu = () => {
         <div className="px-2 py-1.5">
           <p className="text-xs text-muted-foreground truncate">{user.email}</p>
         </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+          {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+          {theme === "dark" ? "Light mode" : "Dark mode"}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
           <LogOut className="mr-2 h-4 w-4" />
           Log out

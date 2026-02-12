@@ -118,8 +118,6 @@ export const useJobs = () => {
     if (error) {
       toast({ title: "Error saving", description: error.message, variant: "destructive" });
       fetchJobs();
-    } else {
-      toast({ title: "Application saved", description: "Changes saved successfully" });
     }
   }, [toast, fetchJobs]);
 
