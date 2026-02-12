@@ -3,13 +3,14 @@ import { Button } from "@/components/ui/button";
 import {
   Briefcase,
   Columns3,
-  BarChart3,
   Link2,
-  StickyNote,
   CheckCircle2,
   CalendarDays,
   Shield,
 } from "lucide-react";
+import screenshotKanban from "@/assets/screenshot-kanban.png";
+import screenshotDetail from "@/assets/screenshot-detail.png";
+import screenshotDashboard from "@/assets/screenshot-dashboard.png";
 
 const features = [
   { icon: Columns3, title: "Kanban Board", desc: "Drag and drop applications across 8 stages, from Found to Accepted. Filter by role, type, or stage." },
@@ -19,9 +20,9 @@ const features = [
 ];
 
 const screenshots = [
-  { icon: Columns3, caption: "Kanban Board" },
-  { icon: StickyNote, caption: "Application Details" },
-  { icon: BarChart3, caption: "Stats Dashboard" },
+  { src: screenshotKanban, caption: "Kanban Board" },
+  { src: screenshotDetail, caption: "Application Details" },
+  { src: screenshotDashboard, caption: "Stats Dashboard" },
 ];
 
 const testimonials = [
@@ -86,12 +87,12 @@ const Landing = () => (
             <div key={s.caption}>
               <div className="group rounded-xl border border-border bg-card overflow-hidden shadow-lg transition-transform hover:scale-[1.02]">
                 <div className="bg-muted/50 h-7 flex items-center gap-1.5 px-3 border-b border-border">
-                  <div className="h-2 w-2 rounded-full bg-red-400/40" />
-                  <div className="h-2 w-2 rounded-full bg-yellow-400/40" />
-                  <div className="h-2 w-2 rounded-full bg-green-400/40" />
+                  <div className="h-2 w-2 rounded-full bg-destructive/40" />
+                  <div className="h-2 w-2 rounded-full bg-accent/40" />
+                  <div className="h-2 w-2 rounded-full bg-primary/40" />
                 </div>
-                <div className="aspect-video flex items-center justify-center bg-gradient-to-br from-secondary to-muted/30 p-6">
-                  <s.icon className="h-10 w-10 text-muted-foreground/40" />
+                <div className="aspect-video overflow-hidden">
+                  <img src={s.src} alt={s.caption} className="w-full h-full object-cover object-top" />
                 </div>
               </div>
               <p className="mt-2 text-center text-xs text-muted-foreground font-medium">{s.caption}</p>
