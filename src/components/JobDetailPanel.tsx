@@ -30,6 +30,7 @@ import {
   Pencil,
   AlertCircle,
   Clock,
+  Sparkles,
 } from "lucide-react";
 import type { JobApplication, Contact, NextStep, JobEvent } from "@/types/job";
 import { COLUMNS, APPLICATION_TYPES } from "@/types/job";
@@ -49,6 +50,7 @@ interface JobDetailPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (job: JobApplication) => void;
+  onOpenAI?: () => void;
 }
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
@@ -72,7 +74,7 @@ const SECTION_ICON_COLORS = {
   links: "hsl(190, 75%, 42%)",
 };
 
-const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps) => {
+const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetailPanelProps) => {
   const [editedJob, setEditedJob] = useState<JobApplication | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<JobEvent | undefined>(undefined);
@@ -80,20 +82,29 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps
   const [isEditing, setIsEditing] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const savedFadeRef = useRef<ReturnType<typeof setTimeout>>();
+  const editedJobRef = useRef<JobApplication | null>(null);
+  const dirtyRef = useRef(false);
 
   useEffect(() => {
     if (job) {
       setEditedJob({ ...job });
+      editedJobRef.current = { ...job };
+      dirtyRef.current = false;
       setIsEditing(false);
     }
   }, [job]);
 
   useEffect(() => {
     return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        if (editedJobRef.current && dirtyRef.current) {
+          onSave(editedJobRef.current);
+        }
+      }
       if (savedFadeRef.current) clearTimeout(savedFadeRef.current);
     };
-  }, []);
+  }, [onSave]);
 
   const debouncedSave = useCallback((updated: JobApplication) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -113,6 +124,8 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps
   const update = <K extends keyof JobApplication>(key: K, value: JobApplication[K]) => {
     const updated = { ...editedJob, [key]: value };
     setEditedJob(updated);
+    editedJobRef.current = updated;
+    dirtyRef.current = true;
     debouncedSave(updated);
   };
 
@@ -246,10 +259,17 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps
               </div>
             </div>
 
-            {/* Edit toggle */}
-            <Button variant="ghost" size="sm" onClick={() => setIsEditing(!isEditing)} className="shrink-0 ml-3">
-              <Pencil className="h-3.5 w-3.5 mr-1" /> {isEditing ? "Done" : "Edit"}
-            </Button>
+            {/* Actions */}
+            <div className="flex items-center gap-1 shrink-0 ml-3">
+              {onOpenAI && (
+                <Button variant="ghost" size="sm" onClick={onOpenAI} className="gap-1">
+                  <Sparkles className="h-3.5 w-3.5" /> AI
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={() => setIsEditing(!isEditing)}>
+                <Pencil className="h-3.5 w-3.5 mr-1" /> {isEditing ? "Done" : "Edit"}
+              </Button>
+            </div>
           </div>
 
           {/* View posting link */}
