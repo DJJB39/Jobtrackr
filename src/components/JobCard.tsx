@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { JobApplication } from "@/types/job";
+import type { JobApplication, ColumnId } from "@/types/job";
 import {
   GripVertical,
   Building2,
@@ -14,7 +14,7 @@ import {
   Clock,
 } from "lucide-react";
 import { differenceInDays, parseISO, format, isBefore, startOfDay } from "date-fns";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -26,6 +26,17 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+
+const STATUS_BORDER_COLORS: Record<string, string> = {
+  found: "hsl(215, 80%, 55%)",
+  applied: "hsl(262, 60%, 55%)",
+  phone: "hsl(190, 75%, 42%)",
+  interview2: "hsl(36, 95%, 54%)",
+  final: "hsl(24, 85%, 52%)",
+  offer: "hsl(142, 60%, 42%)",
+  accepted: "hsl(142, 72%, 35%)",
+  rejected: "hsl(0, 72%, 51%)",
+};
 
 const isClosingSoon = (dateStr: string) => {
   try {
@@ -48,17 +59,21 @@ interface JobCardProps {
   onDelete: (id: string) => void;
   onClick?: (job: JobApplication) => void;
   onSchedule?: (job: JobApplication) => void;
+  columnId?: ColumnId;
 }
 
-const JobCard = ({ job, onDelete, onClick, onSchedule }: JobCardProps) => {
+const JobCard = ({ job, onDelete, onClick, onSchedule, columnId }: JobCardProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: job.id,
     data: { type: "job", job },
   });
 
+  const resolvedColumnId = columnId ?? job.columnId;
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    borderLeftColor: STATUS_BORDER_COLORS[resolvedColumnId] ?? "transparent",
   };
 
   const nextEvent = useMemo(() => {
@@ -81,8 +96,8 @@ const JobCard = ({ job, onDelete, onClick, onSchedule }: JobCardProps) => {
       ref={setNodeRef}
       style={style}
       onClick={() => onClick?.(job)}
-      className={`group relative cursor-pointer rounded-lg border border-border bg-card p-3 shadow-sm transition-all hover:shadow-md hover:bg-[hsl(var(--card-hover))] ${
-        isDragging ? "opacity-50 shadow-lg scale-105 z-50" : ""
+      className={`group relative cursor-pointer rounded-lg border border-border border-l-[3px] bg-gradient-to-r from-card to-card/80 p-3 shadow-sm transition-all hover:shadow-lg hover:shadow-primary/5 hover:bg-[hsl(var(--card-hover))] ${
+        isDragging ? "shadow-2xl shadow-primary/10 scale-105 z-50" : ""
       }`}
     >
       <div className="flex items-start gap-2">

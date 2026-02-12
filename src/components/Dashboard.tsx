@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { COLUMNS, type JobApplication } from "@/types/job";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { TrendingUp, Activity, Layers, CalendarDays } from "lucide-react";
-import { parseISO, format, differenceInDays, isBefore, startOfDay } from "date-fns";
+import { parseISO, format, isBefore, startOfDay } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import JobDetailPanel from "./JobDetailPanel";
@@ -38,6 +38,12 @@ interface UpcomingItem {
   time: string | null;
   type: string;
 }
+
+const STAT_ACCENTS = {
+  gold: "hsl(36, 95%, 54%)",
+  blue: "hsl(215, 80%, 55%)",
+  purple: "hsl(262, 60%, 55%)",
+};
 
 const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
@@ -108,10 +114,12 @@ const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
     <div className="flex-1 overflow-y-auto p-6">
       <div className="mx-auto max-w-4xl space-y-6">
         {/* Upcoming This Week */}
-        <Card>
+        <Card className="bg-gradient-to-br from-card to-secondary/20">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <CalendarDays className="h-5 w-5" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: STAT_ACCENTS.gold + "20" }}>
+                <CalendarDays className="h-5 w-5" style={{ color: STAT_ACCENTS.gold }} />
+              </div>
               <span className="text-xs font-medium uppercase tracking-wider">Upcoming This Week</span>
             </div>
           </CardHeader>
@@ -129,7 +137,7 @@ const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
                           setPanelOpen(true);
                         }
                       }}
-                      className="flex items-center gap-3 rounded-lg border border-border p-2.5 cursor-pointer hover:bg-muted/50 transition-colors"
+                      className="flex items-center gap-3 rounded-lg border border-border bg-card/50 p-2.5 cursor-pointer hover:bg-muted/50 transition-colors"
                     >
                       <span className="text-xs font-mono text-muted-foreground w-14 shrink-0">
                         {format(parseISO(item.date), "MMM d")}
@@ -156,23 +164,26 @@ const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
             label="Added This Week"
             value={stats.thisWeek}
             sub={`of ${stats.total} total`}
+            accentColor={STAT_ACCENTS.gold}
           />
           <StatCard
             icon={<Activity className="h-5 w-5" />}
             label="Response Rate"
             value={`${stats.responseRate}%`}
             sub="excl. Found & Rejected"
+            accentColor={STAT_ACCENTS.blue}
           />
           <StatCard
             icon={<Layers className="h-5 w-5" />}
             label="Total Applications"
             value={stats.total}
             sub={`across ${COLUMNS.length} stages`}
+            accentColor={STAT_ACCENTS.purple}
           />
         </div>
 
         {/* Chart */}
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-gradient-to-br from-card via-card to-secondary/20 p-5">
           <h3 className="mb-4 text-sm font-semibold text-foreground">Applications by Stage</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -191,7 +202,7 @@ const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
                 />
                 <Tooltip
                   contentStyle={{
-                    background: "hsl(var(--popover))",
+                    background: "hsl(222, 44%, 12%)",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: 8,
                     fontSize: 12,
@@ -213,7 +224,7 @@ const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
           {stats.breakdown.map((stage) => (
             <div
               key={stage.id}
-              className="rounded-lg border border-border bg-card p-3 text-center"
+              className="rounded-lg border border-border bg-gradient-to-b from-card to-secondary/10 p-3 text-center transition-shadow hover:shadow-md"
             >
               <div
                 className="mx-auto mb-2 h-2 w-8 rounded-full"
@@ -244,16 +255,26 @@ const StatCard = ({
   label,
   value,
   sub,
+  accentColor,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string | number;
   sub: string;
+  accentColor: string;
 }) => (
-  <div className="rounded-xl border border-border bg-card p-5">
-    <div className="flex items-center gap-2 text-muted-foreground mb-2">
-      {icon}
-      <span className="text-xs font-medium uppercase tracking-wider">{label}</span>
+  <div
+    className="rounded-xl border border-border bg-gradient-to-br from-card to-secondary/20 p-5"
+    style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}
+  >
+    <div className="flex items-center gap-2 mb-2">
+      <div
+        className="flex h-8 w-8 items-center justify-center rounded-lg"
+        style={{ backgroundColor: accentColor + "20" }}
+      >
+        {icon}
+      </div>
+      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
     </div>
     <p className="text-3xl font-bold text-foreground font-mono">{value}</p>
     <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
