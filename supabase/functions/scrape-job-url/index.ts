@@ -56,6 +56,19 @@ const getJsonLd = (html: string): any | null => {
   return null;
 };
 
+const sanitizeText = (text: string | null): string | null => {
+  if (!text) return null;
+  return text
+    .replace(/<[^>]*>/g, '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+    .trim() || null;
+};
+
 const getSalary = (ld: any): string | null => {
   const bs = ld.baseSalary || ld.estimatedSalary;
   if (!bs) return null;
@@ -240,11 +253,11 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         success: true,
         data: {
-          title: title || null,
-          company: company || null,
-          description: description || null,
-          location: location || null,
-          salary: salary || null,
+          title: sanitizeText(title),
+          company: sanitizeText(company),
+          description: sanitizeText(description),
+          location: sanitizeText(location),
+          salary: sanitizeText(salary),
           close_date: closeDate || null,
           url,
         },
