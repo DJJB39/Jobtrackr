@@ -14,7 +14,18 @@ import {
   Clock,
 } from "lucide-react";
 import { differenceInDays, parseISO, format, isBefore, startOfDay } from "date-fns";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 const isClosingSoon = (dateStr: string) => {
   try {
@@ -117,17 +128,11 @@ const JobCard = ({ job, onDelete, onClick, onSchedule }: JobCardProps) => {
           {nextEvent && (
             <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
               <Clock className="h-2.5 w-2.5 shrink-0" />
-              <span className="truncate max-w-[120px]">
+              <span className="truncate max-w-[160px]">
                 {job.events.length === 1
-                  ? `${nextEvent.title.slice(0, 25)}${nextEvent.title.length > 25 ? "..." : ""}`
-                  : `${job.events.length} event${job.events.length > 1 ? "s" : ""}`}
-              </span>
-            </div>
-          )}
-          {nextEvent && (
-            <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
-              <Clock className="h-2.5 w-2.5" />
-              <span>
+                  ? `${nextEvent.title.slice(0, 18)}${nextEvent.title.length > 18 ? "…" : ""}`
+                  : `${job.events.length} events`}
+                {" — "}
                 {formatDeadline(nextEvent.date)}
                 {nextEvent.time ? ` ${nextEvent.time}` : ""}
               </span>
@@ -162,16 +167,37 @@ const JobCard = ({ job, onDelete, onClick, onSchedule }: JobCardProps) => {
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
         )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(job.id);
-          }}
-          className="mt-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-          aria-label="Delete application"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className="mt-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+              aria-label="Delete application"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete application?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete {job.company} — {job.role} and all associated events.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(job.id);
+                }}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

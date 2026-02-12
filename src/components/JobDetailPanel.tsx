@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Sheet,
   SheetContent,
@@ -60,10 +60,31 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps
   const [editedJob, setEditedJob] = useState<JobApplication | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<JobEvent | undefined>(undefined);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const savedFadeRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     if (job) setEditedJob({ ...job });
   }, [job]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (savedFadeRef.current) clearTimeout(savedFadeRef.current);
+    };
+  }, []);
+
+  const debouncedSave = useCallback((updated: JobApplication) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setSaveStatus("saving");
+    debounceRef.current = setTimeout(() => {
+      onSave(updated);
+      setSaveStatus("saved");
+      if (savedFadeRef.current) clearTimeout(savedFadeRef.current);
+      savedFadeRef.current = setTimeout(() => setSaveStatus("idle"), 1500);
+    }, 500);
+  }, [onSave]);
 
   if (!editedJob) return null;
 
@@ -72,7 +93,7 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps
   const update = <K extends keyof JobApplication>(key: K, value: JobApplication[K]) => {
     const updated = { ...editedJob, [key]: value };
     setEditedJob(updated);
-    onSave(updated);
+    debouncedSave(updated);
   };
 
   const addContact = () => {
@@ -135,7 +156,14 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave }: JobDetailPanelProps
               {column?.title}
             </span>
           </div>
-          <SheetTitle className="text-lg font-bold">{editedJob.company}</SheetTitle>
+          <div className="flex items-center gap-2">
+            <SheetTitle className="text-lg font-bold">{editedJob.company}</SheetTitle>
+            {saveStatus !== "idle" && (
+              <span className={`text-[10px] font-medium transition-opacity ${saveStatus === "saving" ? "text-muted-foreground animate-pulse" : "text-emerald-500"}`}>
+                {saveStatus === "saving" ? "Saving…" : "Saved"}
+              </span>
+            )}
+          </div>
         </SheetHeader>
 
         {editedJob.links?.[0] && (

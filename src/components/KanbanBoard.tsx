@@ -22,8 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Filter, X } from "lucide-react";
+import { Filter, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface KanbanBoardProps {
   jobs: JobApplication[];
@@ -39,6 +40,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
   const [filterType, setFilterType] = useState("All");
   const [filterStage, setFilterStage] = useState("all_stages");
   const [filterRole, setFilterRole] = useState("all_roles");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Schedule dialog state
   const [scheduleTarget, setScheduleTarget] = useState<JobApplication | null>(null);
@@ -116,6 +118,15 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
 
   const filteredJobs = useMemo(() => {
     let result = jobs;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (j) =>
+          j.company.toLowerCase().includes(q) ||
+          j.role.toLowerCase().includes(q) ||
+          j.notes.toLowerCase().includes(q)
+      );
+    }
     if (filterType !== "All") {
       result = result.filter((j) => j.applicationType === filterType);
     }
@@ -123,7 +134,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
       result = result.filter((j) => j.role.toLowerCase().includes(filterRole.toLowerCase()));
     }
     return result;
-  }, [jobs, filterType, filterRole]);
+  }, [jobs, filterType, filterRole, searchQuery]);
 
   const visibleColumns = useMemo(
     () => filterStage === "all_stages" ? COLUMNS : COLUMNS.filter((c) => c.id === filterStage),
@@ -137,6 +148,15 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
     <>
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2 px-6 pt-4 pb-0">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search company, role…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-9 w-[200px] pl-8 text-sm"
+          />
+        </div>
         <Filter className="h-4 w-4 text-muted-foreground" />
         <Select value={filterType} onValueChange={setFilterType}>
           <SelectTrigger className="w-[180px] h-9">
@@ -179,7 +199,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
           </SelectContent>
         </Select>
 
-        {(filterType !== "All" || filterStage !== "all_stages" || filterRole !== "all_roles") && (
+        {(filterType !== "All" || filterStage !== "all_stages" || filterRole !== "all_roles" || searchQuery) && (
           <Button
             variant="ghost"
             size="sm"
@@ -188,6 +208,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
               setFilterType("All");
               setFilterStage("all_stages");
               setFilterRole("all_roles");
+              setSearchQuery("");
             }}
           >
             <X className="h-3.5 w-3.5" />
