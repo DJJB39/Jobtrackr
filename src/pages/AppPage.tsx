@@ -3,7 +3,8 @@ import KanbanBoard from "@/components/KanbanBoard";
 import Dashboard from "@/components/Dashboard";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
-import { Briefcase, LayoutDashboard, Columns3, Loader2, Download } from "lucide-react";
+import { Briefcase, LayoutDashboard, Columns3, Loader2, Download, CalendarDays } from "lucide-react";
+import CalendarView from "@/components/CalendarView";
 import { useJobs } from "@/hooks/useJobs";
 import { useLoginReminders } from "@/hooks/useLoginReminders";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { COLUMNS } from "@/types/job";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
-type View = "board" | "dashboard";
+type View = "board" | "dashboard" | "calendar";
 
 const AppPage = () => {
   const { jobs, setJobs, loading, addJob, updateJob, deleteJob } = useJobs();
@@ -96,6 +97,17 @@ const AppPage = () => {
                 <LayoutDashboard className="h-3.5 w-3.5" />
                 Dashboard
               </button>
+              <button
+                onClick={() => setView("calendar")}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  view === "calendar"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                Calendar
+              </button>
             </nav>
             <Button variant="outline" size="sm" className="gap-2" onClick={exportToCSV} disabled={jobs.length === 0}>
               <Download className="h-4 w-4" />
@@ -122,8 +134,10 @@ const AppPage = () => {
         </div>
       ) : view === "board" ? (
         <KanbanBoard jobs={jobs} setJobs={setJobs} onUpdateJob={updateJob} onDeleteJob={deleteJob} />
-      ) : (
+      ) : view === "dashboard" ? (
         <Dashboard jobs={jobs} />
+      ) : (
+        <CalendarView jobs={jobs} />
       )}
     </div>
   );
