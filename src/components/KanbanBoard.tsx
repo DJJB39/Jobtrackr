@@ -72,10 +72,13 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
       setJobs((prev) => prev.map((j) => j.id === activeId ? { ...j, columnId: overColumn.id } : j));
       return;
     }
-    const overJob = jobs.find((j) => j.id === overId);
-    if (overJob) {
-      setJobs((prev) => prev.map((j) => j.id === activeId ? { ...j, columnId: overJob.columnId } : j));
-    }
+    setJobs((prev) => {
+      const overJob = prev.find((j) => j.id === overId);
+      if (overJob) {
+        return prev.map((j) => j.id === activeId ? { ...j, columnId: overJob.columnId } : j);
+      }
+      return prev;
+    });
   };
 
   const handleDragEnd = (_event: DragEndEvent) => {
