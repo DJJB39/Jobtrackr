@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   CalendarDays,
   Shield,
+  Play,
+  ArrowRight,
 } from "lucide-react";
 import screenshotKanban from "@/assets/screenshot-kanban.png";
 import screenshotDetail from "@/assets/screenshot-detail.png";
@@ -25,10 +27,10 @@ const screenshots = [
   { src: screenshotDashboard, caption: "Stats Dashboard" },
 ];
 
-const testimonials = [
-  { quote: "I applied to 80+ jobs and never lost track of a single one.", attribution: "Recent grad, software engineering", initials: "SG" },
-  { quote: "The URL auto-fill alone saves me 5 minutes per application.", attribution: "Career switcher", initials: "KM" },
-  { quote: "Finally a tracker that isn't a bloated Notion template.", attribution: "Product designer", initials: "JL" },
+const HOW_IT_WORKS = [
+  { step: "1", title: "Paste a Job URL", desc: "Drop a link from any job board and we auto-fill company, role, salary, and deadline." },
+  { step: "2", title: "Drag to Track", desc: "Move applications across stages — from Found to Offer — with a simple drag and drop." },
+  { step: "3", title: "Stay on Top", desc: "Schedule interviews, set follow-up reminders, and never miss a deadline again." },
 ];
 
 const Landing = () => (
@@ -43,6 +45,12 @@ const Landing = () => (
           <span className="text-lg font-bold tracking-tight text-foreground">JobTrackr</span>
         </div>
         <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/demo" className="gap-1.5">
+              <Play className="h-3.5 w-3.5" />
+              Try Demo
+            </Link>
+          </Button>
           <Button variant="ghost" asChild>
             <Link to="/auth">Log In</Link>
           </Button>
@@ -70,12 +78,15 @@ const Landing = () => (
           Paste a job link and auto-fill the details. Drag applications through stages.
           Set reminders so nothing slips. Private by default — only you see your data.
         </p>
-        <div className="mt-10 flex items-center justify-center gap-4">
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Button size="lg" className="text-base px-8" asChild>
             <Link to="/auth?tab=signup">Sign Up Free</Link>
           </Button>
-          <Button size="lg" variant="outline" className="text-base px-8" asChild>
-            <Link to="/auth">Log In</Link>
+          <Button size="lg" variant="outline" className="text-base px-8 gap-2" asChild>
+            <Link to="/demo">
+              <Play className="h-4 w-4" />
+              Try Interactive Demo
+            </Link>
           </Button>
         </div>
       </section>
@@ -101,6 +112,25 @@ const Landing = () => (
         </div>
       </section>
 
+      {/* How It Works */}
+      <section className="mx-auto max-w-5xl px-6 pb-24">
+        <h2 className="text-center text-lg font-semibold text-foreground mb-10">How It Works</h2>
+        <div className="grid gap-6 sm:grid-cols-3">
+          {HOW_IT_WORKS.map((item, i) => (
+            <div key={item.step} className="relative rounded-xl border border-border bg-card p-6 text-center">
+              <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
+                {item.step}
+              </div>
+              <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
+              {i < HOW_IT_WORKS.length - 1 && (
+                <ArrowRight className="hidden sm:block absolute -right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 z-10" />
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Features */}
       <section className="mx-auto max-w-5xl px-6 pb-24">
         <div className="grid gap-6 sm:grid-cols-2">
@@ -119,28 +149,20 @@ const Landing = () => (
         </div>
       </section>
 
-      {/* Social Proof */}
-      <section className="mx-auto max-w-4xl px-6 py-20">
-        <h2 className="text-center text-lg font-semibold text-foreground mb-10">Why users love JobTrackr</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {testimonials.map((t) => (
-            <div key={t.initials} className="rounded-xl border border-border bg-card p-6 text-center">
-              <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                {t.initials}
-              </div>
-              <p className="text-sm text-foreground italic leading-relaxed">"{t.quote}"</p>
-              <p className="mt-3 text-xs text-muted-foreground">{t.attribution}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Final CTA */}
       <section className="mx-auto max-w-3xl px-6 py-20 text-center">
         <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Ready to take control of your job search?</h2>
-        <Button size="lg" className="text-base px-10 mt-6" asChild>
-          <Link to="/auth?tab=signup">Sign Up Free</Link>
-        </Button>
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Button size="lg" className="text-base px-10" asChild>
+            <Link to="/auth?tab=signup">Sign Up Free</Link>
+          </Button>
+          <Button size="lg" variant="ghost" className="text-base gap-2" asChild>
+            <Link to="/demo">
+              <Play className="h-4 w-4" />
+              Or try the demo first
+            </Link>
+          </Button>
+        </div>
         <p className="text-xs text-muted-foreground mt-3">It's free. No credit card required.</p>
       </section>
     </main>
