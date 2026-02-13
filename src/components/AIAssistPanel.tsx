@@ -164,7 +164,7 @@ const AIAssistPanel = ({ job, open, onOpenChange }: AIAssistPanelProps) => {
             </div>
           )}
           {content && (
-            <div className="prose prose-sm prose-invert max-w-none text-foreground">
+            <div className="prose prose-sm dark:prose-invert max-w-none text-foreground">
               <ReactMarkdown>{content}</ReactMarkdown>
             </div>
           )}

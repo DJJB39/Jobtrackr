@@ -108,7 +108,7 @@ const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
   }, [jobs]);
 
   const tooltipStyle = {
-    background: "hsl(222, 44%, 12%)",
+    background: "hsl(var(--card))",
     border: "1px solid hsl(var(--border))",
     borderRadius: 8,
     fontSize: 12,
