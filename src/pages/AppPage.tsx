@@ -5,9 +5,10 @@ import Dashboard from "@/components/Dashboard";
 import ListView from "@/components/ListView";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
-import { Briefcase, LayoutDashboard, Columns3, Loader2, Download, CalendarDays, X, List, Search } from "lucide-react";
+import { Briefcase, LayoutDashboard, Columns3, Loader2, Download, CalendarDays, X, List, Search, FileUp } from "lucide-react";
 import ShareStats from "@/components/ShareStats";
 import CalendarView from "@/components/CalendarView";
+import CVView from "@/components/CVView";
 import JobDetailPanel from "@/components/JobDetailPanel";
 import AIAssistPanel from "@/components/AIAssistPanel";
 import CommandPalette from "@/components/CommandPalette";
@@ -21,13 +22,14 @@ import { COLUMNS } from "@/types/job";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
-type View = "board" | "dashboard" | "calendar" | "list";
+type View = "board" | "dashboard" | "calendar" | "list" | "cv";
 
 const VIEW_ITEMS = [
   { key: "board" as View, icon: Columns3, label: "Board" },
   { key: "list" as View, icon: List, label: "List" },
   { key: "dashboard" as View, icon: LayoutDashboard, label: "Insights" },
   { key: "calendar" as View, icon: CalendarDays, label: "Calendar" },
+  { key: "cv" as View, icon: FileUp, label: "CV" },
 ];
 
 const AppPage = () => {
@@ -292,6 +294,8 @@ const AppPage = () => {
             }
           }}
         />
+      ) : view === "cv" ? (
+        <CVView jobs={filteredJobs} onSelectJob={handleSelectJob} />
       ) : (
         <CalendarView jobs={filteredJobs} onSelectJob={handleSelectJob} />
       )}
