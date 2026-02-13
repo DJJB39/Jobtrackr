@@ -24,7 +24,7 @@ const KanbanColumn = ({ column, jobs, onDeleteJob, onClickJob, onScheduleJob, se
       className={`flex w-72 shrink-0 flex-col rounded-2xl transition-all duration-300 ${
         isOver
           ? "ring-2 ring-primary/40 bg-primary/5"
-          : "bg-transparent"
+          : "glass-surface"
       }`}
     >
       {/* Column header */}

@@ -67,13 +67,15 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-secondary to-background p-4">
-      <div className="w-full max-w-sm space-y-6">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[hsl(var(--gradient-start))] via-background to-[hsl(var(--gradient-end))] mesh-gradient relative p-4">
+      {/* Noise overlay */}
+      <div className="noise fixed inset-0 pointer-events-none" />
+      <div className="w-full max-w-sm space-y-6 relative z-10">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-glow">
             <Briefcase className="h-6 w-6 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">
+          <h1 className="text-2xl font-display text-foreground">
             {mode === "login" ? "Welcome back" : mode === "signup" ? "Create your account" : "Reset password"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -81,7 +83,7 @@ const Auth = () => {
           </p>
         </div>
 
-        <div className="space-y-4 rounded-xl border border-border bg-card p-6">
+        <div className="space-y-4 rounded-2xl glass p-6 shadow-lg">
           {mode !== "forgot" && (
             <div className="flex flex-col gap-2">
               <Button
