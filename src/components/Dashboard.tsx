@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { COLUMNS, type JobApplication } from "@/types/job";
+import { COLUMNS, type JobApplication, type ColumnId } from "@/types/job";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  AreaChart, Area, PieChart, Pie, Legend,
+  AreaChart, Area, PieChart, Pie, Legend, FunnelChart, Funnel, LabelList,
 } from "recharts";
-import { TrendingUp, Activity, Layers, CalendarDays, Zap } from "lucide-react";
-import { parseISO, format, isBefore, startOfDay, subWeeks, startOfWeek, endOfWeek } from "date-fns";
+import { TrendingUp, Activity, Layers, CalendarDays, Zap, AlertTriangle, Ghost } from "lucide-react";
+import { parseISO, format, isBefore, startOfDay, subWeeks, startOfWeek, endOfWeek, differenceInDays } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import JobDetailPanel from "./JobDetailPanel";
@@ -13,6 +13,7 @@ import JobDetailPanel from "./JobDetailPanel";
 interface DashboardProps {
   jobs: JobApplication[];
   onUpdateJob?: (job: JobApplication) => void;
+  onFilterByStage?: (stageId: ColumnId) => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -49,7 +50,20 @@ const STAT_ACCENTS = {
   green: "hsl(142, 60%, 42%)",
 };
 
-const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
+const FUNNEL_STAGES: { id: ColumnId; label: string; color: string }[] = [
+  { id: "found", label: "Found", color: "hsl(215, 80%, 55%)" },
+  { id: "applied", label: "Applied", color: "hsl(262, 60%, 55%)" },
+  { id: "phone", label: "Phone", color: "hsl(190, 75%, 42%)" },
+  { id: "interview2", label: "Interview", color: "hsl(36, 95%, 54%)" },
+  { id: "final", label: "Final", color: "hsl(24, 85%, 52%)" },
+  { id: "offer", label: "Offer", color: "hsl(142, 60%, 42%)" },
+  { id: "accepted", label: "Accepted", color: "hsl(142, 72%, 35%)" },
+];
+
+const STALE_THRESHOLD_DAYS = 14;
+const GHOST_THRESHOLD_DAYS = 7;
+
+const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
 
@@ -58,13 +72,50 @@ const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thisWeek = jobs.filter((j) => new Date(j.createdAt) >= weekAgo);
     const active = jobs.filter((j) => j.columnId !== "found" && j.columnId !== "rejected");
-    const responseRate = jobs.length > 0 ? Math.round((active.length / jobs.length) * 100) : 0;
+    const pastApplied = jobs.filter((j) => !["found", "rejected"].includes(j.columnId));
+    const funnelDropOff = jobs.length > 0 ? Math.round((pastApplied.length / jobs.length) * 100) : 0;
     const breakdown = COLUMNS.map((col) => ({
       name: col.title,
       count: jobs.filter((j) => j.columnId === col.id).length,
       id: col.id,
     }));
-    return { thisWeek: thisWeek.length, active: active.length, responseRate, breakdown, total: jobs.length };
+    return { thisWeek: thisWeek.length, active: active.length, funnelDropOff, breakdown, total: jobs.length };
+  }, [jobs]);
+
+  // Conversion funnel data — cumulative count at each stage or beyond
+  const funnelData = useMemo(() => {
+    const stageOrder: ColumnId[] = FUNNEL_STAGES.map((s) => s.id);
+    return FUNNEL_STAGES.map((stage, i) => {
+      const atOrBeyond = jobs.filter((j) => {
+        const jIdx = stageOrder.indexOf(j.columnId);
+        return jIdx >= i && j.columnId !== "rejected";
+      }).length;
+      return { name: stage.label, value: atOrBeyond, fill: stage.color };
+    });
+  }, [jobs]);
+
+  // Stale applications: same stage 14+ days, no recent events
+  const staleJobs = useMemo(() => {
+    const today = startOfDay(new Date());
+    return jobs.filter((j) => {
+      if (j.columnId === "accepted" || j.columnId === "rejected") return false;
+      const daysSinceUpdate = differenceInDays(today, new Date(j.createdAt));
+      return daysSinceUpdate >= STALE_THRESHOLD_DAYS;
+    }).slice(0, 5);
+  }, [jobs]);
+
+  // Ghost detection: Applied/Phone with no upcoming events for 7+ days
+  const ghostJobs = useMemo(() => {
+    const today = startOfDay(new Date());
+    return jobs.filter((j) => {
+      if (j.columnId !== "applied" && j.columnId !== "phone") return false;
+      const hasUpcoming = (j.events ?? []).some((e) => {
+        try { return !isBefore(parseISO(e.date), today); } catch { return false; }
+      });
+      if (hasUpcoming) return false;
+      const daysSinceCreated = differenceInDays(today, new Date(j.createdAt));
+      return daysSinceCreated >= GHOST_THRESHOLD_DAYS;
+    }).slice(0, 5);
   }, [jobs]);
 
   const weeklyData = useMemo(() => {
@@ -124,9 +175,30 @@ const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <StatCard icon={<TrendingUp className="h-4 w-4" />} label="This Week" value={stats.thisWeek} sub={`of ${stats.total} total`} accentColor={STAT_ACCENTS.gold} />
             <StatCard icon={<Zap className="h-4 w-4" />} label="Active" value={stats.active} sub="in pipeline" accentColor={STAT_ACCENTS.green} />
-            <StatCard icon={<Activity className="h-4 w-4" />} label="Response Rate" value={`${stats.responseRate}%`} sub="excl. Found/Rejected" accentColor={STAT_ACCENTS.blue} />
+            <StatCard icon={<Activity className="h-4 w-4" />} label="Funnel Rate" value={`${stats.funnelDropOff}%`} sub="moved past Found" accentColor={STAT_ACCENTS.blue} />
             <StatCard icon={<Layers className="h-4 w-4" />} label="Total" value={stats.total} sub={`${COLUMNS.length} stages`} accentColor={STAT_ACCENTS.purple} />
           </div>
+
+          {/* Conversion Funnel */}
+          <Card className="bg-gradient-to-br from-card to-secondary/20">
+            <CardHeader className="pb-2">
+              <h3 className="text-sm font-semibold text-foreground">Conversion Funnel</h3>
+              <p className="text-[10px] text-muted-foreground">Candidates at or beyond each stage (excl. rejected)</p>
+            </CardHeader>
+            <CardContent>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <FunnelChart>
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Funnel dataKey="value" data={funnelData} isAnimationActive>
+                      <LabelList position="right" fill="hsl(var(--foreground))" stroke="none" fontSize={11} />
+                      <LabelList position="center" fill="hsl(var(--foreground))" stroke="none" fontSize={12} dataKey="value" />
+                    </Funnel>
+                  </FunnelChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Area chart */}
           <Card className="bg-gradient-to-br from-card to-secondary/20">
@@ -134,7 +206,7 @@ const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
               <h3 className="text-sm font-semibold text-foreground">Applications By Week</h3>
             </CardHeader>
             <CardContent>
-              <div className="h-56">
+              <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={weeklyData} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
                     <defs>
@@ -153,9 +225,8 @@ const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
             </CardContent>
           </Card>
 
-          {/* Bottom row: pie + bar */}
+          {/* Bottom row: pie + interactive bar */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Pie chart */}
             <Card className="bg-gradient-to-br from-card to-secondary/20">
               <CardHeader className="pb-2">
                 <h3 className="text-sm font-semibold text-foreground">Stages</h3>
@@ -186,15 +257,26 @@ const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
               </CardContent>
             </Card>
 
-            {/* Bar chart */}
+            {/* Interactive bar chart */}
             <Card className="bg-gradient-to-br from-card to-secondary/20">
               <CardHeader className="pb-2">
                 <h3 className="text-sm font-semibold text-foreground">By Stage</h3>
+                {onFilterByStage && <p className="text-[10px] text-muted-foreground">Click a bar to filter board</p>}
               </CardHeader>
               <CardContent>
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.breakdown} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+                    <BarChart
+                      data={stats.breakdown}
+                      margin={{ top: 0, right: 0, bottom: 0, left: -20 }}
+                      onClick={(data) => {
+                        if (data?.activePayload?.[0] && onFilterByStage) {
+                          const stageId = data.activePayload[0].payload.id as ColumnId;
+                          onFilterByStage(stageId);
+                        }
+                      }}
+                      style={{ cursor: onFilterByStage ? "pointer" : "default" }}
+                    >
                       <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                       <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={tooltipStyle} />
@@ -209,6 +291,75 @@ const Dashboard = ({ jobs, onUpdateJob }: DashboardProps) => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Stale & Ghost alerts row */}
+          {(staleJobs.length > 0 || ghostJobs.length > 0) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {staleJobs.length > 0 && (
+                <Card className="border-[hsl(36,95%,54%)]/30 bg-gradient-to-br from-card to-[hsl(36,95%,54%)]/5">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-[hsl(36,95%,54%)]" />
+                      <h3 className="text-sm font-semibold text-foreground">Stale Applications</h3>
+                      <Badge variant="outline" className="ml-auto text-[10px]">{staleJobs.length}</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">No activity for {STALE_THRESHOLD_DAYS}+ days</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-1.5">
+                      {staleJobs.map((job) => (
+                        <button
+                          key={job.id}
+                          onClick={() => { setSelectedJob(job); setPanelOpen(true); }}
+                          className="flex w-full items-center justify-between rounded-lg border border-border bg-card/50 p-2 text-left hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">{job.company}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{job.role}</p>
+                          </div>
+                          <Badge variant="outline" className="text-[9px] shrink-0 ml-2">
+                            {differenceInDays(new Date(), new Date(job.createdAt))}d
+                          </Badge>
+                        </button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {ghostJobs.length > 0 && (
+                <Card className="border-[hsl(262,60%,55%)]/30 bg-gradient-to-br from-card to-[hsl(262,60%,55%)]/5">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2">
+                      <Ghost className="h-4 w-4 text-[hsl(262,60%,55%)]" />
+                      <h3 className="text-sm font-semibold text-foreground">Possible Ghosting</h3>
+                      <Badge variant="outline" className="ml-auto text-[10px]">{ghostJobs.length}</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Applied/Phone with no events for {GHOST_THRESHOLD_DAYS}+ days</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-1.5">
+                      {ghostJobs.map((job) => (
+                        <button
+                          key={job.id}
+                          onClick={() => { setSelectedJob(job); setPanelOpen(true); }}
+                          className="flex w-full items-center justify-between rounded-lg border border-border bg-card/50 p-2 text-left hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">{job.company}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{job.role}</p>
+                          </div>
+                          <Badge variant="secondary" className="text-[9px] shrink-0 ml-2">
+                            {COLUMNS.find((c) => c.id === job.columnId)?.title}
+                          </Badge>
+                        </button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right column: upcoming sidebar */}
