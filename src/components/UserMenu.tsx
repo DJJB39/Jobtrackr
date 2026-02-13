@@ -1,18 +1,66 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "next-themes";
+import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, Sun, Moon } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { LogOut, Sun, Moon, Bell, Mail } from "lucide-react";
 
 const UserMenu = () => {
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
+  const [emailReminders, setEmailReminders] = useState(false);
+  const [weeklyDigest, setWeeklyDigest] = useState(false);
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const loadPrefs = async () => {
+      const { data } = await supabase
+        .from("user_preferences")
+        .select("email_reminders, weekly_digest")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        setEmailReminders(data.email_reminders);
+        setWeeklyDigest(data.weekly_digest);
+      }
+      setPrefsLoaded(true);
+    };
+    loadPrefs();
+  }, [user]);
+
+  const updatePref = useCallback(
+    async (field: "email_reminders" | "weekly_digest", value: boolean) => {
+      if (!user) return;
+      const { data: existing } = await supabase
+        .from("user_preferences")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from("user_preferences")
+          .update({ [field]: value })
+          .eq("user_id", user.id);
+      } else {
+        await supabase
+          .from("user_preferences")
+          .insert({ user_id: user.id, [field]: value });
+      }
+    },
+    [user]
+  );
+
   if (!user) return null;
 
   const initials = (user.email ?? "U")
@@ -31,10 +79,46 @@ const UserMenu = () => {
           </Avatar>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-56">
         <div className="px-2 py-1.5">
           <p className="text-xs text-muted-foreground truncate">{user.email}</p>
         </div>
+        <DropdownMenuSeparator />
+
+        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+          Notifications
+        </DropdownMenuLabel>
+
+        <div className="px-2 py-1.5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Bell className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-sm">Event reminders</span>
+          </div>
+          <Switch
+            checked={emailReminders}
+            onCheckedChange={(checked) => {
+              setEmailReminders(checked);
+              updatePref("email_reminders", checked);
+            }}
+            disabled={!prefsLoaded}
+          />
+        </div>
+
+        <div className="px-2 py-1.5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-sm">Weekly digest</span>
+          </div>
+          <Switch
+            checked={weeklyDigest}
+            onCheckedChange={(checked) => {
+              setWeeklyDigest(checked);
+              updatePref("weekly_digest", checked);
+            }}
+            disabled={!prefsLoaded}
+          />
+        </div>
+
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
           {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
