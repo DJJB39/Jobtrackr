@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Sheet,
   SheetContent,
@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sparkles, Copy, RefreshCw, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import type { JobApplication } from "@/types/job";
 import ReactMarkdown from "react-markdown";
 
@@ -34,6 +35,16 @@ const AIAssistPanel = ({ job, open, onOpenChange }: AIAssistPanelProps) => {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [cvText, setCvText] = useState<string | null>(null);
+
+  // Load cached CV text
+  useEffect(() => {
+    if (user) {
+      const cached = localStorage.getItem(`cv-text-${user.id}`);
+      setCvText(cached || null);
+    }
+  }, [user]);
 
   const generate = useCallback(async (selectedMode?: Mode) => {
     const m = selectedMode ?? mode;
@@ -58,6 +69,7 @@ const AIAssistPanel = ({ job, open, onOpenChange }: AIAssistPanelProps) => {
             notes: job.notes,
             applicationType: job.applicationType,
           },
+          ...(cvText ? { cvText } : {}),
         }),
       });
 

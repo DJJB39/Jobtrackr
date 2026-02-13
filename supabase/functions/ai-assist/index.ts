@@ -27,6 +27,27 @@ Format everything in clear markdown with headers.`,
 - **Red Flags / Things to Note** (if any)
 - **Salary Assessment** (if salary data available)
 Keep it under 200 words.`,
+
+  cv_suitability: `You are a career suitability analyst. Compare the candidate's CV against the job description. You MUST use the cv_suitability_result tool to return your analysis in structured format.`,
+};
+
+const CV_SUITABILITY_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "cv_suitability_result",
+    description: "Return structured suitability analysis comparing CV to job description",
+    parameters: {
+      type: "object",
+      properties: {
+        score: { type: "number", description: "Suitability score 0-100" },
+        strengths: { type: "array", items: { type: "string" }, description: "Key strengths that match the job" },
+        gaps: { type: "array", items: { type: "string" }, description: "Missing qualifications or gaps" },
+        suggestions: { type: "array", items: { type: "string" }, description: "3-5 specific suggestions to improve fit" },
+      },
+      required: ["score", "strengths", "gaps", "suggestions"],
+      additionalProperties: false,
+    },
+  },
 };
 
 serve(async (req) => {
@@ -55,7 +76,7 @@ serve(async (req) => {
       });
     }
 
-    const { mode, job } = await req.json();
+    const { mode, job, cvText } = await req.json();
 
     const systemPrompt = SYSTEM_PROMPTS[mode];
     if (!systemPrompt) {
@@ -76,10 +97,66 @@ serve(async (req) => {
       job.description ? `Job Description: ${job.description.slice(0, 2000)}` : null,
       job.notes ? `Candidate Notes: ${job.notes.slice(0, 1000)}` : null,
       job.applicationType ? `Application Type: ${job.applicationType}` : null,
+      cvText ? `\n--- Candidate CV ---\n${cvText.slice(0, 4000)}` : null,
     ]
       .filter(Boolean)
       .join("\n");
 
+    // For cv_suitability mode, use tool calling (non-streaming)
+    if (mode === "cv_suitability") {
+      const response = await fetch(
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: jobContext },
+            ],
+            tools: [CV_SUITABILITY_TOOL],
+            tool_choice: { type: "function", function: { name: "cv_suitability_result" } },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits in Settings." }), {
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const t = await response.text();
+        console.error("AI gateway error:", response.status, t);
+        return new Response(JSON.stringify({ error: "AI service error" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const data = await response.json();
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall) {
+        return new Response(JSON.stringify({ error: "AI did not return structured result" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const result = JSON.parse(toolCall.function.arguments);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Streaming modes (cover_letter, interview_prep, summarize)
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {

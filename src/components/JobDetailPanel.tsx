@@ -18,11 +18,13 @@ import {
   FileText,
   Users,
   Link as LinkIcon,
+  FileUp,
 } from "lucide-react";
 import InlineEdit from "./InlineEdit";
 import DetailOverviewTab from "./detail/DetailOverviewTab";
 import DetailEventsTab from "./detail/DetailEventsTab";
 import DetailLinksTab from "./detail/DetailLinksTab";
+import DetailCVTab from "./detail/DetailCVTab";
 import type { JobApplication } from "@/types/job";
 import { COLUMNS, APPLICATION_TYPES } from "@/types/job";
 import {
@@ -215,7 +217,7 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetail
         {/* Tabs */}
         <div className="px-6 py-4">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="w-full grid grid-cols-3 mb-4 bg-secondary/30 border border-border/30">
+            <TabsList className="w-full grid grid-cols-4 mb-4 bg-secondary/30 border border-border/30">
               <TabsTrigger value="overview" className="text-xs gap-1.5 data-[state=active]:shadow-sm">
                 <FileText className="h-3.5 w-3.5" /> Overview
               </TabsTrigger>
@@ -224,6 +226,9 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetail
               </TabsTrigger>
               <TabsTrigger value="links" className="text-xs gap-1.5 data-[state=active]:shadow-sm">
                 <LinkIcon className="h-3.5 w-3.5" /> Links
+              </TabsTrigger>
+              <TabsTrigger value="cv" className="text-xs gap-1.5 data-[state=active]:shadow-sm">
+                <FileUp className="h-3.5 w-3.5" /> CV
               </TabsTrigger>
             </TabsList>
             <TabsContent value="overview">
@@ -234,6 +239,9 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetail
             </TabsContent>
             <TabsContent value="links">
               <DetailLinksTab job={editedJob} onUpdate={update} />
+            </TabsContent>
+            <TabsContent value="cv">
+              <DetailCVTab job={editedJob} />
             </TabsContent>
           </Tabs>
         </div>
