@@ -1,4 +1,6 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import {
@@ -59,7 +61,17 @@ const stats = [
 ];
 
 /* ── Component ── */
-const Landing = () => (
+const Landing = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/app", { replace: true });
+    }
+  }, [user, loading, navigate]);
+
+  return (
   <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">
     {/* Background grid pattern */}
     <div
@@ -316,6 +328,7 @@ const Landing = () => (
       © {new Date().getFullYear()} JobTrackr. Built with Lovable.
     </footer>
   </div>
-);
+  );
+};
 
 export default Landing;
