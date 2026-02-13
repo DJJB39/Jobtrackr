@@ -127,13 +127,12 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
           onClick?.(job);
         }
       }}
-      className={`group relative cursor-grab active:cursor-grabbing rounded-xl border p-3 shadow-sm transition-all duration-200 glow-hover
+      className={`group relative cursor-grab active:cursor-grabbing rounded-xl p-3 shadow-sm transition-all duration-200 glow-hover
         ${isDragging ? "shadow-glow-lg scale-105 z-50 opacity-90" : "hover:shadow-glow"}
         ${selected
-          ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
-          : "border-border/40 bg-card/80 hover:bg-[hsl(var(--card-hover))] hover:border-border/60"
+          ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5 glass-card"
+          : "glass-card hover:bg-[hsl(var(--card-hover))] hover:border-border/60"
         }
-        backdrop-blur-sm
       `}
     >
       {/* Selection checkbox */}

@@ -181,7 +181,7 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
           </div>
 
           {/* Conversion Funnel */}
-          <Card className="bg-gradient-to-br from-card to-secondary/20">
+          <Card className="glass-card">
             <CardHeader className="pb-2">
               <h3 className="text-sm font-semibold text-foreground">Conversion Funnel</h3>
               <p className="text-[10px] text-muted-foreground">Candidates at or beyond each stage (excl. rejected)</p>
@@ -202,7 +202,7 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
           </Card>
 
           {/* Area chart */}
-          <Card className="bg-gradient-to-br from-card to-secondary/20">
+          <Card className="glass-card">
             <CardHeader className="pb-2">
               <h3 className="text-sm font-semibold text-foreground">Applications By Week</h3>
             </CardHeader>
@@ -228,7 +228,7 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
 
           {/* Bottom row: pie + interactive bar */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="bg-gradient-to-br from-card to-secondary/20">
+            <Card className="glass-card">
               <CardHeader className="pb-2">
                 <h3 className="text-sm font-semibold text-foreground">Stages</h3>
               </CardHeader>
@@ -259,7 +259,7 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
             </Card>
 
             {/* Interactive bar chart */}
-            <Card className="bg-gradient-to-br from-card to-secondary/20">
+            <Card className="glass-card">
               <CardHeader className="pb-2">
                 <h3 className="text-sm font-semibold text-foreground">By Stage</h3>
                 {onFilterByStage && <p className="text-[10px] text-muted-foreground">Click a bar to filter board</p>}
@@ -297,7 +297,7 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
           {(staleJobs.length > 0 || ghostJobs.length > 0) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {staleJobs.length > 0 && (
-                <Card className="border-[hsl(36,95%,54%)]/30 bg-gradient-to-br from-card to-[hsl(36,95%,54%)]/5">
+                <Card className="glass-card border-[hsl(36,95%,54%)]/30">
                   <CardHeader className="pb-2">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-[hsl(36,95%,54%)]" />
@@ -329,7 +329,7 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
               )}
 
               {ghostJobs.length > 0 && (
-                <Card className="border-[hsl(262,60%,55%)]/30 bg-gradient-to-br from-card to-[hsl(262,60%,55%)]/5">
+                <Card className="glass-card border-[hsl(262,60%,55%)]/30">
                   <CardHeader className="pb-2">
                     <div className="flex items-center gap-2">
                       <Ghost className="h-4 w-4 text-[hsl(262,60%,55%)]" />
@@ -365,7 +365,7 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
 
         {/* Right column: upcoming sidebar */}
         <div className="lg:col-span-1">
-          <Card className="sticky top-6 bg-gradient-to-br from-card to-secondary/20">
+          <Card className="sticky top-6 glass-card">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ backgroundColor: STAT_ACCENTS.gold + "20" }}>
@@ -402,7 +402,7 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
           </Card>
 
           {/* Achievements */}
-          <Card className="mt-4 bg-gradient-to-br from-card to-secondary/20">
+          <Card className="mt-4 glass-card">
             <CardContent className="pt-5">
               <Achievements jobs={jobs} />
             </CardContent>
@@ -421,7 +421,7 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
 };
 
 const StatCard = ({ icon, label, value, sub, accentColor }: { icon: React.ReactNode; label: string; value: string | number; sub: string; accentColor: string }) => (
-  <div className="rounded-xl border border-border bg-gradient-to-br from-card to-secondary/20 p-4" style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}>
+  <div className="rounded-xl glass-card p-4" style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}>
     <div className="flex items-center gap-2 mb-1.5">
       <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ backgroundColor: accentColor + "20", color: accentColor }}>{icon}</div>
       <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</span>

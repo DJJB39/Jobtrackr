@@ -150,6 +150,51 @@
     border: 1px solid hsl(var(--glass-border));
   }
 
+  .glass-subtle {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid hsl(var(--glass-border));
+  }
+
+  .glass-card {
+    background: hsl(228 20% 11% / 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--glass-border));
+  }
+
+  .light .glass-card {
+    background: hsl(0 0% 100% / 0.55);
+  }
+
+  .glass-surface {
+    background: hsl(228 18% 10% / 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid hsl(225 14% 18% / 0.4);
+  }
+
+  .light .glass-surface {
+    background: hsl(0 0% 100% / 0.45);
+    border: 1px solid hsl(220 14% 88% / 0.5);
+  }
+
+  /* Mesh gradient background */
+  .mesh-gradient {
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 40%, hsl(var(--primary) / 0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 60% at 80% 20%, hsl(262 60% 55% / 0.05) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 80% at 50% 90%, hsl(190 75% 42% / 0.04) 0%, transparent 70%);
+  }
+
+  .light .mesh-gradient {
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 40%, hsl(var(--primary) / 0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 60% at 80% 20%, hsl(262 60% 55% / 0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 80% at 50% 90%, hsl(190 75% 42% / 0.05) 0%, transparent 70%);
+  }
+
   /* Subtle glow behind cards on hover */
   .glow-hover {
     position: relative;

@@ -116,7 +116,7 @@ const AppPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-[hsl(var(--gradient-start))] via-background to-[hsl(var(--gradient-end))]">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-[hsl(var(--gradient-start))] via-background to-[hsl(var(--gradient-end))] mesh-gradient relative">
       {/* Premium header */}
       <header className="border-b border-border/50 px-4 sm:px-6 py-3 glass sticky top-0 z-30">
         <div className="flex items-center justify-between">
