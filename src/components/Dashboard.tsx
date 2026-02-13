@@ -5,6 +5,7 @@ import {
   AreaChart, Area, PieChart, Pie, Legend, FunnelChart, Funnel, LabelList,
 } from "recharts";
 import { TrendingUp, Activity, Layers, CalendarDays, Zap, AlertTriangle, Ghost } from "lucide-react";
+import Achievements from "./Achievements";
 import { parseISO, format, isBefore, startOfDay, subWeeks, startOfWeek, endOfWeek, differenceInDays } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -397,6 +398,13 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
               ) : (
                 <p className="text-xs text-muted-foreground italic">Nothing upcoming</p>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Achievements */}
+          <Card className="mt-4 bg-gradient-to-br from-card to-secondary/20">
+            <CardContent className="pt-5">
+              <Achievements jobs={jobs} />
             </CardContent>
           </Card>
         </div>
