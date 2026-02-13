@@ -1,42 +1,62 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import type { JobApplication, ColumnId, Contact, NextStep } from "@/types/job";
+import type { JobApplication, ColumnId, Contact, NextStep, JobEvent } from "@/types/job";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 
-interface DbRow {
-  id: string;
-  user_id: string;
-  company: string;
-  role: string;
-  column_id: string;
-  notes: string;
-  contacts: any;
-  next_steps: any;
-  links: any;
-  application_type: string;
-  created_at: string;
-  updated_at: string;
-}
+/* ── DB row → domain model ─────────────────────────────── */
 
-const rowToJob = (row: DbRow): JobApplication => ({
-  id: row.id,
-  company: row.company,
-  role: row.role,
+const rowToJob = (row: Record<string, unknown>): JobApplication => ({
+  id: row.id as string,
+  company: row.company as string,
+  role: row.role as string,
   columnId: row.column_id as ColumnId,
-  createdAt: row.created_at,
-  notes: row.notes ?? "",
+  createdAt: row.created_at as string,
+  notes: (row.notes as string) ?? "",
   contacts: (row.contacts ?? []) as Contact[],
   nextSteps: (row.next_steps ?? []) as NextStep[],
   links: (row.links ?? []) as string[],
-  applicationType: row.application_type ?? "Other",
-  location: (row as any).location ?? undefined,
-  description: (row as any).description ?? undefined,
-  salary: (row as any).salary ?? undefined,
-  closeDate: (row as any).close_date ?? undefined,
-  events: (row as any).events ?? [],
+  applicationType: (row.application_type as string) ?? "Other",
+  location: (row.location as string) ?? undefined,
+  description: (row.description as string) ?? undefined,
+  salary: (row.salary as string) ?? undefined,
+  closeDate: (row.close_date as string) ?? undefined,
+  events: (row.events ?? []) as JobEvent[],
 });
+
+/* ── Activity diff helper ──────────────────────────────── */
+
+function diffActivityLogs(
+  oldJob: JobApplication,
+  newJob: JobApplication
+): { action: string; details: Record<string, string> }[] {
+  const logs: { action: string; details: Record<string, string> }[] = [];
+  if (oldJob.columnId !== newJob.columnId) {
+    logs.push({ action: "stage_change", details: { from: oldJob.columnId, to: newJob.columnId } });
+  }
+  if (oldJob.notes !== newJob.notes) {
+    logs.push({ action: "notes_edited", details: {} });
+  }
+  if (oldJob.contacts.length !== newJob.contacts.length) {
+    logs.push({
+      action: oldJob.contacts.length < newJob.contacts.length ? "contact_added" : "contact_removed",
+      details: {},
+    });
+  }
+  if ((oldJob.events?.length ?? 0) !== (newJob.events?.length ?? 0)) {
+    logs.push({
+      action: (oldJob.events?.length ?? 0) < (newJob.events?.length ?? 0) ? "event_added" : "event_removed",
+      details: {},
+    });
+  }
+  if (oldJob.links.length !== newJob.links.length) {
+    logs.push({ action: "link_changed", details: {} });
+  }
+  return logs;
+}
+
+/* ── Main hook ─────────────────────────────────────────── */
 
 export const useJobs = () => {
   const { user } = useAuth();
@@ -54,152 +74,161 @@ export const useJobs = () => {
 
     if (error) {
       toast({ title: "Error loading jobs", description: error.message, variant: "destructive" });
-    } else {
-      setJobs((data as DbRow[]).map(rowToJob));
+    } else if (data) {
+      setJobs(data.map((r) => rowToJob(r as Record<string, unknown>)));
     }
     setLoading(false);
   }, [user, toast]);
 
-  useEffect(() => { fetchJobs(); }, [fetchJobs]);
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
 
-  const addJob = useCallback(async (
-    company: string,
-    role: string,
-    columnId: ColumnId,
-    applicationType: string = "Other",
-    extras?: { location?: string; description?: string; links?: string[]; salary?: string; closeDate?: string }
-  ) => {
-    if (!user) return;
-    const { data, error } = await supabase
-      .from("job_applications")
-      .insert({
+  /* ── Add ───────────────────────────────────────────── */
+
+  const addJob = useCallback(
+    async (
+      company: string,
+      role: string,
+      columnId: ColumnId,
+      applicationType = "Other",
+      extras?: {
+        location?: string;
+        description?: string;
+        links?: string[];
+        salary?: string;
+        closeDate?: string;
+      }
+    ) => {
+      if (!user) return;
+
+      const insertPayload: Record<string, unknown> = {
         user_id: user.id,
         company,
         role,
         column_id: columnId,
         application_type: applicationType,
-        ...(extras?.location ? { location: extras.location } : {}),
-        ...(extras?.description ? { description: extras.description } : {}),
-        ...(extras?.links ? { links: extras.links } : {}),
-        ...(extras?.salary ? { salary: extras.salary } : {}),
-        ...(extras?.closeDate ? { close_date: extras.closeDate } : {}),
-      } as any)
-      .select()
-      .single();
+      };
+      if (extras?.location) insertPayload.location = extras.location;
+      if (extras?.description) insertPayload.description = extras.description;
+      if (extras?.links) insertPayload.links = extras.links;
+      if (extras?.salary) insertPayload.salary = extras.salary;
+      if (extras?.closeDate) insertPayload.close_date = extras.closeDate;
 
-    if (error) {
-      toast({ title: "Error adding job", description: error.message, variant: "destructive" });
-    } else {
-      setJobs((prev) => [...prev, rowToJob(data as DbRow)]);
-      toast({ title: "Application added", description: `${company} — ${role} has been added` });
-    }
-  }, [user, toast]);
+      const { data, error } = await supabase
+        .from("job_applications")
+        .insert(insertPayload as never)
+        .select()
+        .single();
 
-  const updateJob = useCallback(async (job: JobApplication) => {
-    const oldJob = jobs.find((j) => j.id === job.id);
-    setJobs((prev) => prev.map((j) => (j.id === job.id ? job : j)));
+      if (error) {
+        toast({ title: "Error adding job", description: error.message, variant: "destructive" });
+      } else if (data) {
+        setJobs((prev) => [...prev, rowToJob(data as Record<string, unknown>)]);
+        toast({ title: "Application added", description: `${company} — ${role} has been added` });
+      }
+    },
+    [user, toast]
+  );
 
-    const { error } = await supabase
-      .from("job_applications")
-      .update({
+  /* ── Update ────────────────────────────────────────── */
+
+  const updateJob = useCallback(
+    async (job: JobApplication) => {
+      const oldJob = jobs.find((j) => j.id === job.id);
+      setJobs((prev) => prev.map((j) => (j.id === job.id ? job : j)));
+
+      const updatePayload: Record<string, unknown> = {
         company: job.company,
         role: job.role,
         column_id: job.columnId,
         notes: job.notes,
-        contacts: job.contacts as any,
-        next_steps: job.nextSteps as any,
-        links: job.links as any,
+        contacts: job.contacts,
+        next_steps: job.nextSteps,
+        links: job.links,
         application_type: job.applicationType,
         location: job.location ?? null,
         description: job.description ?? null,
         salary: job.salary ?? null,
         close_date: job.closeDate ?? null,
-        events: job.events as any,
-        resume_url: (job as any).resumeUrl ?? null,
-        ats_score: (job as any).atsScore ?? null,
-      } as any)
-      .eq("id", job.id);
+        events: job.events,
+      };
 
-    if (error) {
-      toast({ title: "Error saving", description: error.message, variant: "destructive" });
-      fetchJobs();
-    }
+      const { error } = await supabase
+        .from("job_applications")
+        .update(updatePayload as never)
+        .eq("id", job.id);
 
-    // Log activity changes
-    if (user && oldJob) {
-      const logs: { action: string; details: any }[] = [];
-      if (oldJob.columnId !== job.columnId) {
-        logs.push({ action: "stage_change", details: { from: oldJob.columnId, to: job.columnId } });
-      }
-      if (oldJob.notes !== job.notes) {
-        logs.push({ action: "notes_edited", details: {} });
-      }
-      if (oldJob.contacts.length !== job.contacts.length) {
-        logs.push({ action: oldJob.contacts.length < job.contacts.length ? "contact_added" : "contact_removed", details: {} });
-      }
-      if ((oldJob.events?.length ?? 0) !== (job.events?.length ?? 0)) {
-        logs.push({ action: (oldJob.events?.length ?? 0) < (job.events?.length ?? 0) ? "event_added" : "event_removed", details: {} });
-      }
-      if (oldJob.links.length !== job.links.length) {
-        logs.push({ action: "link_changed", details: {} });
-      }
-      if (logs.length > 0) {
-        await supabase.from("job_activity_log").insert(
-          logs.map((l) => ({ job_id: job.id, user_id: user.id, action: l.action, details: l.details }))
-        );
-      }
-    }
-  }, [jobs, user, toast, fetchJobs]);
-
-  const deleteJob = useCallback(async (id: string) => {
-    const jobToDelete = jobs.find((j) => j.id === id);
-    if (!jobToDelete) return;
-
-    // Cancel any previous pending delete
-    if (undoRef.current) {
-      clearTimeout(undoRef.current.timeout);
-      // Execute the previous pending delete immediately
-      const prev = undoRef.current.job;
-      supabase.from("job_applications").delete().eq("id", prev.id).then();
-      undoRef.current = null;
-    }
-
-    // Optimistically remove from UI
-    setJobs((prev) => prev.filter((j) => j.id !== id));
-
-    // Set up undo window
-    const timeout = setTimeout(async () => {
-      const { error } = await supabase.from("job_applications").delete().eq("id", id);
       if (error) {
-        toast({ title: "Error deleting", description: error.message, variant: "destructive" });
+        toast({ title: "Error saving", description: error.message, variant: "destructive" });
         fetchJobs();
       }
-      undoRef.current = null;
-    }, 5000);
 
-    undoRef.current = { job: jobToDelete, timeout };
+      // Log activity
+      if (user && oldJob) {
+        const logs = diffActivityLogs(oldJob, job);
+        if (logs.length > 0) {
+          await supabase
+            .from("job_activity_log")
+            .insert(logs.map((l) => ({ job_id: job.id, user_id: user.id, action: l.action, details: l.details })));
+        }
+      }
+    },
+    [jobs, user, toast, fetchJobs]
+  );
 
-    toast({
-      title: "Application deleted",
-      description: `${jobToDelete.company} — ${jobToDelete.role}`,
-      action: (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            if (undoRef.current && undoRef.current.job.id === id) {
-              clearTimeout(undoRef.current.timeout);
-              setJobs((prev) => [...prev, undoRef.current!.job]);
-              undoRef.current = null;
-              toast({ title: "Undo successful", description: "Application restored" });
-            }
-          }}
-        >
-          Undo
-        </Button>
-      ),
-    });
-  }, [jobs, toast, fetchJobs]);
+  /* ── Delete with undo ──────────────────────────────── */
+
+  const deleteJob = useCallback(
+    async (id: string) => {
+      const jobToDelete = jobs.find((j) => j.id === id);
+      if (!jobToDelete) return;
+
+      // Flush any pending undo
+      if (undoRef.current) {
+        clearTimeout(undoRef.current.timeout);
+        supabase.from("job_applications").delete().eq("id", undoRef.current.job.id).then();
+        undoRef.current = null;
+      }
+
+      setJobs((prev) => prev.filter((j) => j.id !== id));
+
+      const timeout = setTimeout(async () => {
+        const { error } = await supabase.from("job_applications").delete().eq("id", id);
+        if (error) {
+          toast({ title: "Error deleting", description: error.message, variant: "destructive" });
+          fetchJobs();
+        }
+        undoRef.current = null;
+      }, 5000);
+
+      undoRef.current = { job: jobToDelete, timeout };
+
+      toast({
+        title: "Application deleted",
+        description: `${jobToDelete.company} — ${jobToDelete.role}`,
+        action: (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (undoRef.current && undoRef.current.job.id === id) {
+                clearTimeout(undoRef.current.timeout);
+                setJobs((prev) => [...prev, undoRef.current!.job]);
+                undoRef.current = null;
+                toast({ title: "Undo successful", description: "Application restored" });
+              }
+            }}
+          >
+            Undo
+          </Button>
+        ),
+      });
+    },
+    [jobs, toast, fetchJobs]
+  );
+
+  /* ── Local setter ──────────────────────────────────── */
 
   const setJobsLocal = useCallback((updater: React.SetStateAction<JobApplication[]>) => {
     setJobs(updater);

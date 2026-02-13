@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import KanbanBoard from "@/components/KanbanBoard";
 import Dashboard from "@/components/Dashboard";
 import ListView from "@/components/ListView";
@@ -20,6 +21,13 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 type View = "board" | "dashboard" | "calendar" | "list";
+
+const VIEW_ITEMS = [
+  { key: "board" as View, icon: Columns3, label: "Board" },
+  { key: "list" as View, icon: List, label: "List" },
+  { key: "dashboard" as View, icon: LayoutDashboard, label: "Insights" },
+  { key: "calendar" as View, icon: CalendarDays, label: "Calendar" },
+];
 
 const AppPage = () => {
   const { jobs, setJobs, loading, addJob, updateJob, deleteJob } = useJobs();
@@ -83,36 +91,55 @@ const AppPage = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center gap-3"
+        >
+          <div className="relative">
+            <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
+              <Briefcase className="h-5 w-5 text-primary" />
+            </div>
+            <motion.div
+              className="absolute inset-0 rounded-xl border-2 border-primary/40"
+              animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            />
+          </div>
+          <p className="text-sm text-muted-foreground font-medium">Loading your pipeline…</p>
+        </motion.div>
       </div>
     );
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-[hsl(var(--gradient-start))] via-background to-[hsl(var(--gradient-end))]">
-      <header className="border-b border-border px-4 sm:px-6 py-4 backdrop-blur-sm bg-background/80">
+      {/* Premium header */}
+      <header className="border-b border-border/50 px-4 sm:px-6 py-3 glass sticky top-0 z-30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Briefcase className="h-5 w-5 text-primary-foreground" />
+            <div className="relative">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-glow">
+                <Briefcase className="h-5 w-5 text-primary-foreground" />
+              </div>
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight text-foreground">JobTrackr</h1>
-              <p className="text-xs text-muted-foreground font-mono">
-                {jobs.length} application{jobs.length !== 1 ? "s" : ""}
+              <h1 className="text-lg font-display tracking-tight text-foreground">JobTrackr</h1>
+              <p className="text-[10px] text-muted-foreground font-mono tracking-wider uppercase">
+                {jobs.length} application{jobs.length !== 1 ? "s" : ""} tracked
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Search bar */}
+            {/* Search */}
             <div className="relative hidden md:block">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search jobs… (⌘K)"
+                placeholder="Search… (⌘K)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-48 lg:w-64 pl-8 text-sm bg-muted/50 border-border"
+                className="h-9 w-48 lg:w-64 pl-8 text-sm bg-secondary/50 border-border/50 focus:border-primary/50 focus:shadow-glow transition-shadow"
               />
               {searchQuery && (
                 <button
@@ -124,59 +151,65 @@ const AppPage = () => {
               )}
             </div>
 
-            <nav className="hidden sm:flex items-center rounded-lg border border-border bg-muted p-0.5 mr-1">
-              {([
-                { key: "board" as View, icon: Columns3, label: "Board" },
-                { key: "list" as View, icon: List, label: "List" },
-                { key: "dashboard" as View, icon: LayoutDashboard, label: "Dashboard" },
-                { key: "calendar" as View, icon: CalendarDays, label: "Calendar" },
-              ]).map(({ key, icon: Icon, label }) => (
+            {/* View switcher */}
+            <nav className="hidden sm:flex items-center rounded-xl border border-border/50 bg-secondary/30 p-0.5 mr-1">
+              {VIEW_ITEMS.map(({ key, icon: Icon, label }) => (
                 <button
                   key={key}
                   onClick={() => setView(key)}
-                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
                     view === key
-                      ? "bg-background text-foreground shadow-sm"
+                      ? "text-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
+                  {view === key && (
+                    <motion.div
+                      layoutId="viewIndicator"
+                      className="absolute inset-0 bg-card/80 rounded-lg shadow-sm border border-border/50"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    <Icon className="h-3.5 w-3.5" />
+                    {label}
+                  </span>
                 </button>
               ))}
             </nav>
 
             {/* Mobile view switcher */}
-            <div className="flex sm:hidden items-center rounded-lg border border-border bg-muted p-0.5 mr-1">
-              {([
-                { key: "board" as View, icon: Columns3 },
-                { key: "list" as View, icon: List },
-                { key: "dashboard" as View, icon: LayoutDashboard },
-                { key: "calendar" as View, icon: CalendarDays },
-              ]).map(({ key, icon: Icon }) => (
-                <button key={key} onClick={() => setView(key)} className={`p-1.5 rounded-md ${view === key ? "bg-background shadow-sm" : ""}`}>
-                  <Icon className="h-4 w-4" />
+            <div className="flex sm:hidden items-center rounded-xl border border-border/50 bg-secondary/30 p-0.5 mr-1">
+              {VIEW_ITEMS.map(({ key, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setView(key)}
+                  className={`relative p-1.5 rounded-lg transition-all ${
+                    view === key ? "bg-card/80 shadow-sm" : ""
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 ${view === key ? "text-foreground" : "text-muted-foreground"}`} />
                 </button>
               ))}
             </div>
 
-            <Button variant="outline" size="sm" className="gap-2 hidden sm:flex" onClick={exportToCSV} disabled={jobs.length === 0}>
+            <Button variant="outline" size="sm" className="gap-2 hidden sm:flex border-border/50 hover:border-border" onClick={exportToCSV} disabled={jobs.length === 0}>
               <Download className="h-4 w-4" />
-              <span>Export CSV</span>
+              <span>Export</span>
             </Button>
             <AddJobDialog onAdd={addJob} jobs={jobs} />
             <UserMenu />
           </div>
         </div>
 
-        {/* Mobile search bar */}
+        {/* Mobile search */}
         <div className="mt-3 md:hidden relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder="Search jobs…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 pl-8 text-sm bg-muted/50 border-border"
+            className="h-9 pl-8 text-sm bg-secondary/50 border-border/50"
           />
           {searchQuery && (
             <button
@@ -190,30 +223,55 @@ const AppPage = () => {
       </header>
 
       {/* Onboarding banner */}
-      {showBanner && (
-        <div className="flex items-center gap-3 bg-primary/10 border-b border-primary/20 px-6 py-2.5">
-          <span className="text-sm text-foreground">
-            👋 We added sample jobs to help you explore. Delete them anytime!
-          </span>
-          <Button variant="ghost" size="sm" onClick={dismissBanner} className="ml-auto h-7">
-            <X className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      )}
+      <AnimatePresence>
+        {showBanner && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-center gap-3 bg-primary/10 border-b border-primary/20 px-6 py-2.5">
+              <span className="text-sm text-foreground">
+                👋 We added sample jobs to help you explore. Delete them anytime!
+              </span>
+              <Button variant="ghost" size="sm" onClick={dismissBanner} className="ml-auto h-7">
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
+      {/* Content */}
       {jobs.length === 0 && !showBanner ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6">
-          <Briefcase className="h-16 w-16 text-muted-foreground/50" />
-          <div className="text-center">
-            <h2 className="text-lg font-semibold text-foreground">No applications yet</h2>
-            <p className="text-sm text-muted-foreground mt-1">Add your first job to get started</p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-1 flex-col items-center justify-center gap-5 px-6"
+        >
+          <div className="relative">
+            <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <Briefcase className="h-10 w-10 text-primary/60" />
+            </div>
+            <motion.div
+              className="absolute -inset-2 rounded-3xl border border-primary/20"
+              animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0, 0.3] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
           </div>
-          <Button onClick={() => setDialogOpen(true)} className="gap-2">
+          <div className="text-center">
+            <h2 className="text-xl font-display text-foreground">Start your job hunt</h2>
+            <p className="text-sm text-muted-foreground mt-1.5 max-w-sm">
+              Track every application, interview, and offer in one beautiful board.
+            </p>
+          </div>
+          <Button onClick={() => setDialogOpen(true)} className="gap-2 shadow-glow">
             <Briefcase className="h-4 w-4" />
-            Add Application
+            Add Your First Application
           </Button>
           <AddJobDialog onAdd={addJob} open={dialogOpen} onOpenChange={setDialogOpen} jobs={jobs} />
-        </div>
+        </motion.div>
       ) : view === "board" ? (
         <KanbanBoard jobs={searchQuery ? filteredJobs : jobs} setJobs={setJobs} onUpdateJob={updateJob} onDeleteJob={deleteJob} />
       ) : view === "list" ? (
@@ -234,7 +292,7 @@ const AppPage = () => {
         <CalendarView jobs={filteredJobs} onSelectJob={handleSelectJob} />
       )}
 
-      {/* Detail panel for calendar/list + AI trigger */}
+      {/* Panels */}
       <JobDetailPanel
         job={selectedJob}
         open={panelOpen}
@@ -243,12 +301,10 @@ const AppPage = () => {
         onOpenAI={() => setAiPanelOpen(true)}
       />
 
-      {/* AI Assistant */}
       {selectedJob && (
         <AIAssistPanel job={selectedJob} open={aiPanelOpen} onOpenChange={setAiPanelOpen} />
       )}
 
-      {/* Command Palette */}
       <CommandPalette
         jobs={jobs}
         onSelectJob={handleSelectJob}

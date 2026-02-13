@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { motion } from "framer-motion";
 import {
   Sheet,
   SheetContent,
@@ -7,7 +8,6 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CalendarDays,
@@ -101,16 +101,21 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetail
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto p-0">
+      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto p-0 border-l border-border/50">
         {/* Hero Header */}
-        <SheetHeader className="sticky top-0 z-10 bg-gradient-to-r from-card to-secondary/30 backdrop-blur-sm border-b border-border px-6 py-5">
+        <SheetHeader className="sticky top-0 z-10 glass border-b border-border/50 px-6 py-5">
           <div className="flex items-start justify-between">
-            <div className="space-y-1 min-w-0 flex-1">
+            <div className="space-y-1.5 min-w-0 flex-1">
               {/* Stage + save status */}
               <div className="flex items-center gap-2">
-                {column && <div className={`h-2.5 w-2.5 rounded-full ${column.colorClass}`} />}
+                {column && (
+                  <div
+                    className={`h-2.5 w-2.5 rounded-full ${column.colorClass}`}
+                    style={{ boxShadow: `0 0 8px hsl(var(--status-${column.id}) / 0.4)` }}
+                  />
+                )}
                 <Select value={editedJob.columnId} onValueChange={(v) => update("columnId", v as JobApplication["columnId"])}>
-                  <SelectTrigger className="h-6 w-auto border-none bg-transparent p-0 text-xs font-medium uppercase tracking-wider text-muted-foreground shadow-none focus:ring-0">
+                  <SelectTrigger className="h-6 w-auto border-none bg-transparent p-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground shadow-none focus:ring-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -120,23 +125,27 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetail
                   </SelectContent>
                 </Select>
                 {saveStatus !== "idle" && (
-                  <span className={`text-[10px] font-medium transition-opacity ${saveStatus === "saving" ? "text-muted-foreground animate-pulse" : "text-emerald-500"}`}>
-                    {saveStatus === "saving" ? "Saving…" : "Saved"}
-                  </span>
+                  <motion.span
+                    initial={{ opacity: 0, x: -4 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`text-[10px] font-medium ${saveStatus === "saving" ? "text-muted-foreground animate-pulse" : "text-emerald-500"}`}
+                  >
+                    {saveStatus === "saving" ? "Saving…" : "✓ Saved"}
+                  </motion.span>
                 )}
               </div>
 
-              {/* Company - inline editable */}
-              <SheetTitle className="text-2xl font-bold text-foreground p-0">
+              {/* Company */}
+              <SheetTitle className="text-2xl font-display text-foreground p-0">
                 <InlineEdit
                   value={editedJob.company}
                   onChange={(v) => update("company", v)}
                   placeholder="Company name"
-                  className="text-2xl font-bold text-foreground"
+                  className="text-2xl font-display text-foreground"
                 />
               </SheetTitle>
 
-              {/* Role - inline editable */}
+              {/* Role */}
               <SheetDescription className="text-lg text-muted-foreground p-0 m-0">
                 <InlineEdit
                   value={editedJob.role}
@@ -146,9 +155,9 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetail
                 />
               </SheetDescription>
 
-              {/* Salary + Location - inline editable */}
-              <div className="flex items-center gap-3 flex-wrap pt-1">
-                <span className="inline-flex items-center gap-1">
+              {/* Salary + Location */}
+              <div className="flex items-center gap-4 flex-wrap pt-1">
+                <span className="inline-flex items-center gap-1.5">
                   <DollarSign className="h-3.5 w-3.5 text-primary" />
                   <InlineEdit
                     value={editedJob.salary ?? ""}
@@ -157,7 +166,7 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetail
                     className="text-sm font-semibold font-mono text-primary"
                   />
                 </span>
-                <span className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-1.5">
                   <MapPin className="h-3.5 w-3.5 text-emerald-400" />
                   <InlineEdit
                     value={editedJob.location ?? ""}
@@ -169,46 +178,51 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetail
               </div>
 
               {/* Applied date */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground/70 pt-1">
                 <CalendarDays className="h-3 w-3" />
-                <span>Applied {format(new Date(editedJob.createdAt), "PPP")}</span>
+                <span className="font-mono text-[11px]">Applied {format(new Date(editedJob.createdAt), "PPP")}</span>
               </div>
             </div>
 
             {/* AI button */}
             <div className="flex items-center gap-1 shrink-0 ml-3">
               {onOpenAI && (
-                <Button variant="ghost" size="sm" onClick={onOpenAI} className="gap-1">
-                  <Sparkles className="h-3.5 w-3.5" /> AI
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onOpenAI}
+                  className="gap-1.5 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 transition-all"
+                >
+                  <Sparkles className="h-3.5 w-3.5" /> AI Assist
                 </Button>
               )}
             </div>
           </div>
 
-          {/* View posting link */}
+          {/* Posting link */}
           {editedJob.links?.[0] && (
             <a
               href={editedJob.links[0]}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline mt-2"
+              className="inline-flex items-center gap-1.5 text-xs text-primary/80 hover:text-primary hover:underline mt-2 transition-colors"
             >
               <ExternalLink className="h-3 w-3" /> View Original Posting
             </a>
           )}
         </SheetHeader>
 
-        {/* Tabbed body */}
+        {/* Tabs */}
         <div className="px-6 py-4">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="w-full grid grid-cols-3 mb-4">
-              <TabsTrigger value="overview" className="text-xs gap-1.5">
+            <TabsList className="w-full grid grid-cols-3 mb-4 bg-secondary/30 border border-border/30">
+              <TabsTrigger value="overview" className="text-xs gap-1.5 data-[state=active]:shadow-sm">
                 <FileText className="h-3.5 w-3.5" /> Overview
               </TabsTrigger>
-              <TabsTrigger value="events" className="text-xs gap-1.5">
+              <TabsTrigger value="events" className="text-xs gap-1.5 data-[state=active]:shadow-sm">
                 <Users className="h-3.5 w-3.5" /> Events
               </TabsTrigger>
-              <TabsTrigger value="links" className="text-xs gap-1.5">
+              <TabsTrigger value="links" className="text-xs gap-1.5 data-[state=active]:shadow-sm">
                 <LinkIcon className="h-3.5 w-3.5" /> Links
               </TabsTrigger>
             </TabsList>

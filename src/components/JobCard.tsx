@@ -1,5 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { motion } from "framer-motion";
 import type { JobApplication, ColumnId } from "@/types/job";
 import {
   Trash2,
@@ -36,10 +37,10 @@ const getCompanyLogoUrl = (job: JobApplication): string => {
 const getSalaryColor = (salary: string): string => {
   const match = salary.match(/\d+/);
   const num = match ? parseInt(match[0]) : 0;
-  if (num >= 150) return "bg-emerald-500/20 text-emerald-400";
-  if (num >= 100) return "bg-blue-500/20 text-blue-400";
-  if (num >= 50) return "bg-amber-500/20 text-amber-400";
-  return "bg-primary/20 text-primary";
+  if (num >= 150) return "bg-emerald-500/20 text-emerald-400 border-emerald-500/20";
+  if (num >= 100) return "bg-blue-500/20 text-blue-400 border-blue-500/20";
+  if (num >= 50) return "bg-amber-500/20 text-amber-400 border-amber-500/20";
+  return "bg-primary/20 text-primary border-primary/20";
 };
 
 const formatSalary = (salary: string): string => {
@@ -95,11 +96,16 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
   const logoUrl = useMemo(() => getCompanyLogoUrl(job), [job.company, job.links]);
 
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
       onClick={() => {
         if (selectMode && onToggleSelect) {
           onToggleSelect(job.id);
@@ -107,9 +113,14 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
           onClick?.(job);
         }
       }}
-      className={`group relative cursor-grab active:cursor-grabbing rounded-xl border bg-card p-3 shadow-sm transition-all hover:shadow-md hover:bg-[hsl(var(--card-hover))] ${
-        isDragging ? "shadow-2xl scale-105 z-50 opacity-90" : ""
-      } ${selected ? "border-primary ring-1 ring-primary/30" : "border-border/50"}`}
+      className={`group relative cursor-grab active:cursor-grabbing rounded-xl border p-3 shadow-sm transition-all duration-200 glow-hover
+        ${isDragging ? "shadow-glow-lg scale-105 z-50 opacity-90" : "hover:shadow-glow"}
+        ${selected
+          ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
+          : "border-border/40 bg-card/80 hover:bg-[hsl(var(--card-hover))] hover:border-border/60"
+        }
+        backdrop-blur-sm
+      `}
     >
       {/* Selection checkbox */}
       {selectMode && (
@@ -117,16 +128,17 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
           className="absolute top-2 left-2 z-10"
           onClick={(e) => { e.stopPropagation(); onToggleSelect?.(job.id); }}
         >
-          <div className={`h-4 w-4 rounded border-2 flex items-center justify-center transition-colors ${
-            selected ? "bg-primary border-primary" : "border-muted-foreground/40 bg-card"
+          <div className={`h-4 w-4 rounded border-2 flex items-center justify-center transition-all duration-200 ${
+            selected ? "bg-primary border-primary scale-110" : "border-muted-foreground/40 bg-card"
           }`}>
             {selected && <span className="text-primary-foreground text-[10px] font-bold">✓</span>}
           </div>
         </div>
       )}
+
       {/* Row 1: Logo + Company + Salary */}
       <div className="flex items-center gap-2.5">
-        <div className={`h-8 w-8 shrink-0 rounded-lg overflow-hidden flex items-center justify-center ${logoError ? getInitialColor(job.company) : "bg-muted"}`}>
+        <div className={`h-8 w-8 shrink-0 rounded-lg overflow-hidden flex items-center justify-center ring-1 ring-border/30 ${logoError ? getInitialColor(job.company) : "bg-muted/50"}`}>
           {!logoError ? (
             <img
               src={logoUrl}
@@ -140,33 +152,39 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
         </div>
         <span className="font-semibold text-sm text-card-foreground truncate flex-1">{job.company}</span>
         {job.salary && (
-          <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${getSalaryColor(job.salary)}`}>
+          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold font-mono ${getSalaryColor(job.salary)}`}>
             {formatSalary(job.salary)}
           </span>
         )}
       </div>
 
       {/* Row 2: Role */}
-      <p className="mt-1 text-xs text-muted-foreground truncate pl-[42px]">{job.role}</p>
+      <p className="mt-1.5 text-xs text-muted-foreground truncate pl-[42px]">{job.role}</p>
 
       {/* Row 3: Metadata dots + type */}
-      <div className="mt-1.5 flex items-center gap-2 pl-[42px]">
+      <div className="mt-2 flex items-center gap-2 pl-[42px]">
         {job.applicationType && job.applicationType !== "Other" && job.applicationType !== "All" && (
-          <span className="text-[10px] text-muted-foreground/70 truncate">{job.applicationType}</span>
+          <span className="text-[10px] text-muted-foreground/60 font-medium tracking-wide uppercase truncate">{job.applicationType}</span>
         )}
-        <div className="flex items-center gap-1">
-          {hasUpcomingEvents && <div className="h-2 w-2 rounded-full bg-emerald-500" title="Events scheduled" />}
-          {deadlineSoon && <div className="h-2 w-2 rounded-full bg-amber-500" title="Deadline approaching" />}
-          {job.links?.[0] && <div className="h-2 w-2 rounded-full bg-sky-400" title="Has link" />}
+        <div className="flex items-center gap-1.5 ml-auto">
+          {hasUpcomingEvents && (
+            <div className="h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" title="Events scheduled" />
+          )}
+          {deadlineSoon && (
+            <div className="h-2 w-2 rounded-full bg-amber-500 ring-2 ring-amber-500/20" title="Deadline approaching" />
+          )}
+          {job.links?.[0] && (
+            <div className="h-2 w-2 rounded-full bg-sky-400 ring-2 ring-sky-400/20" title="Has link" />
+          )}
         </div>
       </div>
 
-      {/* Hover actions - top right overlay */}
-      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-card/90 backdrop-blur-sm rounded-md px-1 py-0.5">
+      {/* Hover actions */}
+      <div className="absolute top-2 right-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200 glass rounded-lg px-1.5 py-1">
         {onSchedule && (
           <button
             onClick={(e) => { e.stopPropagation(); onSchedule(job); }}
-            className="text-muted-foreground hover:text-foreground p-0.5"
+            className="text-muted-foreground hover:text-primary p-0.5 transition-colors"
             aria-label="Schedule event"
           >
             <CalendarPlus className="h-3.5 w-3.5" />
@@ -178,7 +196,7 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="text-muted-foreground hover:text-foreground p-0.5"
+            className="text-muted-foreground hover:text-primary p-0.5 transition-colors"
           >
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
@@ -187,7 +205,7 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
           <AlertDialogTrigger asChild>
             <button
               onClick={(e) => e.stopPropagation()}
-              className="text-muted-foreground hover:text-destructive p-0.5"
+              className="text-muted-foreground hover:text-destructive p-0.5 transition-colors"
               aria-label="Delete application"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -212,7 +230,7 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
