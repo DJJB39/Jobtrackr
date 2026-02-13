@@ -8,7 +8,7 @@ import {
   type DragStartEvent,
   type DragOverEvent,
   type DragEndEvent,
-  closestCenter,
+  closestCorners,
 } from "@dnd-kit/core";
 import { COLUMNS, APPLICATION_TYPES, type ColumnId, type JobApplication } from "@/types/job";
 import KanbanColumn from "./KanbanColumn";
@@ -60,8 +60,10 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
   }, []);
 
   const handleBulkMove = useCallback((target: ColumnId) => {
+    const toMove = jobs.filter((j) => selectedIds.has(j.id));
     setJobs((prev) => prev.map((j) => selectedIds.has(j.id) ? { ...j, columnId: target } : j));
-    jobs.filter((j) => selectedIds.has(j.id)).forEach((j) => onUpdateJob({ ...j, columnId: target }));
+    // Batch: update each once (already debounced in useJobs)
+    toMove.forEach((j) => onUpdateJob({ ...j, columnId: target }));
     setSelectedIds(new Set());
     setSelectMode(false);
   }, [selectedIds, jobs, setJobs, onUpdateJob]);
@@ -96,17 +98,20 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
     if (!over) return;
     const activeId = active.id as string;
     const overId = over.id as string;
+
+    // Determine target column
     const overColumn = COLUMNS.find((c) => c.id === overId);
-    if (overColumn) {
-      setJobs((prev) => prev.map((j) => j.id === activeId ? { ...j, columnId: overColumn.id } : j));
-      return;
-    }
+    const targetColumnId = overColumn
+      ? overColumn.id
+      : jobs.find((j) => j.id === overId)?.columnId;
+
+    if (!targetColumnId) return;
+
+    // Only update if column actually changed (prevents flicker)
     setJobs((prev) => {
-      const overJob = prev.find((j) => j.id === overId);
-      if (overJob) {
-        return prev.map((j) => j.id === activeId ? { ...j, columnId: overJob.columnId } : j);
-      }
-      return prev;
+      const activeJob = prev.find((j) => j.id === activeId);
+      if (!activeJob || activeJob.columnId === targetColumnId) return prev;
+      return prev.map((j) => j.id === activeId ? { ...j, columnId: targetColumnId } : j);
     });
   };
 
@@ -258,7 +263,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
         <div className="flex-1 overflow-x-auto kanban-scrollbar p-6">
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCenter}
+            collisionDetection={closestCorners}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
