@@ -2,7 +2,6 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { JobApplication, ColumnId } from "@/types/job";
 import {
-  GripVertical,
   Trash2,
   ExternalLink,
   CalendarPlus,
@@ -96,8 +95,10 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId }: JobCardProps)
     <div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
       onClick={() => onClick?.(job)}
-      className={`group relative cursor-pointer rounded-xl border border-border/50 bg-card p-3 shadow-sm transition-all hover:shadow-md hover:bg-[hsl(var(--card-hover))] ${
+      className={`group relative cursor-grab active:cursor-grabbing rounded-xl border border-border/50 bg-card p-3 shadow-sm transition-all hover:shadow-md hover:bg-[hsl(var(--card-hover))] ${
         isDragging ? "shadow-2xl scale-105 z-50 opacity-90" : ""
       }`}
     >
@@ -140,15 +141,6 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId }: JobCardProps)
 
       {/* Hover actions - top right overlay */}
       <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-card/90 backdrop-blur-sm rounded-md px-1 py-0.5">
-        <button
-          {...attributes}
-          {...listeners}
-          className="cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing p-0.5"
-          aria-label="Drag to reorder"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
         {onSchedule && (
           <button
             onClick={(e) => { e.stopPropagation(); onSchedule(job); }}
