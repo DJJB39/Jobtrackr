@@ -71,15 +71,34 @@ Deno.serve(async (req) => {
 
       if (upcomingEvents.length === 0) continue;
 
-      // Send email via Supabase Auth admin (uses built-in email service)
-      const eventList = upcomingEvents
-        .map((e) => `• ${e.title} — ${e.company} (${e.role}) on ${e.date}${e.time ? ` at ${e.time}` : ""}`)
-        .join("\n");
+      const eventListHtml = upcomingEvents
+        .map((e) => `<li><strong>${e.title}</strong> — ${e.company} (${e.role}) on ${e.date}${e.time ? ` at ${e.time}` : ""}</li>`)
+        .join("");
 
-      // Use the admin API to send a custom email via invite (workaround)
-      // In production, you'd integrate with Resend, SendGrid, etc.
-      console.log(`Would send reminder to ${userData.user.email}:\n${eventList}`);
-      totalSent++;
+      const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+      if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY is not configured");
+
+      const emailRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "JobTracker <onboarding@resend.dev>",
+          to: [userData.user.email],
+          subject: `⏰ You have ${upcomingEvents.length} upcoming event(s)`,
+          html: `<h2>Upcoming Events</h2><ul>${eventListHtml}</ul><p>Good luck! 🍀</p>`,
+        }),
+      });
+
+      if (!emailRes.ok) {
+        const errBody = await emailRes.text();
+        console.error(`Resend error for ${userData.user.email}: ${errBody}`);
+      } else {
+        await emailRes.json();
+        totalSent++;
+      }
     }
 
     return new Response(

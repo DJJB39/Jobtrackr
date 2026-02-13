@@ -96,8 +96,39 @@ Deno.serve(async (req) => {
         summary.push(``);
       }
 
-      console.log(`Would send weekly digest to ${userData.user.email}:\n${summary.join("\n")}`);
-      totalSent++;
+      // Build HTML version
+      const htmlSummary = summary.map((line) => {
+        if (line.startsWith("📊")) return `<h2>${line}</h2>`;
+        if (line.startsWith("📅") || line.startsWith("⚠️")) return `<h3>${line}</h3>`;
+        if (line.startsWith("  •")) return `<li>${line.slice(4)}</li>`;
+        if (line === "") return "";
+        return `<p>${line}</p>`;
+      }).join("");
+
+      const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+      if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY is not configured");
+
+      const emailRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "JobTracker <onboarding@resend.dev>",
+          to: [userData.user.email],
+          subject: `📊 Your Weekly Pipeline Digest`,
+          html: htmlSummary,
+        }),
+      });
+
+      if (!emailRes.ok) {
+        const errBody = await emailRes.text();
+        console.error(`Resend error for ${userData.user.email}: ${errBody}`);
+      } else {
+        await emailRes.json();
+        totalSent++;
+      }
     }
 
     return new Response(
