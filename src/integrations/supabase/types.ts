@@ -14,9 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      job_activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          job_id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          job_id: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          job_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_activity_log_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_applications: {
         Row: {
           application_type: string
+          ats_score: number | null
           close_date: string | null
           column_id: string
           company: string
@@ -29,6 +65,7 @@ export type Database = {
           location: string | null
           next_steps: Json
           notes: string
+          resume_url: string | null
           role: string
           salary: string | null
           updated_at: string
@@ -36,6 +73,7 @@ export type Database = {
         }
         Insert: {
           application_type?: string
+          ats_score?: number | null
           close_date?: string | null
           column_id?: string
           company: string
@@ -48,6 +86,7 @@ export type Database = {
           location?: string | null
           next_steps?: Json
           notes?: string
+          resume_url?: string | null
           role: string
           salary?: string | null
           updated_at?: string
@@ -55,6 +94,7 @@ export type Database = {
         }
         Update: {
           application_type?: string
+          ats_score?: number | null
           close_date?: string | null
           column_id?: string
           company?: string
@@ -67,6 +107,7 @@ export type Database = {
           location?: string | null
           next_steps?: Json
           notes?: string
+          resume_url?: string | null
           role?: string
           salary?: string | null
           updated_at?: string
