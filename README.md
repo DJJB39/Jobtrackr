@@ -1,73 +1,107 @@
-# Welcome to your Lovable project
+# JobTrackr
 
-## Project info
+Open-source job application tracker with a Kanban board, AI assistant, and analytics dashboard.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Features
 
-## How can I edit this code?
+### Kanban Board
+- 8-stage drag-and-drop pipeline: Found → Applied → Phone Screen → 2nd Interview → Final Interview → Offer → Accepted / Rejected
+- Company logos via Clearbit/Google favicon with colored circle fallbacks
+- Salary badges, CV suitability score badges, and metadata indicators on cards
+- Hover overlay with quick actions (schedule, add link, delete)
+- Multi-select mode with bulk move/delete and Ctrl/Cmd+A support
+- Mobile-responsive single-column layout with stage selector
 
-There are several ways of editing your application.
+### Job Intelligence
+- Paste a job URL to auto-fill company, role, location, salary, and deadline via server-side scraper
+- 600ms debounced fetch on paste/blur with undo auto-fill
+- Duplicate detection (case-insensitive company + role match)
+- Partial-data hints for restricted sources (LinkedIn, etc.)
 
-**Use Lovable**
+### Job Detail Panel
+- Slide-out sheet with 4 tabs: Overview, Events & Contacts, Links & Resume, CV
+- Inline click-to-edit for all fields with 500ms debounced auto-save
+- Activity timeline tracking stage changes, note edits, and event outcomes
+- Stage selector dropdown in panel header
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### AI Assistant
+- Generate tailored cover letters, interview prep questions, and job summaries
+- Streaming markdown responses powered by Gemini
+- CV-aware context injection for personalized output
+- CV suitability scoring (0–100) with strengths, gaps, and suggestions
 
-Changes made via Lovable will be committed automatically to this repo.
+### Dashboard & Analytics
+- Stats cards: total applications, active, interviews scheduled, offers received
+- Interactive by-stage bar chart (click to filter → List View)
+- Application type pie chart, weekly activity area chart, conversion funnel
+- Stale application alerts (14+ days inactive) and ghost detection (7+ days, no events)
+- Achievements/badges grid (8 milestones)
+- Sticky upcoming events sidebar
 
-**Use your preferred IDE**
+### Calendar & Events
+- Month grid with event dot indicators and click-to-open detail panel
+- Schedule interviews, follow-ups, and deadlines with outcome tracking
+- .ics export and Google Calendar deep links
+- Past-event outcome prompts
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### CV Management
+- Upload a master CV (PDF) with client-side text extraction
+- Review suitability against any tracked job (AI-powered 0–100 scoring)
+- Color-coded match badges on Kanban cards (green ≥75%, amber ≥50%, rose <50%)
+- Private file storage
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Search & Navigation
+- Persistent header search bar with fuzzy matching across all fields
+- Command palette (Cmd+K) for job search and quick actions
+- Multi-filter bar: application type, stage, and role
 
-Follow these steps:
+### Data & Export
+- Full CRUD with row-level security
+- 5-second soft-delete with undo toast
+- Activity audit log
+- CSV export with human-readable stage names
+- Share stats via clipboard or Web Share API
+- New-user onboarding with sample data
+
+### Notifications
+- Opt-in email reminders for events within 24 hours
+- Weekly pipeline digest email
+- Login-time upcoming event alerts
+
+### Authentication
+- Email/password, magic link, Google OAuth, Apple OAuth
+- Password reset flow and protected routes
+
+### UX Polish
+- Dark/light theme toggle
+- Glassmorphism design system (glass surfaces, mesh gradients, glow effects)
+- Framer Motion page transitions and layout animations
+- Mobile-responsive layout throughout
+
+### Landing Page
+- Animated hero with CTA, product screenshots, feature grid
+- Competitor comparison table, pricing section, FAQ accordion
+- Interactive demo mode (no signup required)
+- SEO meta tags and JSON-LD structured data
+
+## Built With
+
+- **Frontend:** React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Framer Motion
+- **Drag & Drop:** @dnd-kit
+- **Charts:** Recharts
+- **Backend:** Supabase (Postgres, Auth, Edge Functions, Storage)
+- **AI:** Gemini via Edge Functions
+- **PDF Parsing:** pdfjs-dist (client-side)
+
+## Getting Started
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+cd jobtrackr
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## License
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+MIT
