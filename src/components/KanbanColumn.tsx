@@ -16,6 +16,7 @@ const KanbanColumn = ({ column, jobs, onDeleteJob, onClickJob, onScheduleJob }: 
 
   return (
     <div
+      ref={setNodeRef}
       className={`flex w-72 shrink-0 flex-col rounded-xl transition-colors ${
         isOver ? "ring-2 ring-accent/50" : ""
       }`}
@@ -27,7 +28,6 @@ const KanbanColumn = ({ column, jobs, onDeleteJob, onClickJob, onScheduleJob }: 
       </div>
 
       <div
-        ref={setNodeRef}
         className="flex min-h-[120px] flex-1 flex-col gap-2 px-2 pb-3 pt-1"
       >
         <SortableContext items={jobs.map((j) => j.id)} strategy={verticalListSortingStrategy}>
