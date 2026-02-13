@@ -63,9 +63,12 @@ interface JobCardProps {
   onClick?: (job: JobApplication) => void;
   onSchedule?: (job: JobApplication) => void;
   columnId?: ColumnId;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
+  selectMode?: boolean;
 }
 
-const JobCard = ({ job, onDelete, onClick, onSchedule, columnId }: JobCardProps) => {
+const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onToggleSelect, selectMode }: JobCardProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: job.id,
     data: { type: "job", job },
@@ -97,11 +100,30 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId }: JobCardProps)
       style={style}
       {...attributes}
       {...listeners}
-      onClick={() => onClick?.(job)}
-      className={`group relative cursor-grab active:cursor-grabbing rounded-xl border border-border/50 bg-card p-3 shadow-sm transition-all hover:shadow-md hover:bg-[hsl(var(--card-hover))] ${
+      onClick={() => {
+        if (selectMode && onToggleSelect) {
+          onToggleSelect(job.id);
+        } else {
+          onClick?.(job);
+        }
+      }}
+      className={`group relative cursor-grab active:cursor-grabbing rounded-xl border bg-card p-3 shadow-sm transition-all hover:shadow-md hover:bg-[hsl(var(--card-hover))] ${
         isDragging ? "shadow-2xl scale-105 z-50 opacity-90" : ""
-      }`}
+      } ${selected ? "border-primary ring-1 ring-primary/30" : "border-border/50"}`}
     >
+      {/* Selection checkbox */}
+      {selectMode && (
+        <div
+          className="absolute top-2 left-2 z-10"
+          onClick={(e) => { e.stopPropagation(); onToggleSelect?.(job.id); }}
+        >
+          <div className={`h-4 w-4 rounded border-2 flex items-center justify-center transition-colors ${
+            selected ? "bg-primary border-primary" : "border-muted-foreground/40 bg-card"
+          }`}>
+            {selected && <span className="text-primary-foreground text-[10px] font-bold">✓</span>}
+          </div>
+        </div>
+      )}
       {/* Row 1: Logo + Company + Salary */}
       <div className="flex items-center gap-2.5">
         <div className={`h-8 w-8 shrink-0 rounded-lg overflow-hidden flex items-center justify-center ${logoError ? getInitialColor(job.company) : "bg-muted"}`}>
