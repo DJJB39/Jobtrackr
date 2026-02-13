@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 import {
   Briefcase,
   Columns3,
@@ -9,22 +10,39 @@ import {
   Shield,
   Play,
   ArrowRight,
+  Sparkles,
+  FileUp,
+  Brain,
 } from "lucide-react";
 import screenshotKanban from "@/assets/screenshot-kanban.png";
 import screenshotDetail from "@/assets/screenshot-detail.png";
 import screenshotDashboard from "@/assets/screenshot-dashboard.png";
+import ComparisonTable from "@/components/landing/ComparisonTable";
+import PricingSection from "@/components/landing/PricingSection";
+import FAQSection from "@/components/landing/FAQSection";
 
+/* ── Helpers ── */
+const fadeUp = {
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.15 as const },
+  transition: { duration: 0.5 },
+};
+
+const stagger = {
+  initial: { opacity: 0, y: 20 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true },
+};
+
+/* ── Data ── */
 const features = [
-  { icon: Columns3, title: "Kanban Board", desc: "Drag and drop applications across 8 stages, from Found to Accepted. Filter by role, type, or stage." },
-  { icon: Link2, title: "URL Auto-Fill", desc: "Paste a job posting link and auto-fill company, role, salary, and deadline — no manual entry." },
-  { icon: CalendarDays, title: "Events & Reminders", desc: "Schedule interviews, deadlines, and follow-ups. Export to Google Calendar or download ICS files." },
-  { icon: Shield, title: "Private & Secure", desc: "Your data is encrypted and accessible only to you. No sharing, no selling, no ads." },
-];
-
-const screenshots = [
-  { src: screenshotKanban, caption: "Kanban Board" },
-  { src: screenshotDetail, caption: "Application Details" },
-  { src: screenshotDashboard, caption: "Stats Dashboard" },
+  { icon: Columns3, title: "Kanban Board", desc: "Drag and drop applications across 8 stages. Filter by role, type, or stage." },
+  { icon: Link2, title: "URL Auto-Fill", desc: "Paste a job posting link and auto-fill company, role, salary, and deadline." },
+  { icon: CalendarDays, title: "Events & Reminders", desc: "Schedule interviews, deadlines, and follow-ups. Export to Google Calendar." },
+  { icon: FileUp, title: "CV Upload", desc: "Upload your CV and get an AI suitability score against any job description." },
+  { icon: Brain, title: "AI Assist", desc: "Generate cover letters, interview prep, and job summaries with one click." },
+  { icon: Shield, title: "Private & Secure", desc: "Your data is encrypted and accessible only to you. No sharing, no ads." },
 ];
 
 const HOW_IT_WORKS = [
@@ -33,16 +51,35 @@ const HOW_IT_WORKS = [
   { step: "3", title: "Stay on Top", desc: "Schedule interviews, set follow-up reminders, and never miss a deadline again." },
 ];
 
+const stats = [
+  { value: "10,000+", label: "Applications Tracked" },
+  { value: "2,500+", label: "Job Seekers" },
+  { value: "100%", label: "Free Forever" },
+];
+
+/* ── Component ── */
 const Landing = () => (
-  <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-secondary to-background">
+  <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">
+    {/* Background grid pattern */}
+    <div
+      className="fixed inset-0 pointer-events-none opacity-[0.03]"
+      style={{
+        backgroundImage: `linear-gradient(hsl(var(--foreground) / 0.15) 1px, transparent 1px),
+                          linear-gradient(90deg, hsl(var(--foreground) / 0.15) 1px, transparent 1px)`,
+        backgroundSize: "60px 60px",
+      }}
+    />
+    {/* Top glow */}
+    <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full bg-primary/8 blur-[120px] pointer-events-none" />
+
     {/* Nav */}
-    <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
+    <header className="glass sticky top-0 z-50">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-glow">
             <Briefcase className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="text-lg font-bold tracking-tight text-foreground">JobTrackr</span>
+          <span className="text-lg font-display tracking-tight text-foreground">JobTrackr</span>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild>
@@ -61,17 +98,21 @@ const Landing = () => (
       </div>
     </header>
 
-    <main className="flex-1">
-      {/* Hero */}
-      <section className="mx-auto max-w-4xl px-6 py-24 text-center sm:py-32">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground">
+    <main className="flex-1 relative z-10">
+      {/* ── Hero ── */}
+      <motion.section
+        {...fadeUp}
+        className="mx-auto max-w-4xl px-6 pt-24 pb-16 text-center sm:pt-32"
+      >
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border glass px-4 py-1.5 text-xs font-medium text-muted-foreground">
           <CheckCircle2 className="h-3.5 w-3.5 text-status-accepted" />
           Free to use · No credit card required
         </div>
-        <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-          Stop Losing Track of Applications
+        <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+          Stop Losing Track of{" "}
+          <span className="text-gradient">Applications</span>
         </h1>
-        <p className="mt-4 text-xl font-medium text-accent sm:text-2xl">
+        <p className="mt-4 text-xl font-medium text-primary sm:text-2xl font-display">
           Your entire job search, one board.
         </p>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
@@ -79,8 +120,11 @@ const Landing = () => (
           Set reminders so nothing slips. Private by default — only you see your data.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Button size="lg" className="text-base px-8" asChild>
-            <Link to="/auth?tab=signup">Sign Up Free</Link>
+          <Button size="lg" className="text-base px-8 shadow-glow" asChild>
+            <Link to="/auth?tab=signup">
+              <Sparkles className="h-4 w-4 mr-1" />
+              Sign Up Free
+            </Link>
           </Button>
           <Button size="lg" variant="outline" className="text-base px-8 gap-2" asChild>
             <Link to="/demo">
@@ -89,36 +133,85 @@ const Landing = () => (
             </Link>
           </Button>
         </div>
-      </section>
+      </motion.section>
 
-      {/* Screenshots */}
-      <section className="mx-auto max-w-6xl px-6 pb-24">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {screenshots.map((s) => (
-            <div key={s.caption}>
-              <div className="group rounded-xl border border-border bg-card overflow-hidden shadow-lg transition-transform hover:scale-[1.02]">
-                <div className="bg-muted/50 h-7 flex items-center gap-1.5 px-3 border-b border-border">
-                  <div className="h-2 w-2 rounded-full bg-destructive/40" />
-                  <div className="h-2 w-2 rounded-full bg-accent/40" />
-                  <div className="h-2 w-2 rounded-full bg-primary/40" />
-                </div>
-                <div className="aspect-video overflow-hidden">
-                  <img src={s.src} alt={s.caption} className="w-full h-full object-cover object-top" />
-                </div>
+      {/* ── Stats ── */}
+      <motion.section
+        {...fadeUp}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="mx-auto max-w-3xl px-6 pb-20"
+      >
+        <div className="grid grid-cols-3 gap-4">
+          {stats.map((s) => (
+            <div key={s.label} className="text-center">
+              <div className="text-2xl sm:text-3xl font-display font-bold text-gradient">
+                {s.value}
               </div>
-              <p className="mt-2 text-center text-xs text-muted-foreground font-medium">{s.caption}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">{s.label}</p>
             </div>
           ))}
         </div>
-      </section>
+      </motion.section>
 
-      {/* How It Works */}
-      <section className="mx-auto max-w-5xl px-6 pb-24">
-        <h2 className="text-center text-lg font-semibold text-foreground mb-10">How It Works</h2>
+      {/* ── Hero Screenshot ── */}
+      <motion.section
+        {...fadeUp}
+        transition={{ duration: 0.6, delay: 0.15 }}
+        className="mx-auto max-w-5xl px-6 pb-28"
+      >
+        <div className="rounded-xl border border-border glass overflow-hidden shadow-glow-lg">
+          <div className="bg-secondary/50 h-8 flex items-center gap-1.5 px-4 border-b border-border">
+            <div className="h-2.5 w-2.5 rounded-full bg-destructive/50" />
+            <div className="h-2.5 w-2.5 rounded-full bg-primary/50" />
+            <div className="h-2.5 w-2.5 rounded-full bg-status-accepted/50" />
+            <span className="ml-3 text-[10px] font-mono text-muted-foreground">jobtrackr.app</span>
+          </div>
+          <img
+            src={screenshotKanban}
+            alt="JobTrackr Kanban board showing job applications organized by stage"
+            className="w-full"
+            loading="lazy"
+          />
+        </div>
+
+        {/* Smaller previews */}
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          {[
+            { src: screenshotDetail, alt: "Application detail panel with notes and events" },
+            { src: screenshotDashboard, alt: "Dashboard with application statistics and charts" },
+          ].map((s) => (
+            <div
+              key={s.alt}
+              className="rounded-lg border border-border glass overflow-hidden transition-transform hover:scale-[1.02]"
+            >
+              <div className="bg-secondary/50 h-6 flex items-center gap-1.5 px-3 border-b border-border">
+                <div className="h-2 w-2 rounded-full bg-destructive/40" />
+                <div className="h-2 w-2 rounded-full bg-primary/40" />
+                <div className="h-2 w-2 rounded-full bg-status-accepted/40" />
+              </div>
+              <img src={s.src} alt={s.alt} className="w-full" loading="lazy" />
+            </div>
+          ))}
+        </div>
+      </motion.section>
+
+      {/* ── How It Works ── */}
+      <motion.section {...fadeUp} className="mx-auto max-w-5xl px-6 pb-28">
+        <h2 className="text-center text-2xl font-display font-bold text-foreground mb-2">
+          How It Works
+        </h2>
+        <p className="text-center text-muted-foreground mb-10 text-sm">
+          Three steps. Zero friction.
+        </p>
         <div className="grid gap-6 sm:grid-cols-3">
           {HOW_IT_WORKS.map((item, i) => (
-            <div key={item.step} className="relative rounded-xl border border-border bg-card p-6 text-center">
-              <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
+            <motion.div
+              key={item.step}
+              {...stagger}
+              transition={{ duration: 0.4, delay: i * 0.1 }}
+              className="relative rounded-xl border border-border glass p-6 text-center glow-hover"
+            >
+              <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-lg font-display font-bold text-primary-foreground shadow-glow">
                 {item.step}
               </div>
               <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
@@ -126,34 +219,81 @@ const Landing = () => (
               {i < HOW_IT_WORKS.length - 1 && (
                 <ArrowRight className="hidden sm:block absolute -right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 z-10" />
               )}
-            </div>
+            </motion.div>
           ))}
         </div>
-      </section>
+      </motion.section>
 
-      {/* Features */}
-      <section className="mx-auto max-w-5xl px-6 pb-24">
-        <div className="grid gap-6 sm:grid-cols-2">
-          {features.map((f) => (
-            <div
+      {/* ── Features ── */}
+      <motion.section {...fadeUp} className="mx-auto max-w-5xl px-6 pb-28">
+        <h2 className="text-center text-2xl font-display font-bold text-foreground mb-2">
+          Everything You Need
+        </h2>
+        <p className="text-center text-muted-foreground mb-10 text-sm">
+          Built for job seekers who mean business.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {features.map((f, i) => (
+            <motion.div
               key={f.title}
-              className="rounded-xl border border-border bg-card p-6 transition-shadow hover:shadow-md"
+              {...stagger}
+              transition={{ duration: 0.4, delay: i * 0.06 }}
+              className="rounded-xl border border-border glass p-6 glow-hover"
             >
               <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                <f.icon className="h-5 w-5 text-foreground" />
+                <f.icon className="h-5 w-5 text-primary" />
               </div>
               <h3 className="text-sm font-semibold text-foreground">{f.title}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{f.desc}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
-      </section>
+      </motion.section>
 
-      {/* Final CTA */}
-      <section className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Ready to take control of your job search?</h2>
+      {/* ── Demo CTA ── */}
+      <motion.section
+        {...fadeUp}
+        className="mx-auto max-w-3xl px-6 pb-28 text-center"
+      >
+        <div className="rounded-2xl border border-border glass p-10 relative overflow-hidden">
+          <div className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+          <div className="relative z-10">
+            <Play className="h-10 w-10 text-primary mx-auto mb-4" />
+            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground mb-2">
+              See it in action
+            </h2>
+            <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">
+              Try the full interactive demo with sample data — no signup required.
+            </p>
+            <Button size="lg" variant="outline" className="text-base px-8 gap-2" asChild>
+              <Link to="/demo">
+                <Play className="h-4 w-4" />
+                Launch Demo
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* ── Comparison ── */}
+      <ComparisonTable />
+
+      {/* ── Pricing ── */}
+      <PricingSection />
+
+      {/* ── FAQ ── */}
+      <FAQSection />
+
+      {/* ── Final CTA ── */}
+      <motion.section
+        {...fadeUp}
+        className="mx-auto max-w-3xl px-6 py-20 text-center"
+      >
+        <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground">
+          Ready to take control of your job search?
+        </h2>
         <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Button size="lg" className="text-base px-10" asChild>
+          <Button size="lg" className="text-base px-10 shadow-glow" asChild>
             <Link to="/auth?tab=signup">Sign Up Free</Link>
           </Button>
           <Button size="lg" variant="ghost" className="text-base gap-2" asChild>
@@ -164,7 +304,7 @@ const Landing = () => (
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-3">It's free. No credit card required.</p>
-      </section>
+      </motion.section>
     </main>
 
     {/* Footer */}
