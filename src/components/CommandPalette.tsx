@@ -72,7 +72,7 @@ const CommandPalette = ({ jobs, onSelectJob, onSwitchView, onAddJob, onExport }:
         {jobs.length > 0 && (
           <CommandGroup heading="Applications">
             {jobs.map((job) => (
-              <CommandItem key={job.id} onSelect={() => handleSelectJob(job)}>
+              <CommandItem key={job.id} value={[job.company, job.role, job.notes, job.description, job.location, job.salary].filter(Boolean).join(" ")} onSelect={() => handleSelectJob(job)}>
                 <Briefcase className="mr-2 h-4 w-4 shrink-0" />
                 <div className="flex flex-col min-w-0">
                   <span className="truncate font-medium">{job.company} — {job.role}</span>

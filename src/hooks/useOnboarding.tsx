@@ -26,17 +26,17 @@ export const useOnboarding = ({ jobCount, loading, addJob }: UseOnboardingProps)
 
     seeded.current = true;
     const seed = async () => {
-      await addJob("Acme Corp", "Frontend Engineer", "found", "Other", {
+      await addJob("Acme Corp", "Frontend Engineer", "found", "Frontend", {
         location: "San Francisco, CA",
         description: "Build modern web applications using React and TypeScript. Collaborate with designers and backend engineers.",
         salary: "$130k-$160k",
       });
-      await addJob("TechCo", "Senior Developer", "applied", "Other", {
+      await addJob("TechCo", "Senior Developer", "applied", "Full Stack", {
         location: "Remote",
         description: "Lead frontend architecture decisions and mentor junior developers. Full-stack TypeScript environment.",
         salary: "$150k-$180k",
       });
-      await addJob("StartupXYZ", "Full Stack Engineer", "phone", "Other", {
+      await addJob("StartupXYZ", "Full Stack Engineer", "phone", "Full Stack", {
         location: "New York, NY",
         description: "Join an early-stage startup building AI-powered analytics tools. Greenfield development.",
         salary: "$120k-$150k",

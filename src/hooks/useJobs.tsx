@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { JobApplication, ColumnId, Contact, NextStep } from "@/types/job";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 interface DbRow {
   id: string;
@@ -42,6 +43,7 @@ export const useJobs = () => {
   const { toast } = useToast();
   const [jobs, setJobs] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const undoRef = useRef<{ job: JobApplication; timeout: ReturnType<typeof setTimeout> } | null>(null);
 
   const fetchJobs = useCallback(async () => {
     if (!user) return;
@@ -122,15 +124,54 @@ export const useJobs = () => {
   }, [toast, fetchJobs]);
 
   const deleteJob = useCallback(async (id: string) => {
-    setJobs((prev) => prev.filter((j) => j.id !== id));
-    const { error } = await supabase.from("job_applications").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Error deleting", description: error.message, variant: "destructive" });
-      fetchJobs();
-    } else {
-      toast({ title: "Application deleted", description: "The application has been removed" });
+    const jobToDelete = jobs.find((j) => j.id === id);
+    if (!jobToDelete) return;
+
+    // Cancel any previous pending delete
+    if (undoRef.current) {
+      clearTimeout(undoRef.current.timeout);
+      // Execute the previous pending delete immediately
+      const prev = undoRef.current.job;
+      supabase.from("job_applications").delete().eq("id", prev.id).then();
+      undoRef.current = null;
     }
-  }, [toast, fetchJobs]);
+
+    // Optimistically remove from UI
+    setJobs((prev) => prev.filter((j) => j.id !== id));
+
+    // Set up undo window
+    const timeout = setTimeout(async () => {
+      const { error } = await supabase.from("job_applications").delete().eq("id", id);
+      if (error) {
+        toast({ title: "Error deleting", description: error.message, variant: "destructive" });
+        fetchJobs();
+      }
+      undoRef.current = null;
+    }, 5000);
+
+    undoRef.current = { job: jobToDelete, timeout };
+
+    toast({
+      title: "Application deleted",
+      description: `${jobToDelete.company} — ${jobToDelete.role}`,
+      action: (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            if (undoRef.current && undoRef.current.job.id === id) {
+              clearTimeout(undoRef.current.timeout);
+              setJobs((prev) => [...prev, undoRef.current!.job]);
+              undoRef.current = null;
+              toast({ title: "Undo successful", description: "Application restored" });
+            }
+          }}
+        >
+          Undo
+        </Button>
+      ),
+    });
+  }, [jobs, toast, fetchJobs]);
 
   const setJobsLocal = useCallback((updater: React.SetStateAction<JobApplication[]>) => {
     setJobs(updater);
