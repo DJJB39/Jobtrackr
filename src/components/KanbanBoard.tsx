@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Filter, X, CheckSquare } from "lucide-react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -78,6 +79,9 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
     setSelectedIds(new Set());
     setSelectMode(false);
   }, []);
+
+
+
 
   const uniqueRoles = useMemo(
     () => Array.from(new Set(jobs.map((j) => j.role).filter(Boolean))).sort(),
@@ -148,6 +152,18 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
     if (filterRole !== "all_roles") result = result.filter((j) => j.role.toLowerCase().includes(filterRole.toLowerCase()));
     return result;
   }, [jobs, filterType, filterRole]);
+
+  // Ctrl/Cmd+A to select all visible cards
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "a" && selectMode) {
+        e.preventDefault();
+        setSelectedIds(new Set(filteredJobs.map((j) => j.id)));
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [selectMode, filteredJobs]);
 
   const visibleColumns = useMemo(
     () => filterStage === "all_stages" ? COLUMNS : COLUMNS.filter((c) => c.id === filterStage),

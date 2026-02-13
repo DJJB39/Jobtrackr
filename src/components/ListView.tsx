@@ -67,8 +67,16 @@ const ListView = ({ jobs, onSelectJob, searchQuery }: ListViewProps) => {
           return mult * a.applicationType.localeCompare(b.applicationType);
         case "createdAt":
           return mult * a.createdAt.localeCompare(b.createdAt);
-        case "salary":
-          return mult * (a.salary ?? "").localeCompare(b.salary ?? "");
+        case "salary": {
+          const parseSalary = (s?: string | null) => {
+            if (!s) return 0;
+            const nums = s.match(/[\d,.]+/g);
+            if (!nums) return 0;
+            const val = parseFloat(nums[0].replace(/,/g, ""));
+            return s.toLowerCase().includes("k") ? val * 1000 : val;
+          };
+          return mult * (parseSalary(a.salary) - parseSalary(b.salary));
+        }
         default:
           return 0;
       }
