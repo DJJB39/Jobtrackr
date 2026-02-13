@@ -8,7 +8,7 @@ import {
   type DragStartEvent,
   type DragOverEvent,
   type DragEndEvent,
-  closestCorners,
+  closestCenter,
 } from "@dnd-kit/core";
 import { COLUMNS, APPLICATION_TYPES, type ColumnId, type JobApplication } from "@/types/job";
 import KanbanColumn from "./KanbanColumn";
@@ -211,7 +211,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
         <div className="flex-1 overflow-x-auto kanban-scrollbar p-6">
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCorners}
+            collisionDetection={closestCenter}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
