@@ -1,108 +1,138 @@
 
 
-# Complete UX Overhaul: All Critique Recommendations
+# Updated Master Plan: JobTrackr Supreme Overhaul
 
-This plan addresses every recommendation from the product critique. Given the scope, this is a significant effort.
-
-## Estimated Credit Cost: 12-18 credits
-Each recommendation maps to roughly 2-3 messages depending on complexity. The total depends on iteration cycles.
+This is the full revised plan with the **CV Upload and Suitability Review** feature integrated into Phase 3. All five phases are listed with updated credit estimates.
 
 ---
 
-## Recommendation 1: Interactive Demo on Landing Page (2-3 credits)
+## Phase 1: Bug Fixes and Code Quality (3-4 credits)
 
-**Problem**: Landing page has no product demo, fake-looking testimonials, and users bounce without seeing the product.
+- Debounce all save operations (already partially done in JobDetailPanel, extend to other areas)
+- Fix drag-and-drop dead zones and reliability issues on KanbanBoard
+- Refactor `useJobs` hook to reduce complexity
+- Break up any remaining monolithic components
+- Remove type hacks (`as any`, etc.)
 
-**Changes**:
-- Add a "Try Demo" button in the hero that navigates to `/app` in a guest/demo mode (no signup required)
-- Create a `useGuestMode` hook that loads hardcoded sample data into state (no database) so visitors can drag cards, open detail panels, and explore without creating an account
-- Replace the 3 anonymous testimonials with a "How it works" 3-step section (Paste URL, Drag to track, Get reminders) -- more credible for a new product
-- Add a hero animation: an auto-playing embedded screenshot carousel or a subtle CSS animation on the main screenshot
-
-**Files**: `src/pages/Landing.tsx`, `src/pages/AppPage.tsx`, new `src/hooks/useGuestMode.tsx`
+**Files**: `src/hooks/useJobs.tsx`, `src/components/KanbanBoard.tsx`, `src/components/KanbanColumn.tsx`, `src/components/JobCard.tsx`
 
 ---
 
-## Recommendation 2: Real Analytics Funnel in Dashboard (2-3 credits)
+## Phase 2: Visual Overhaul and Premium Aesthetic (6-8 credits)
 
-**Problem**: Dashboard shows vanity metrics (total count, "response rate"). No conversion funnel, no ghost detection, no actionable insights.
+- Install `framer-motion` for micro-animations (card transitions, panel slides, hover effects)
+- Add Satoshi + JetBrains Mono fonts for a modern premium feel
+- Glassmorphism cards with subtle blur, border glow, gradient accents
+- Density toggle on Kanban board (compact / comfortable / spacious)
+- Dashboard 2.0: conversion funnel chart, time-in-stage metrics, ghost detection alerts, stale application warnings
+- Interactive calendar with drag-to-reschedule events
+- Polished loading states, skeleton screens, empty states with illustrations
+- Landing page overhaul: interactive demo, competitor comparison table, pricing/FAQ section
 
-**Changes**:
-- Replace the "Response Rate" stat card with a "Funnel Drop-off" metric (% that move past Applied)
-- Add a **Conversion Funnel chart** (horizontal funnel: Found -> Applied -> Interview -> Offer -> Accepted) showing drop-off percentages at each stage
-- Add a **"Stale Applications" alert section**: jobs that have been in the same stage for 14+ days with no activity, prompting the user to follow up or archive
-- Add a **"Ghost Detection" indicator**: applications in Applied/Phone Screen with no events scheduled for 7+ days
-- Make the bar chart interactive: clicking a bar filters the Kanban board to that stage
-
-**Files**: `src/components/Dashboard.tsx`
-
----
-
-## Recommendation 3: Persistent Search Bar + List View (2-3 credits)
-
-**Problem**: Search is hidden behind Cmd+K (most users never discover it). No list/table view for high-density browsing.
-
-**Changes**:
-- Add a visible search input in the AppPage header (between the view switcher and export button) that filters jobs in real-time across company, role, notes, and description
-- Add a 4th view: **"List"** -- a compact table view with sortable columns (Company, Role, Stage, Type, Date, Salary) using the existing table component
-- Clicking a row in list view opens the detail panel
-- The list view supports the same filters as the Kanban board
-- Add a `List` icon to the view switcher nav
-
-**Files**: `src/pages/AppPage.tsx`, new `src/components/ListView.tsx`
+**Files**: `src/index.css`, `tailwind.config.ts`, `src/components/Dashboard.tsx`, `src/components/KanbanBoard.tsx`, `src/components/KanbanColumn.tsx`, `src/components/JobCard.tsx`, `src/components/CalendarView.tsx`, `src/pages/Landing.tsx`, plus new animation wrapper components
 
 ---
 
-## Recommendation 4: Refactor Detail Panel UX (2-3 credits)
+## Phase 3: Power Features + CV Upload (8-10 credits)
 
-**Problem**: 637-line monolith with an "Edit/Done" toggle that hides all editing behind a mode switch. Users can't quickly edit a single field.
+### 3a. AI Resume Tailor with Side-by-Side Diff (2-3 credits)
+- Enhance the existing `ResumeAnalysis` component with before/after comparison view
+- Show keyword insertion suggestions inline
 
-**Changes**:
-- Replace "Edit/Done" toggle with **inline click-to-edit** on all text fields (company, role, salary, location, description, notes). Clicking a text value turns it into an input; clicking away or pressing Enter saves.
-- Organize the body into **tabs**: "Overview" (description, notes, next steps), "Events & Contacts", "Links & Resume"
-- Extract tab content into smaller sub-components: `DetailOverviewTab.tsx`, `DetailEventsTab.tsx`, `DetailLinksTab.tsx`
-- Keep the hero header compact with inline-editable fields
+### 3b. CV Upload, Storage, and Suitability Review (3-5 credits) -- NEW
 
-**Files**: `src/components/JobDetailPanel.tsx`, new `src/components/detail/DetailOverviewTab.tsx`, `src/components/detail/DetailEventsTab.tsx`, `src/components/detail/DetailLinksTab.tsx`, new `src/components/InlineEdit.tsx`
+**Goal**: Users upload a master CV once. It becomes available across all AI features and enables per-job suitability reviews.
+
+**Storage**:
+- Use the existing `resumes` storage bucket (already created, private)
+- Add RLS policies so users can only access their own uploads
+- Store files at path `{user_id}/cv-latest.pdf` (overwrite on re-upload, simple versioning)
+- 5MB file size limit enforced client-side and via storage policy
+
+**New Components**:
+- `src/components/CVUploadSection.tsx` -- Drag-and-drop PDF upload area with progress indicator, shows current CV filename + upload date + download button. Placed in a new "CV" tab in the Detail Panel (4th tab) or as a dedicated section in the app sidebar/user menu.
+- Integrate into `DetailLinksTab.tsx` or create a new 4th tab `DetailCVTab.tsx` in the job detail panel
+
+**PDF Text Extraction**:
+- Use the existing `analyze-resume` edge function pattern
+- Upload PDF to storage, then in the edge function: fetch the PDF from storage and extract text using a lightweight approach (send raw text to AI, or use pdf-parse library in Deno)
+- Alternatively, prompt users to paste text (current pattern) but auto-fill from uploaded CV
+
+**Suitability Review (new AI mode)**:
+- Add `cv_suitability` mode to `supabase/functions/ai-assist/index.ts`
+- System prompt: "Compare this CV against the job description. Return a suitability score (0-100), key strengths that match, gaps/missing qualifications, and 3-5 specific suggestions to improve fit."
+- Use tool calling (structured output) like the existing `analyze-resume` function
+- Add a "Review Suitability" button in the job detail panel header (next to the AI button) that fetches the user's CV from storage, sends it with the job description to the edge function, and displays results in a modal or inline panel
+
+**Integration with existing AI features**:
+- When generating cover letters or interview prep via `ai-assist`, auto-include CV text in the context if a CV is uploaded
+- The `AIAssistPanel` component will check for uploaded CV and append it to job context
+
+**File changes**:
+- New: `src/components/CVUploadSection.tsx`
+- Edit: `src/components/JobDetailPanel.tsx` (add CV tab or suitability button)
+- Edit: `supabase/functions/ai-assist/index.ts` (add `cv_suitability` mode, include CV text in other modes)
+- New migration: RLS policies for resumes bucket
+- Edit: `src/components/AIAssistPanel.tsx` (auto-include CV context)
+
+**Gotchas**:
+- PDF parsing in Deno edge functions is limited; best approach is to extract text client-side using `pdfjs-dist` before sending to edge function, or store extracted text alongside the PDF
+- File size validation must happen both client-side (before upload) and via storage policies
+- The resumes bucket already exists and is private, which is correct
+
+### 3c. Salary Filtering and Sorting (1 credit)
+- Add salary range filter to list view and board
+- Sort by salary in list view columns
+
+### 3d. Bulk Actions Enhancement (1-2 credits)
+- Multi-select with floating action bar
+- Keyboard shortcuts for power users
 
 ---
 
-## Recommendation 5: Bulk Actions (1-2 credits)
+## Phase 4: Landing Page and Growth (4-5 credits)
 
-**Problem**: No way to move, delete, or export multiple applications at once. Managing 50+ jobs one-by-one is painful.
+- Interactive product demo tour (guided walkthrough with sample data)
+- Competitor comparison table (vs Huntr, Teal, Simplify)
+- Real testimonial placeholders with proper attribution structure
+- Pricing/FAQ section with free tier details
+- SEO meta tags and Open Graph images
 
-**Changes**:
-- Add multi-select mode to the Kanban board: a checkbox on each card that appears when Shift is held or when a "Select" toggle is active
-- When cards are selected, show a floating action bar at the bottom with: "Move to [Stage]", "Delete Selected", "Export Selected"
-- Support Shift+Click to select ranges within a column
-- The bulk action bar shows the count of selected items
-
-**Files**: `src/components/KanbanBoard.tsx`, `src/components/JobCard.tsx`, new `src/components/BulkActionBar.tsx`
+**Files**: `src/pages/Landing.tsx`, new `src/components/landing/*` components
 
 ---
 
-## Recommendation 6: Email Reminders via Edge Function (2-3 credits)
+## Phase 5: Nice-to-Haves for Market Superiority (3-5 credits)
 
-**Problem**: "Reminders" are just in-app toasts on login. No push notifications, no email, no weekly digest. Users miss interviews.
-
-**Changes**:
-- Create a new edge function `send-reminders` that queries upcoming events (within 24h) and sends email reminders via the built-in auth email service or a simple SMTP integration
-- Add a user preference toggle in the UserMenu: "Email reminders" on/off, stored in a new `user_preferences` table
-- Create a `weekly-digest` edge function that summarizes the user's pipeline (new apps this week, upcoming events, stale applications) and sends it every Monday
-- Both functions can be triggered via scheduled invocations or a cron-like approach
-
-**Files**: new `supabase/functions/send-reminders/index.ts`, new `supabase/functions/weekly-digest/index.ts`, `src/components/UserMenu.tsx`, new database migration for `user_preferences` table
+- Gamification: application streaks, milestone badges, weekly goals
+- Read-only sharing links for career coaches
+- Web Push notifications (in addition to email reminders)
+- Chrome extension manifest stub for one-click job capture
+- Job market data integration placeholders (Glassdoor-style)
 
 ---
 
 ## Implementation Order
 
-1. **Recommendation 3** (Search + List View) -- highest daily-use impact, self-contained
-2. **Recommendation 4** (Detail Panel refactor) -- improves core interaction loop
-3. **Recommendation 2** (Dashboard funnel) -- adds real analytical value
-4. **Recommendation 1** (Landing page demo) -- improves conversion
-5. **Recommendation 5** (Bulk actions) -- power-user feature
-6. **Recommendation 6** (Email reminders) -- requires backend work, best saved for last
+| Order | Phase | Credits | Priority |
+|-------|-------|---------|----------|
+| 1 | Phase 1: Bug fixes | 3-4 | Critical |
+| 2 | Phase 2: Visual overhaul | 6-8 | High |
+| 3 | Phase 3a: AI resume tailor | 2-3 | High |
+| 4 | Phase 3b: CV upload + suitability | 3-5 | High |
+| 5 | Phase 3c-d: Salary + bulk actions | 2-3 | Medium |
+| 6 | Phase 4: Landing + growth | 4-5 | Medium |
+| 7 | Phase 5: Nice-to-haves | 3-5 | Lower |
 
-Each recommendation will be implemented in 1-2 messages, tested, then moved to the next. Total estimated credits: **12-18** depending on iteration.
+**Total estimated: 24-33 credits** (up to 40 if we push hard on aesthetics and animations in Phase 2)
+
+---
+
+## Technical Notes
+
+- The `resumes` storage bucket already exists and is private -- we just need RLS policies
+- PDF text extraction will use `pdfjs-dist` on the client side to extract text before sending to edge functions, avoiding Deno PDF parsing complexity
+- The `ai-assist` edge function already supports multiple modes via the `mode` parameter -- adding `cv_suitability` is a clean extension
+- CV text will be cached in component state after first extraction to avoid re-parsing on every AI call
+- All new components follow existing patterns: shadcn/ui primitives, Tailwind styling, Supabase client for data
 
