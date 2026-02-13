@@ -1,165 +1,186 @@
 
 
-## Path to 9/10: Five High-Impact Improvements
+## Path to 9/10+: Seven High-Impact Improvements
 
-### 1. AI Cover Letter & Interview Prep (5 credits)
+### 1. Fix Light Mode Theming (2 credits)
 
-**What:** Add an "AI Assistant" button in the JobDetailPanel that generates:
-- A tailored cover letter based on job description + user notes
-- Interview prep questions based on the role and company
-- A "quick summary" of the job posting
+**Problem:** Light mode is broken in 3 places -- brand identity lost (gold -> navy), dashboard tooltips invisible, AI panel markdown unreadable.
 
-**Why:** This is the #1 differentiator for Huntr/Teal in 2026. Without AI features, JobTrackr is a spreadsheet with drag-and-drop.
+**Changes:**
 
-**Implementation:**
+**A. `src/index.css` -- Restore gold accent in light mode**
+- Change `.light` `--primary` from `222 47% 11%` to `36 80% 40%` (darker gold that works on white)
+- Change `.light` `--accent` to match
+- Change `.light` `--ring` to match
+- Adjust `--primary-foreground` to white for contrast
 
-- Create edge function `supabase/functions/ai-assist/index.ts` using Lovable AI gateway (`google/gemini-3-flash-preview`)
-- Three modes: `cover_letter`, `interview_prep`, `summarize`
-- System prompt includes job description, company, role, notes, salary from the application
-- Streaming response via SSE for real-time text generation
-- New component `src/components/AIAssistPanel.tsx`:
-  - Slide-out Sheet from the right (separate from JobDetailPanel)
-  - Mode selector tabs (Cover Letter / Interview Prep / Summary)
-  - Streaming markdown output with copy-to-clipboard button
-  - "Regenerate" button
-- Trigger: Add an AI sparkle button in the `JobDetailPanel` hero header, next to Edit button
-- Update `supabase/config.toml` to register the new function with `verify_jwt = true`
+**B. `src/components/Dashboard.tsx` -- Use CSS variables for tooltip**
+- Replace hardcoded `tooltipStyle.background` with `"hsl(var(--card))"` and `color` with `"hsl(var(--foreground))"`
+- Replace hardcoded border color with `"hsl(var(--border))"`
+
+**C. `src/components/AIAssistPanel.tsx` -- Fix prose class**
+- Line 167: Change `prose-invert` to `dark:prose-invert` so markdown renders correctly in both themes
+
+---
+
+### 2. Deep Search in Command Palette (1 credit)
+
+**Problem:** Cmd+K only searches the visible text of each CommandItem. Searching "React" won't find jobs where React appears only in description or notes.
+
+**Changes in `src/components/CommandPalette.tsx`:**
+- Add a `value` prop to each `CommandItem` that concatenates `company + role + notes + description + location + salary`
+- This gives `cmdk`'s built-in filter access to all fields without changing the visual display
+- Example: `<CommandItem value={[job.company, job.role, job.notes, job.description, job.location].filter(Boolean).join(" ")}>`
+
+---
+
+### 3. Fix Onboarding Sample Data Quality (1 credit)
+
+**Problem:** All 3 seed jobs use `applicationType: "Other"`, making the type filter useless during first impression. Also no events seeded.
+
+**Changes in `src/hooks/useOnboarding.tsx`:**
+- Change Acme Corp to `applicationType: "Frontend"`
+- Change TechCo to `applicationType: "Full Stack"`
+- Change StartupXYZ to `applicationType: "Full Stack"`
+- Add one sample event (interview) to the StartupXYZ job so the Calendar view isn't empty for new users -- this requires calling `updateJob` after creation to add the event
+
+---
+
+### 4. Undo Delete with Toast Action (2 credits)
+
+**Problem:** Deleting a job is permanent and immediate. No recovery option.
+
+**Changes:**
+
+**A. `src/hooks/useJobs.tsx` -- Implement soft-delete with undo window**
+- In `deleteJob`: instead of immediately deleting from Supabase, remove from local state and store the deleted job in a ref
+- Show a toast with a `action` button ("Undo") that re-inserts the job
+- Set a 5-second timeout; if no undo, execute the actual Supabase delete
+- If undo clicked, restore the job to local state and cancel the timeout
+
+**B. `src/components/ui/use-toast.ts`** -- Already supports `action` prop via shadcn, so no changes needed there
+
+---
+
+### 5. Google OAuth Sign-In (3 credits)
+
+**Problem:** Email-only auth creates friction. Every competitor offers Google sign-in.
+
+**Changes:**
+
+**A. Enable Google OAuth provider** via Lovable Cloud auth settings
+
+**B. `src/pages/Auth.tsx`:**
+- Add a "Continue with Google" button above the email form
+- Use `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/app' } })`
+- Add a visual divider ("or") between OAuth and email form
+- Style the Google button with the standard Google icon and white background
+
+**C. `src/pages/Landing.tsx`:**
+- Update hero CTA to mention "Sign up with Google or email"
+
+---
+
+### 6. Activity Timeline in Job Detail (4 credits)
+
+**Problem:** No history of stage changes, edits, or event outcomes. Users can't reconstruct their application journey.
+
+**Changes:**
+
+**A. Database migration** -- Create `job_activity_log` table:
+```sql
+create table public.job_activity_log (
+  id uuid primary key default gen_random_uuid(),
+  job_id uuid references public.job_applications(id) on delete cascade,
+  user_id uuid not null,
+  action text not null,
+  details jsonb,
+  created_at timestamptz default now()
+);
+alter table public.job_activity_log enable row level security;
+create policy "Users see own logs" on public.job_activity_log
+  for select using (auth.uid() = user_id);
+create policy "Users insert own logs" on public.job_activity_log
+  for insert with check (auth.uid() = user_id);
+```
+
+**B. `src/hooks/useJobs.tsx`:**
+- In `updateJob`, detect what changed (stage, notes, contacts, etc.) and insert a log entry
+- Key events to log: stage change, notes edited, contact added/removed, event added, link added
+
+**C. `src/components/JobDetailPanel.tsx`:**
+- Add a new "Activity" section at the bottom of the left column
+- Fetch activity log for the current job using a simple `supabase.from('job_activity_log').select('*').eq('job_id', job.id).order('created_at', { ascending: false }).limit(20)`
+- Render as a vertical timeline with icons per action type, relative timestamps ("2 hours ago"), and brief descriptions
+
+---
+
+### 7. Resume Upload and ATS Match Score (7 credits)
+
+**Problem:** Huntr/Teal's biggest differentiator is resume analysis. JobTrackr generates cover letters but can't analyze or tailor resumes.
+
+**Changes:**
+
+**A. Storage bucket** -- Create a `resumes` storage bucket with RLS allowing users to upload/read their own files
+
+**B. Database migration:**
+```sql
+alter table public.job_applications
+  add column resume_url text,
+  add column ats_score integer;
+```
+
+**C. New edge function `supabase/functions/analyze-resume/index.ts`:**
+- Accepts `resume_text` (extracted client-side from PDF) and `job_description`
+- Uses Lovable AI (gemini-3-flash-preview) with tool calling to return structured output:
+  - `ats_score` (0-100)
+  - `matching_keywords` (array of strings found in both)
+  - `missing_keywords` (array of strings in JD but not resume)
+  - `suggestions` (array of actionable improvement tips)
+- Uses tool_choice to force structured JSON output
+
+**D. New component `src/components/ResumeAnalysis.tsx`:**
+- Upload dropzone for PDF (max 5MB)
+- Client-side PDF text extraction using a lightweight library or the File API
+- Displays: circular ATS score gauge, keyword match list (green for matching, red for missing), suggestion cards
+- "Re-analyze" button to run against updated resume
+
+**E. Integration in `src/components/JobDetailPanel.tsx`:**
+- Add a "Resume Match" tab or section in the right column, below Quick Info
+- Show the ATS score as a colored badge (green >= 80, amber >= 60, red < 60)
+- Button to open full ResumeAnalysis panel
+
+**F. `src/pages/AppPage.tsx` or `src/components/AIAssistPanel.tsx`:**
+- Add a "Tailor Resume" mode that takes the resume + JD and generates a tailored version with keyword suggestions highlighted
 
 **Gotchas:**
-- Must handle 429/402 rate limit errors from Lovable AI and show user-friendly toasts
-- Keep system prompt on backend, never expose to client
-- Limit description input to 2000 chars to avoid token overflow
-- Add loading skeleton while streaming
+- PDF parsing on the client can be tricky; consider using `pdf.js` worker or a simpler approach of letting users paste resume text
+- Storage bucket RLS: `(bucket_id = 'resumes' AND auth.uid()::text = (storage.foldername(name))[1])`
+- ATS scoring is inherently approximate; add a disclaimer
 
 ---
 
-### 2. Command Palette with Global Search (3 credits)
+### Credit Summary
 
-**What:** `Cmd+K` opens a command palette (using existing `cmdk` dependency) that searches across ALL jobs, ALL views, and provides quick actions.
+| Improvement | Credits | Impact |
+|---|---|---|
+| Fix Light Mode Theming | 2 | Visual polish across themes |
+| Deep Search in Command Palette | 1 | Power user productivity |
+| Fix Onboarding Sample Data | 1 | First impression quality |
+| Undo Delete with Toast Action | 2 | Data safety, UX trust |
+| Google OAuth Sign-In | 3 | Signup conversion rate |
+| Activity Timeline | 4 | Application journey tracking |
+| Resume Upload and ATS Score | 7 | Competitive parity with Huntr/Teal |
+| **Total** | **20** | |
 
-**Why:** Users with 50+ applications need instant access. This also replaces the Kanban-only search input and works from Dashboard/Calendar views.
+### Priority Order
 
-**Implementation:**
-
-- New component `src/components/CommandPalette.tsx`:
-  - Uses `cmdk` (already installed) with `Command`, `CommandInput`, `CommandList`, `CommandItem`
-  - Fuzzy search across `company`, `role`, `notes`, `description`, `location` fields
-  - Results grouped by stage (Found, Applied, etc.)
-  - Quick actions: "Add new application", "Switch to Board/Dashboard/Calendar", "Export CSV"
-  - Clicking a result opens the JobDetailPanel for that job
-- Register global `Cmd+K` / `Ctrl+K` keyboard shortcut in `AppPage.tsx` via `useEffect`
-- Pass `jobs` array and `setSelectedJob`/`setPanelOpen` handlers as props
-- Remove the search Input from `KanbanBoard.tsx` filter bar (replaced by global search)
-
-**Files to change:**
-- New: `src/components/CommandPalette.tsx`
-- Edit: `src/pages/AppPage.tsx` (add keyboard listener + render CommandPalette)
-- Edit: `src/components/KanbanBoard.tsx` (remove search input, keep filter dropdowns)
-
----
-
-### 3. Fix Toast Spam + Data Loss Bug + Theme Toggle (3 credits)
-
-**What:** Three quick-win quality fixes.
-
-**A. Remove toast on every save:**
-- In `src/hooks/useJobs.tsx`, remove the `toast({ title: "Application saved" })` call from `updateJob` (line 95-96). The detail panel's `saveStatus` indicator already shows save state. Only toast on errors.
-
-**B. Fix debounce data loss:**
-- In `src/components/JobDetailPanel.tsx`, instead of clearing the debounce timer on unmount, flush it:
-```tsx
-useEffect(() => {
-  return () => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      // Flush pending save
-      if (editedJobRef.current && dirtyRef.current) {
-        onSave(editedJobRef.current);
-      }
-    }
-  };
-}, [onSave]);
-```
-- Add a `dirtyRef` that tracks whether there are unsaved changes and an `editedJobRef` that always holds the latest state.
-
-**C. Theme toggle:**
-- Wrap the app in `ThemeProvider` from `next-themes` (already installed)
-- Add a Sun/Moon toggle button in `UserMenu.tsx` dropdown
-- `next-themes` handles the `.light` class application automatically, which already has full CSS variable definitions in `index.css`
-
-**Files to change:**
-- `src/hooks/useJobs.tsx` (remove success toast from updateJob)
-- `src/components/JobDetailPanel.tsx` (flush debounce on unmount)
-- `src/App.tsx` (wrap in ThemeProvider)
-- `src/components/UserMenu.tsx` (add theme toggle menu item)
-
----
-
-### 4. Onboarding with Demo Data + Duplicate Detection (4 credits)
-
-**What:** First-login experience that pre-populates sample jobs, plus duplicate warnings on add.
-
-**A. Demo data on first login:**
-- New hook `src/hooks/useOnboarding.tsx`:
-  - On first load, if `jobs.length === 0`, check `localStorage` for `jobtrackr-onboarded` flag
-  - If not onboarded, insert 3 sample jobs via `addJob` (e.g., "Acme Corp - Frontend Engineer" in Found, "TechCo - Senior Dev" in Applied, "StartupXYZ - Full Stack" in Phone Screen)
-  - Each sample has realistic data: description, salary, location, one event, one contact
-  - Set `localStorage` flag after insertion
-  - Show a dismissible banner: "We added some sample jobs to help you explore. Delete them anytime."
-- Call this hook in `AppPage.tsx` after `useJobs`
-
-**B. Duplicate detection:**
-- In `AddJobDialog.tsx`, before calling `onAdd`, check if any existing job matches `company + role` (case-insensitive)
-- If duplicate found, show an `AlertDialog`: "You already have an application for {company} - {role}. Add anyway?"
-- Pass `jobs` array as a new prop to `AddJobDialog`
-
-**Files to change:**
-- New: `src/hooks/useOnboarding.tsx`
-- Edit: `src/pages/AppPage.tsx` (call useOnboarding, show banner)
-- Edit: `src/components/AddJobDialog.tsx` (add duplicate check, accept `jobs` prop)
-
----
-
-### 5. Mobile-Responsive Kanban + Quick Stage Navigation (5 credits)
-
-**What:** Make the Kanban board usable on mobile with a stage selector dropdown and condensed card layout.
-
-**Implementation:**
-
-- In `src/components/KanbanBoard.tsx`:
-  - Detect mobile via `useIsMobile()` hook (already exists at `src/hooks/use-mobile.tsx`)
-  - On mobile, replace the horizontal scrolling 8-column layout with:
-    - A stage selector dropdown at the top showing current stage name + count
-    - A single-column vertical list of cards for the selected stage
-    - Swipe left/right to navigate between stages (or use the dropdown)
-  - Keep existing desktop layout unchanged for `lg+` screens
-
-- In `src/components/KanbanColumn.tsx`:
-  - No changes needed (mobile view bypasses columns entirely)
-
-- In `src/components/JobCard.tsx`:
-  - On mobile, slightly adjust padding for touch targets (min 44px tap targets on action buttons)
-
-- In `src/components/CalendarView.tsx`:
-  - On mobile, hide the fixed `w-[340px]` left sidebar and show the calendar inline full-width
-  - Move event list below the calendar instead of beside it
-  - Add a floating "+" button to create events from the calendar view
-
-**Files to change:**
-- Edit: `src/components/KanbanBoard.tsx` (mobile layout branch)
-- Edit: `src/components/CalendarView.tsx` (responsive layout)
-- Edit: `src/components/JobCard.tsx` (touch target sizing)
-
----
-
-### Summary Table
-
-| Improvement | Impact | Credits | Key Files |
-|---|---|---|---|
-| AI Cover Letter & Interview Prep | Competitive parity with Huntr/Teal | 5 | New edge function + AIAssistPanel.tsx |
-| Command Palette (Cmd+K) | Power user retention, replaces fragmented search | 3 | New CommandPalette.tsx, AppPage.tsx |
-| Toast/Save/Theme fixes | Polish, data safety, accessibility | 3 | useJobs.tsx, JobDetailPanel.tsx, UserMenu.tsx, App.tsx |
-| Onboarding + Duplicate Detection | Activation rate, data quality | 4 | New useOnboarding.tsx, AddJobDialog.tsx, AppPage.tsx |
-| Mobile Kanban + Calendar | 40%+ of job seekers use mobile | 5 | KanbanBoard.tsx, CalendarView.tsx, JobCard.tsx |
-| **Total** | | **20** | |
+Implement in this order to maximize value at each step:
+1. Fix Light Mode (immediate visual fix)
+2. Onboarding Data Quality (quick win)
+3. Deep Search (quick win)
+4. Undo Delete (safety net)
+5. Google OAuth (conversion)
+6. Activity Timeline (stickiness)
+7. Resume/ATS Analysis (differentiation)
 
