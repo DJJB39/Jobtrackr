@@ -9,6 +9,7 @@ import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import AppPage from "./pages/AppPage";
+import DemoPage from "./pages/DemoPage";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 
@@ -25,6 +26,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/demo" element={<DemoPage />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route
                 path="/app"
