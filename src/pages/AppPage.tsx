@@ -6,6 +6,7 @@ import ListView from "@/components/ListView";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
 import { Briefcase, LayoutDashboard, Columns3, Loader2, Download, CalendarDays, X, List, Search } from "lucide-react";
+import ShareStats from "@/components/ShareStats";
 import CalendarView from "@/components/CalendarView";
 import JobDetailPanel from "@/components/JobDetailPanel";
 import AIAssistPanel from "@/components/AIAssistPanel";
@@ -193,10 +194,13 @@ const AppPage = () => {
               ))}
             </div>
 
-            <Button variant="outline" size="sm" className="gap-2 hidden sm:flex border-border/50 hover:border-border" onClick={exportToCSV} disabled={jobs.length === 0}>
-              <Download className="h-4 w-4" />
-              <span>Export</span>
-            </Button>
+            <div className="hidden sm:flex items-center gap-2">
+              <ShareStats jobs={jobs} />
+              <Button variant="outline" size="sm" className="gap-2 border-border/50 hover:border-border" onClick={exportToCSV} disabled={jobs.length === 0}>
+                <Download className="h-4 w-4" />
+                <span>Export</span>
+              </Button>
+            </div>
             <AddJobDialog onAdd={addJob} jobs={jobs} />
             <UserMenu />
           </div>

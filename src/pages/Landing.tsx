@@ -20,6 +20,7 @@ import screenshotDashboard from "@/assets/screenshot-dashboard.png";
 import ComparisonTable from "@/components/landing/ComparisonTable";
 import PricingSection from "@/components/landing/PricingSection";
 import FAQSection from "@/components/landing/FAQSection";
+import ChromeExtensionCTA from "@/components/landing/ChromeExtensionCTA";
 
 /* ── Helpers ── */
 const fadeUp = {
@@ -283,6 +284,9 @@ const Landing = () => (
 
       {/* ── FAQ ── */}
       <FAQSection />
+
+      {/* ── Chrome Extension ── */}
+      <ChromeExtensionCTA />
 
       {/* ── Final CTA ── */}
       <motion.section
