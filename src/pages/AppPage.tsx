@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react";
 import KanbanBoard from "@/components/KanbanBoard";
 import Dashboard from "@/components/Dashboard";
+import ListView from "@/components/ListView";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
-import { Briefcase, LayoutDashboard, Columns3, Loader2, Download, CalendarDays, X } from "lucide-react";
+import { Briefcase, LayoutDashboard, Columns3, Loader2, Download, CalendarDays, X, List, Search } from "lucide-react";
 import CalendarView from "@/components/CalendarView";
 import JobDetailPanel from "@/components/JobDetailPanel";
 import AIAssistPanel from "@/components/AIAssistPanel";
@@ -13,11 +14,12 @@ import { useOnboarding } from "@/hooks/useOnboarding";
 import type { JobApplication } from "@/types/job";
 import { useLoginReminders } from "@/hooks/useLoginReminders";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { COLUMNS } from "@/types/job";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
-type View = "board" | "dashboard" | "calendar";
+type View = "board" | "dashboard" | "calendar" | "list";
 
 const AppPage = () => {
   const { jobs, setJobs, loading, addJob, updateJob, deleteJob } = useJobs();
@@ -26,6 +28,7 @@ const AppPage = () => {
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   useLoginReminders(jobs);
 
@@ -35,6 +38,19 @@ const AppPage = () => {
     setSelectedJob(job);
     setPanelOpen(true);
   }, []);
+
+  const filteredJobs = searchQuery
+    ? jobs.filter((j) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          j.company.toLowerCase().includes(q) ||
+          j.role.toLowerCase().includes(q) ||
+          (j.notes ?? "").toLowerCase().includes(q) ||
+          (j.description ?? "").toLowerCase().includes(q) ||
+          (j.location ?? "").toLowerCase().includes(q)
+        );
+      })
+    : jobs;
 
   const exportToCSV = () => {
     const stageMap = Object.fromEntries(COLUMNS.map((c) => [c.id, c.title]));
@@ -83,59 +99,65 @@ const AppPage = () => {
             <div>
               <h1 className="text-lg font-bold tracking-tight text-foreground">JobTrackr</h1>
               <p className="text-xs text-muted-foreground font-mono">
-                {jobs.length} application{jobs.length !== 1 ? "s" : ""} · <span className="opacity-60">⌘K search</span>
+                {jobs.length} application{jobs.length !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <nav className="hidden sm:flex items-center rounded-lg border border-border bg-muted p-0.5 mr-3">
-              <button
-                onClick={() => setView("board")}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                  view === "board"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Columns3 className="h-3.5 w-3.5" />
-                Board
-              </button>
-              <button
-                onClick={() => setView("dashboard")}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                  view === "dashboard"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <LayoutDashboard className="h-3.5 w-3.5" />
-                Dashboard
-              </button>
-              <button
-                onClick={() => setView("calendar")}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                  view === "calendar"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <CalendarDays className="h-3.5 w-3.5" />
-                Calendar
-              </button>
+            {/* Search bar */}
+            <div className="relative hidden md:block">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search jobs… (⌘K)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-9 w-48 lg:w-64 pl-8 text-sm bg-muted/50 border-border"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            <nav className="hidden sm:flex items-center rounded-lg border border-border bg-muted p-0.5 mr-1">
+              {([
+                { key: "board" as View, icon: Columns3, label: "Board" },
+                { key: "list" as View, icon: List, label: "List" },
+                { key: "dashboard" as View, icon: LayoutDashboard, label: "Dashboard" },
+                { key: "calendar" as View, icon: CalendarDays, label: "Calendar" },
+              ]).map(({ key, icon: Icon, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setView(key)}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    view === key
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              ))}
             </nav>
 
             {/* Mobile view switcher */}
             <div className="flex sm:hidden items-center rounded-lg border border-border bg-muted p-0.5 mr-1">
-              <button onClick={() => setView("board")} className={`p-1.5 rounded-md ${view === "board" ? "bg-background shadow-sm" : ""}`}>
-                <Columns3 className="h-4 w-4" />
-              </button>
-              <button onClick={() => setView("dashboard")} className={`p-1.5 rounded-md ${view === "dashboard" ? "bg-background shadow-sm" : ""}`}>
-                <LayoutDashboard className="h-4 w-4" />
-              </button>
-              <button onClick={() => setView("calendar")} className={`p-1.5 rounded-md ${view === "calendar" ? "bg-background shadow-sm" : ""}`}>
-                <CalendarDays className="h-4 w-4" />
-              </button>
+              {([
+                { key: "board" as View, icon: Columns3 },
+                { key: "list" as View, icon: List },
+                { key: "dashboard" as View, icon: LayoutDashboard },
+                { key: "calendar" as View, icon: CalendarDays },
+              ]).map(({ key, icon: Icon }) => (
+                <button key={key} onClick={() => setView(key)} className={`p-1.5 rounded-md ${view === key ? "bg-background shadow-sm" : ""}`}>
+                  <Icon className="h-4 w-4" />
+                </button>
+              ))}
             </div>
 
             <Button variant="outline" size="sm" className="gap-2 hidden sm:flex" onClick={exportToCSV} disabled={jobs.length === 0}>
@@ -145,6 +167,25 @@ const AppPage = () => {
             <AddJobDialog onAdd={addJob} jobs={jobs} />
             <UserMenu />
           </div>
+        </div>
+
+        {/* Mobile search bar */}
+        <div className="mt-3 md:hidden relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search jobs…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-9 pl-8 text-sm bg-muted/50 border-border"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </header>
 
@@ -174,14 +215,16 @@ const AppPage = () => {
           <AddJobDialog onAdd={addJob} open={dialogOpen} onOpenChange={setDialogOpen} jobs={jobs} />
         </div>
       ) : view === "board" ? (
-        <KanbanBoard jobs={jobs} setJobs={setJobs} onUpdateJob={updateJob} onDeleteJob={deleteJob} />
+        <KanbanBoard jobs={searchQuery ? filteredJobs : jobs} setJobs={setJobs} onUpdateJob={updateJob} onDeleteJob={deleteJob} />
+      ) : view === "list" ? (
+        <ListView jobs={jobs} onSelectJob={handleSelectJob} searchQuery={searchQuery} />
       ) : view === "dashboard" ? (
-        <Dashboard jobs={jobs} onUpdateJob={updateJob} />
+        <Dashboard jobs={filteredJobs} onUpdateJob={updateJob} />
       ) : (
-        <CalendarView jobs={jobs} onSelectJob={handleSelectJob} />
+        <CalendarView jobs={filteredJobs} onSelectJob={handleSelectJob} />
       )}
 
-      {/* Detail panel for calendar + AI trigger */}
+      {/* Detail panel for calendar/list + AI trigger */}
       <JobDetailPanel
         job={selectedJob}
         open={panelOpen}
