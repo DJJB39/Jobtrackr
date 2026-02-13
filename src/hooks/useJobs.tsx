@@ -96,6 +96,7 @@ export const useJobs = () => {
   }, [user, toast]);
 
   const updateJob = useCallback(async (job: JobApplication) => {
+    const oldJob = jobs.find((j) => j.id === job.id);
     setJobs((prev) => prev.map((j) => (j.id === job.id ? job : j)));
 
     const { error } = await supabase
@@ -114,6 +115,8 @@ export const useJobs = () => {
         salary: job.salary ?? null,
         close_date: job.closeDate ?? null,
         events: job.events as any,
+        resume_url: (job as any).resumeUrl ?? null,
+        ats_score: (job as any).atsScore ?? null,
       } as any)
       .eq("id", job.id);
 
@@ -121,7 +124,32 @@ export const useJobs = () => {
       toast({ title: "Error saving", description: error.message, variant: "destructive" });
       fetchJobs();
     }
-  }, [toast, fetchJobs]);
+
+    // Log activity changes
+    if (user && oldJob) {
+      const logs: { action: string; details: any }[] = [];
+      if (oldJob.columnId !== job.columnId) {
+        logs.push({ action: "stage_change", details: { from: oldJob.columnId, to: job.columnId } });
+      }
+      if (oldJob.notes !== job.notes) {
+        logs.push({ action: "notes_edited", details: {} });
+      }
+      if (oldJob.contacts.length !== job.contacts.length) {
+        logs.push({ action: oldJob.contacts.length < job.contacts.length ? "contact_added" : "contact_removed", details: {} });
+      }
+      if ((oldJob.events?.length ?? 0) !== (job.events?.length ?? 0)) {
+        logs.push({ action: (oldJob.events?.length ?? 0) < (job.events?.length ?? 0) ? "event_added" : "event_removed", details: {} });
+      }
+      if (oldJob.links.length !== job.links.length) {
+        logs.push({ action: "link_changed", details: {} });
+      }
+      if (logs.length > 0) {
+        await supabase.from("job_activity_log").insert(
+          logs.map((l) => ({ job_id: job.id, user_id: user.id, action: l.action, details: l.details }))
+        );
+      }
+    }
+  }, [jobs, user, toast, fetchJobs]);
 
   const deleteJob = useCallback(async (id: string) => {
     const jobToDelete = jobs.find((j) => j.id === id);

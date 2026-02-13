@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Building2,
+  Activity,
   Briefcase,
   CalendarDays,
   Plus,
@@ -34,6 +35,8 @@ import {
 } from "lucide-react";
 import type { JobApplication, Contact, NextStep, JobEvent } from "@/types/job";
 import { COLUMNS, APPLICATION_TYPES } from "@/types/job";
+import ActivityTimeline from "./ActivityTimeline";
+import ResumeAnalysis from "./ResumeAnalysis";
 import {
   Select,
   SelectContent,
@@ -371,6 +374,17 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetail
                 <p className="text-xs text-muted-foreground italic">No next steps</p>
               )}
             </section>
+
+            {/* Activity Timeline */}
+            <section className="rounded-xl border border-border bg-card/50 p-4 space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/20">
+                  <Activity className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-sm font-semibold text-foreground">Activity</span>
+              </div>
+              <ActivityTimeline jobId={editedJob.id} />
+            </section>
           </div>
 
           {/* Right column: Quick Info, Contacts, Events, Links */}
@@ -589,6 +603,21 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetail
               {editedJob.links.length === 0 && (
                 <p className="text-xs text-muted-foreground italic">No links yet</p>
               )}
+            </section>
+
+            {/* Resume ATS Analysis */}
+            <section className="rounded-xl border border-border bg-card/50 p-4 space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ backgroundColor: "hsl(262, 60%, 55%, 0.2)" }}>
+                  <FileText className="h-3.5 w-3.5" style={{ color: "hsl(262, 60%, 55%)" }} />
+                </div>
+                <span className="text-sm font-semibold text-foreground">Resume ATS Match</span>
+              </div>
+              <ResumeAnalysis
+                jobDescription={editedJob.description}
+                company={editedJob.company}
+                role={editedJob.role}
+              />
             </section>
           </div>
         </div>
