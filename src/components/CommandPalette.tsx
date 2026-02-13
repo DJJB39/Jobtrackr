@@ -7,14 +7,14 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { Briefcase, LayoutDashboard, Columns3, CalendarDays, Download, Plus } from "lucide-react";
+import { Briefcase, LayoutDashboard, Columns3, CalendarDays, Download, Plus, List } from "lucide-react";
 import type { JobApplication } from "@/types/job";
 import { COLUMNS } from "@/types/job";
 
 interface CommandPaletteProps {
   jobs: JobApplication[];
   onSelectJob: (job: JobApplication) => void;
-  onSwitchView: (view: "board" | "dashboard" | "calendar") => void;
+  onSwitchView: (view: "board" | "dashboard" | "calendar" | "list") => void;
   onAddJob: () => void;
   onExport: () => void;
 }
@@ -62,6 +62,10 @@ const CommandPalette = ({ jobs, onSelectJob, onSwitchView, onAddJob, onExport }:
           <CommandItem onSelect={() => { onSwitchView("calendar"); setOpen(false); }}>
             <CalendarDays className="mr-2 h-4 w-4" />
             Switch to Calendar
+          </CommandItem>
+          <CommandItem onSelect={() => { onSwitchView("list"); setOpen(false); }}>
+            <List className="mr-2 h-4 w-4" />
+            Switch to List
           </CommandItem>
           <CommandItem onSelect={() => { onExport(); setOpen(false); }}>
             <Download className="mr-2 h-4 w-4" />
