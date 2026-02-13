@@ -8,7 +8,8 @@ import {
   CalendarPlus,
 } from "lucide-react";
 import { differenceInDays, parseISO, startOfDay, isBefore } from "date-fns";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -75,6 +76,19 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
     data: { type: "job", job },
   });
   const [logoError, setLogoError] = useState(false);
+  const { user } = useAuth();
+  const [cvScore, setCvScore] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const raw = localStorage.getItem(`cv-results-${user.id}`);
+      if (raw) {
+        const results = JSON.parse(raw);
+        if (results[job.id]?.score != null) setCvScore(results[job.id].score);
+      }
+    } catch { /* ignore */ }
+  }, [user, job.id]);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -151,6 +165,15 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
           )}
         </div>
         <span className="font-semibold text-sm text-card-foreground truncate flex-1">{job.company}</span>
+        {cvScore !== null && (
+          <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-bold font-mono ${
+            cvScore >= 75 ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/20" :
+            cvScore >= 50 ? "bg-amber-500/20 text-amber-400 border-amber-500/20" :
+            "bg-rose-500/20 text-rose-400 border-rose-500/20"
+          }`} title={`CV Match: ${cvScore}%`}>
+            {cvScore}%
+          </span>
+        )}
         {job.salary && (
           <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold font-mono ${getSalaryColor(job.salary)}`}>
             {formatSalary(job.salary)}
