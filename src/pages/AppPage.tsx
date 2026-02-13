@@ -219,7 +219,17 @@ const AppPage = () => {
       ) : view === "list" ? (
         <ListView jobs={jobs} onSelectJob={handleSelectJob} searchQuery={searchQuery} />
       ) : view === "dashboard" ? (
-        <Dashboard jobs={filteredJobs} onUpdateJob={updateJob} />
+        <Dashboard
+          jobs={filteredJobs}
+          onUpdateJob={updateJob}
+          onFilterByStage={(stageId) => {
+            const col = COLUMNS.find((c) => c.id === stageId);
+            if (col) {
+              setSearchQuery(col.title);
+              setView("list");
+            }
+          }}
+        />
       ) : (
         <CalendarView jobs={filteredJobs} onSelectJob={handleSelectJob} />
       )}
