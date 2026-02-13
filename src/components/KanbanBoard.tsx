@@ -16,6 +16,7 @@ import JobCard from "./JobCard";
 import JobDetailPanel from "./JobDetailPanel";
 import AIAssistPanel from "./AIAssistPanel";
 import ScheduleEventDialog from "./ScheduleEventDialog";
+import BulkActionBar from "./BulkActionBar";
 import {
   Select,
   SelectContent,
@@ -23,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Filter, X } from "lucide-react";
+import { Filter, X, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -47,6 +48,34 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
 
   const [scheduleTarget, setScheduleTarget] = useState<JobApplication | null>(null);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectMode, setSelectMode] = useState(false);
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleBulkMove = useCallback((target: ColumnId) => {
+    setJobs((prev) => prev.map((j) => selectedIds.has(j.id) ? { ...j, columnId: target } : j));
+    jobs.filter((j) => selectedIds.has(j.id)).forEach((j) => onUpdateJob({ ...j, columnId: target }));
+    setSelectedIds(new Set());
+    setSelectMode(false);
+  }, [selectedIds, jobs, setJobs, onUpdateJob]);
+
+  const handleBulkDelete = useCallback(() => {
+    selectedIds.forEach((id) => onDeleteJob(id));
+    setSelectedIds(new Set());
+    setSelectMode(false);
+  }, [selectedIds, onDeleteJob]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    setSelectMode(false);
+  }, []);
 
   const uniqueRoles = useMemo(
     () => Array.from(new Set(jobs.map((j) => j.role).filter(Boolean))).sort(),
@@ -176,6 +205,18 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
             <X className="h-3.5 w-3.5" /> Clear
           </Button>
         )}
+
+        <div className="ml-auto">
+          <Button
+            variant={selectMode ? "secondary" : "ghost"}
+            size="sm"
+            className="h-9 gap-1.5 text-xs"
+            onClick={() => { setSelectMode(!selectMode); if (selectMode) setSelectedIds(new Set()); }}
+          >
+            <CheckSquare className="h-3.5 w-3.5" />
+            {selectMode ? "Cancel" : "Select"}
+          </Button>
+        </div>
       </div>
 
       {/* Mobile: stage selector + single column */}
@@ -202,6 +243,9 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
                 onClick={handleCardClick}
                 onSchedule={handleScheduleFromCard}
                 columnId={mobileStage}
+                selected={selectedIds.has(job.id)}
+                onToggleSelect={toggleSelect}
+                selectMode={selectMode}
               />
             ))}
             {getColumnJobs(mobileStage).length === 0 && (
@@ -228,6 +272,9 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
                   onDeleteJob={onDeleteJob}
                   onClickJob={handleCardClick}
                   onScheduleJob={handleScheduleFromCard}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                  selectMode={selectMode}
                 />
               ))}
             </div>
@@ -262,6 +309,13 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
           onSave={handleScheduleSave}
         />
       )}
+
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onMove={handleBulkMove}
+        onDelete={handleBulkDelete}
+        onClear={clearSelection}
+      />
     </>
   );
 };

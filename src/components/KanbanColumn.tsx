@@ -9,9 +9,12 @@ interface KanbanColumnProps {
   onDeleteJob: (id: string) => void;
   onClickJob?: (job: JobApplication) => void;
   onScheduleJob?: (job: JobApplication) => void;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  selectMode?: boolean;
 }
 
-const KanbanColumn = ({ column, jobs, onDeleteJob, onClickJob, onScheduleJob }: KanbanColumnProps) => {
+const KanbanColumn = ({ column, jobs, onDeleteJob, onClickJob, onScheduleJob, selectedIds, onToggleSelect, selectMode }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   return (
@@ -27,9 +30,7 @@ const KanbanColumn = ({ column, jobs, onDeleteJob, onClickJob, onScheduleJob }: 
         </h3>
       </div>
 
-      <div
-        className="flex min-h-[120px] flex-1 flex-col gap-2 px-2 pb-3 pt-1"
-      >
+      <div className="flex min-h-[120px] flex-1 flex-col gap-2 px-2 pb-3 pt-1">
         <SortableContext items={jobs.map((j) => j.id)} strategy={verticalListSortingStrategy}>
           {jobs.map((job) => (
             <JobCard
@@ -39,6 +40,9 @@ const KanbanColumn = ({ column, jobs, onDeleteJob, onClickJob, onScheduleJob }: 
               onClick={onClickJob}
               onSchedule={onScheduleJob}
               columnId={column.id}
+              selected={selectedIds?.has(job.id)}
+              onToggleSelect={onToggleSelect}
+              selectMode={selectMode}
             />
           ))}
         </SortableContext>
