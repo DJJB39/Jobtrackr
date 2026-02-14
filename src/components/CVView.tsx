@@ -48,7 +48,7 @@ const ScoreRing = ({ score }: { score: number }) => {
 };
 
 const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { toast } = useToast();
   const [cvText, setCvText] = useState<string | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
@@ -81,12 +81,17 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
     setSelectedJobId(job.id);
     setLoading(true);
 
+    if (!session?.access_token) {
+      toast({ title: "Please log in", description: "Authentication required for AI analysis", variant: "destructive" });
+      return;
+    }
+
     try {
       const resp = await fetch(AI_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           mode: "cv_suitability",
