@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=320" />
+  <title>JobTrackr</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">JT</div>
+      <h1>JobTrackr</h1>
+    </div>
+
+    <!-- Login Form -->
+    <div id="login-view">
+      <p class="subtitle">Sign in to save jobs from any page</p>
+      <form id="login-form">
+        <input type="email" id="email" placeholder="Email" required autocomplete="email" />
+        <input type="password" id="password" placeholder="Password" required autocomplete="current-password" />
+        <button type="submit" id="login-btn">Sign In</button>
+      </form>
+      <p id="error-msg" class="error" style="display:none"></p>
+    </div>
+
+    <!-- Logged-in State -->
+    <div id="authed-view" style="display:none">
+      <div class="status-badge">
+        <span class="dot"></span>
+        Ready to save jobs
+      </div>
+      <p class="user-email" id="user-email"></p>
+      <div class="sites">
+        <p class="sites-label">Supported sites:</p>
+        <div class="site-list">
+          <span class="site-tag">LinkedIn</span>
+          <span class="site-tag">Indeed</span>
+          <span class="site-tag">Reed</span>
+          <span class="site-tag">Greenhouse</span>
+        </div>
+      </div>
+      <button id="logout-btn" class="logout">Log Out</button>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

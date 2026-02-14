@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "next-themes";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +13,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { LogOut, Sun, Moon, Bell, Mail } from "lucide-react";
+import { LogOut, Sun, Moon, Bell, Mail, BellRing } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const UserMenu = () => {
   const { user, signOut } = useAuth();
@@ -20,6 +27,7 @@ const UserMenu = () => {
   const [emailReminders, setEmailReminders] = useState(false);
   const [weeklyDigest, setWeeklyDigest] = useState(false);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
+  const push = usePushNotifications();
 
   useEffect(() => {
     if (!user) return;
@@ -67,6 +75,12 @@ const UserMenu = () => {
     .split("@")[0]
     .slice(0, 2)
     .toUpperCase();
+
+  const pushTooltip = !push.supported
+    ? "Not supported in this browser"
+    : push.permissionState === "denied"
+    ? "Permission denied — enable in browser settings"
+    : null;
 
   return (
     <DropdownMenu>
@@ -117,6 +131,33 @@ const UserMenu = () => {
             }}
             disabled={!prefsLoaded}
           />
+        </div>
+
+        <div className="px-2 py-1.5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <BellRing className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-sm">Push notifications</span>
+          </div>
+          {pushTooltip ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Switch checked={false} disabled />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  <p className="text-xs">{pushTooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Switch
+              checked={push.enabled}
+              onCheckedChange={push.toggle}
+              disabled={push.loading || !prefsLoaded}
+            />
+          )}
         </div>
 
         <DropdownMenuSeparator />

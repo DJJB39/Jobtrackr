@@ -43,7 +43,7 @@ const ScoreRing = ({ score }: { score: number }) => {
 };
 
 const DetailCVTab = ({ job }: DetailCVTabProps) => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [cvText, setCvText] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SuitabilityResult | null>(null);
@@ -75,12 +75,18 @@ const DetailCVTab = ({ job }: DetailCVTabProps) => {
     setLoading(true);
     setResult(null);
 
+    if (!session?.access_token) {
+      toast({ title: "Please log in", description: "Authentication required", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
     try {
       const resp = await fetch(AI_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           mode: "cv_suitability",

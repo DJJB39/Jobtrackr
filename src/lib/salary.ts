@@ -4,7 +4,7 @@
  */
 export function parseSalary(raw: string | null | undefined): { min: number; max: number } | null {
   if (!raw) return null;
-  const cleaned = raw.replace(/,/g, "").trim();
+  const cleaned = raw.replace(/[,£$€]/g, "").trim();
 
   // Range: "$130k-$160k", "130000-160000", "$50k – $70k"
   const rangeMatch = cleaned.match(/(\d+(?:\.\d+)?)\s*k?\s*[-–—to]+\s*\$?\s*(\d+(?:\.\d+)?)\s*k?/i);

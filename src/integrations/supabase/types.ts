@@ -120,6 +120,8 @@ export type Database = {
           created_at: string
           email_reminders: boolean
           id: string
+          push_notifications: boolean
+          push_subscription: Json | null
           updated_at: string
           user_id: string
           weekly_digest: boolean
@@ -128,6 +130,8 @@ export type Database = {
           created_at?: string
           email_reminders?: boolean
           id?: string
+          push_notifications?: boolean
+          push_subscription?: Json | null
           updated_at?: string
           user_id: string
           weekly_digest?: boolean
@@ -136,6 +140,8 @@ export type Database = {
           created_at?: string
           email_reminders?: boolean
           id?: string
+          push_notifications?: boolean
+          push_subscription?: Json | null
           updated_at?: string
           user_id?: string
           weekly_digest?: boolean

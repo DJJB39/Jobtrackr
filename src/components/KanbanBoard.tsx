@@ -41,10 +41,11 @@ interface KanbanBoardProps {
 
 const SALARY_BRACKETS = [
   { value: "all", label: "All Salaries" },
-  { value: "0-50", label: "$0–50k" },
-  { value: "50-100", label: "$50–100k" },
-  { value: "100-150", label: "$100–150k" },
-  { value: "150+", label: "$150k+" },
+  { value: "0-30", label: "Under 30k" },
+  { value: "30-60", label: "30k–60k" },
+  { value: "60-90", label: "60k–90k" },
+  { value: "90-120", label: "90k–120k" },
+  { value: "120+", label: "120k+" },
 ];
 
 const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardProps) => {
@@ -169,10 +170,11 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
         if (!parsed) return filterSalary === "all";
         const max = parsed.max;
         switch (filterSalary) {
-          case "0-50": return max <= 50;
-          case "50-100": return max > 50 && max <= 100;
-          case "100-150": return max > 100 && max <= 150;
-          case "150+": return max > 150;
+          case "0-30": return max <= 30;
+          case "30-60": return max > 30 && max <= 60;
+          case "60-90": return max > 60 && max <= 90;
+          case "90-120": return max > 90 && max <= 120;
+          case "120+": return max > 120;
           default: return true;
         }
       });
