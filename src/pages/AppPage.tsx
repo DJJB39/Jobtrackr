@@ -1,19 +1,21 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import KanbanBoard from "@/components/KanbanBoard";
 import Dashboard from "@/components/Dashboard";
 import ListView from "@/components/ListView";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
-import { Briefcase, LayoutDashboard, Columns3, Loader2, Download, CalendarDays, X, List, Search, FileUp } from "lucide-react";
+import { Briefcase, LayoutDashboard, Columns3, Download, CalendarDays, X, List, Search, FileUp } from "lucide-react";
 import ShareStats from "@/components/ShareStats";
 import CalendarView from "@/components/CalendarView";
 import CVView from "@/components/CVView";
 import JobDetailPanel from "@/components/JobDetailPanel";
 import AIAssistPanel from "@/components/AIAssistPanel";
 import CommandPalette from "@/components/CommandPalette";
+import OnboardingTour from "@/components/OnboardingTour";
 import { useJobs } from "@/hooks/useJobs";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 import type { JobApplication } from "@/types/job";
 import { useLoginReminders } from "@/hooks/useLoginReminders";
 import { Button } from "@/components/ui/button";
@@ -43,7 +45,21 @@ const AppPage = () => {
   const { toast } = useToast();
   useLoginReminders(jobs);
 
-  const { showBanner, dismissBanner } = useOnboarding({ jobCount: jobs.length, loading, addJob });
+  const { showBanner, dismissBanner, tourReady } = useOnboarding({ jobCount: jobs.length, loading, addJob });
+  const tour = useOnboardingTour({ tourReady });
+
+  // Search pulse animation on first visit
+  const [searchPulse, setSearchPulse] = useState(false);
+  useEffect(() => {
+    if (!localStorage.getItem("jobtrackr-search-seen")) {
+      setSearchPulse(true);
+      const timer = setTimeout(() => {
+        setSearchPulse(false);
+        localStorage.setItem("jobtrackr-search-seen", "1");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const handleSelectJob = useCallback((job: JobApplication) => {
     setSelectedJob(job);
@@ -91,6 +107,9 @@ const AppPage = () => {
     toast({ title: "CSV exported", description: `${jobs.length} application(s) exported` });
   };
 
+  // Detect platform for kbd shortcut
+  const isMac = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -136,26 +155,30 @@ const AppPage = () => {
 
           <div className="flex items-center gap-2">
             {/* Search */}
-            <div className="relative hidden md:block">
+            <div className={`relative hidden md:block ${searchPulse ? "animate-pulse" : ""}`} data-tour="search-input">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search… (⌘K)"
+                placeholder="Search…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-48 lg:w-64 pl-8 text-sm bg-secondary/50 border-border/50 focus:border-primary/50 focus:shadow-glow transition-shadow"
+                className="h-9 w-48 lg:w-64 pl-8 pr-14 text-sm bg-secondary/50 border-border/50 focus:border-primary/50 focus:shadow-glow transition-shadow"
               />
-              {searchQuery && (
+              {searchQuery ? (
                 <button
                   onClick={() => setSearchQuery("")}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
+              ) : (
+                <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border/50 pointer-events-none">
+                  {isMac ? "⌘K" : "Ctrl+K"}
+                </kbd>
               )}
             </div>
 
             {/* View switcher */}
-            <nav className="hidden sm:flex items-center rounded-xl border border-border/50 bg-secondary/30 p-0.5 mr-1">
+            <nav className="hidden sm:flex items-center rounded-xl border border-border/50 bg-secondary/30 p-0.5 mr-1" data-tour="view-switcher">
               {VIEW_ITEMS.map(({ key, icon: Icon, label }) => (
                 <button
                   key={key}
@@ -203,27 +226,33 @@ const AppPage = () => {
                 <span>Export</span>
               </Button>
             </div>
-            <AddJobDialog onAdd={addJob} jobs={jobs} />
+            <div data-tour="add-button">
+              <AddJobDialog onAdd={addJob} jobs={jobs} />
+            </div>
             <UserMenu />
           </div>
         </div>
 
         {/* Mobile search */}
-        <div className="mt-3 md:hidden relative">
+        <div className={`mt-3 md:hidden relative ${searchPulse ? "animate-pulse" : ""}`}>
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
-            placeholder="Search jobs…"
+            placeholder="Search…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 pl-8 text-sm bg-secondary/50 border-border/50"
+            className="h-9 pl-8 pr-14 text-sm bg-secondary/50 border-border/50"
           />
-          {searchQuery && (
+          {searchQuery ? (
             <button
               onClick={() => setSearchQuery("")}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               <X className="h-3.5 w-3.5" />
             </button>
+          ) : (
+            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border/50 pointer-events-none">
+              {isMac ? "⌘K" : "Ctrl+K"}
+            </kbd>
           )}
         </div>
       </header>
@@ -319,6 +348,16 @@ const AppPage = () => {
         onSwitchView={setView}
         onAddJob={() => setDialogOpen(true)}
         onExport={exportToCSV}
+      />
+
+      {/* Onboarding Tour */}
+      <OnboardingTour
+        active={tour.active}
+        step={tour.step}
+        currentStep={tour.currentStep}
+        totalSteps={tour.totalSteps}
+        onAdvance={tour.advance}
+        onSkip={tour.skip}
       />
     </div>
   );

@@ -10,6 +10,7 @@ import {
 import { differenceInDays, parseISO, startOfDay, isBefore } from "date-fns";
 import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { getSalaryColorFromParsed } from "@/lib/salary";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -33,15 +34,6 @@ const getCompanyLogoUrl = (job: JobApplication): string => {
   }
   const guess = job.company.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com";
   return `https://logo.clearbit.com/${guess}`;
-};
-
-const getSalaryColor = (salary: string): string => {
-  const match = salary.match(/\d+/);
-  const num = match ? parseInt(match[0]) : 0;
-  if (num >= 150) return "bg-emerald-500/20 text-emerald-400 border-emerald-500/20";
-  if (num >= 100) return "bg-blue-500/20 text-blue-400 border-blue-500/20";
-  if (num >= 50) return "bg-amber-500/20 text-amber-400 border-amber-500/20";
-  return "bg-primary/20 text-primary border-primary/20";
 };
 
 const formatSalary = (salary: string): string => {
@@ -68,9 +60,10 @@ interface JobCardProps {
   selected?: boolean;
   onToggleSelect?: (id: string) => void;
   selectMode?: boolean;
+  compact?: boolean;
 }
 
-const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onToggleSelect, selectMode }: JobCardProps) => {
+const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onToggleSelect, selectMode, compact }: JobCardProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: job.id,
     data: { type: "job", job },
@@ -109,6 +102,8 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
 
   const logoUrl = useMemo(() => getCompanyLogoUrl(job), [job.company, job.links]);
 
+  const logoSize = compact ? "h-6 w-6" : "h-8 w-8";
+
   return (
     <motion.div
       ref={setNodeRef}
@@ -127,7 +122,7 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
           onClick?.(job);
         }
       }}
-      className={`group relative cursor-grab active:cursor-grabbing rounded-xl p-3 shadow-sm transition-all duration-200 glow-hover
+      className={`group relative cursor-grab active:cursor-grabbing rounded-xl ${compact ? "p-2" : "p-3"} shadow-sm transition-all duration-200 glow-hover
         ${isDragging ? "shadow-glow-lg scale-105 z-50 opacity-90" : "hover:shadow-glow"}
         ${selected
           ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5 glass-card"
@@ -151,7 +146,7 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
 
       {/* Row 1: Logo + Company + Salary */}
       <div className="flex items-center gap-2.5">
-        <div className={`h-8 w-8 shrink-0 rounded-lg overflow-hidden flex items-center justify-center ring-1 ring-border/30 ${logoError ? getInitialColor(job.company) : "bg-muted/50"}`}>
+        <div className={`${logoSize} shrink-0 rounded-lg overflow-hidden flex items-center justify-center ring-1 ring-border/30 ${logoError ? getInitialColor(job.company) : "bg-muted/50"}`}>
           {!logoError ? (
             <img
               src={logoUrl}
@@ -160,7 +155,7 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
               onError={() => setLogoError(true)}
             />
           ) : (
-            <span className="text-xs font-bold text-white">{job.company[0]?.toUpperCase()}</span>
+            <span className={`${compact ? "text-[9px]" : "text-xs"} font-bold text-white`}>{job.company[0]?.toUpperCase()}</span>
           )}
         </div>
         <span className="font-semibold text-sm text-card-foreground truncate flex-1">{job.company}</span>
@@ -174,32 +169,34 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
           </span>
         )}
         {job.salary && (
-          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold font-mono ${getSalaryColor(job.salary)}`}>
+          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold font-mono ${getSalaryColorFromParsed(job.salary)}`}>
             {formatSalary(job.salary)}
           </span>
         )}
       </div>
 
       {/* Row 2: Role */}
-      <p className="mt-1.5 text-xs text-muted-foreground truncate pl-[42px]">{job.role}</p>
+      <p className={`mt-1.5 text-xs text-muted-foreground truncate ${compact ? "pl-[34px]" : "pl-[42px]"}`}>{job.role}</p>
 
-      {/* Row 3: Metadata dots + type */}
-      <div className="mt-2 flex items-center gap-2 pl-[42px]">
-        {job.applicationType && job.applicationType !== "Other" && job.applicationType !== "All" && (
-          <span className="text-[10px] text-muted-foreground/60 font-medium tracking-wide uppercase truncate">{job.applicationType}</span>
-        )}
-        <div className="flex items-center gap-1.5 ml-auto">
-          {hasUpcomingEvents && (
-            <div className="h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" title="Events scheduled" />
+      {/* Row 3: Metadata dots + type (hidden in compact) */}
+      {!compact && (
+        <div className="mt-2 flex items-center gap-2 pl-[42px]">
+          {job.applicationType && job.applicationType !== "Other" && job.applicationType !== "All" && (
+            <span className="text-[10px] text-muted-foreground/60 font-medium tracking-wide uppercase truncate">{job.applicationType}</span>
           )}
-          {deadlineSoon && (
-            <div className="h-2 w-2 rounded-full bg-amber-500 ring-2 ring-amber-500/20" title="Deadline approaching" />
-          )}
-          {job.links?.[0] && (
-            <div className="h-2 w-2 rounded-full bg-sky-400 ring-2 ring-sky-400/20" title="Has link" />
-          )}
+          <div className="flex items-center gap-1.5 ml-auto">
+            {hasUpcomingEvents && (
+              <div className="h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" title="Events scheduled" />
+            )}
+            {deadlineSoon && (
+              <div className="h-2 w-2 rounded-full bg-amber-500 ring-2 ring-amber-500/20" title="Deadline approaching" />
+            )}
+            {job.links?.[0] && (
+              <div className="h-2 w-2 rounded-full bg-sky-400 ring-2 ring-sky-400/20" title="Has link" />
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Hover actions */}
       <div className="absolute top-2 right-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200 glass rounded-lg px-1.5 py-1">
