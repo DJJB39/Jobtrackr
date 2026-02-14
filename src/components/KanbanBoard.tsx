@@ -17,6 +17,7 @@ import JobDetailPanel from "./JobDetailPanel";
 import AIAssistPanel from "./AIAssistPanel";
 import ScheduleEventDialog from "./ScheduleEventDialog";
 import BulkActionBar from "./BulkActionBar";
+import { parseSalary } from "@/lib/salary";
 import {
   Select,
   SelectContent,
@@ -24,6 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Filter, X, CheckSquare } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +39,14 @@ interface KanbanBoardProps {
   onDeleteJob: (id: string) => void;
 }
 
+const SALARY_BRACKETS = [
+  { value: "all", label: "All Salaries" },
+  { value: "0-50", label: "$0–50k" },
+  { value: "50-100", label: "$50–100k" },
+  { value: "100-150", label: "$100–150k" },
+  { value: "150+", label: "$150k+" },
+];
+
 const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardProps) => {
   const [activeJob, setActiveJob] = useState<JobApplication | null>(null);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
@@ -44,8 +55,16 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
   const [filterType, setFilterType] = useState("All");
   const [filterStage, setFilterStage] = useState("all_stages");
   const [filterRole, setFilterRole] = useState("all_roles");
+  const [filterSalary, setFilterSalary] = useState("all");
   const [mobileStage, setMobileStage] = useState<ColumnId>("found");
   const isMobile = useIsMobile();
+
+  const [compact, setCompact] = useState(() => localStorage.getItem("jobtrackr-compact") === "1");
+
+  const handleCompactToggle = useCallback((val: boolean) => {
+    setCompact(val);
+    localStorage.setItem("jobtrackr-compact", val ? "1" : "0");
+  }, []);
 
   const [scheduleTarget, setScheduleTarget] = useState<JobApplication | null>(null);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
@@ -63,7 +82,6 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
   const handleBulkMove = useCallback((target: ColumnId) => {
     const toMove = jobs.filter((j) => selectedIds.has(j.id));
     setJobs((prev) => prev.map((j) => selectedIds.has(j.id) ? { ...j, columnId: target } : j));
-    // Batch: update each once (already debounced in useJobs)
     toMove.forEach((j) => onUpdateJob({ ...j, columnId: target }));
     setSelectedIds(new Set());
     setSelectMode(false);
@@ -79,9 +97,6 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
     setSelectedIds(new Set());
     setSelectMode(false);
   }, []);
-
-
-
 
   const uniqueRoles = useMemo(
     () => Array.from(new Set(jobs.map((j) => j.role).filter(Boolean))).sort(),
@@ -103,7 +118,6 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Determine target column
     const overColumn = COLUMNS.find((c) => c.id === overId);
     const targetColumnId = overColumn
       ? overColumn.id
@@ -111,7 +125,6 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
 
     if (!targetColumnId) return;
 
-    // Only update if column actually changed (prevents flicker)
     setJobs((prev) => {
       const activeJob = prev.find((j) => j.id === activeId);
       if (!activeJob || activeJob.columnId === targetColumnId) return prev;
@@ -150,8 +163,22 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
     let result = jobs;
     if (filterType !== "All") result = result.filter((j) => j.applicationType === filterType);
     if (filterRole !== "all_roles") result = result.filter((j) => j.role.toLowerCase().includes(filterRole.toLowerCase()));
+    if (filterSalary !== "all") {
+      result = result.filter((j) => {
+        const parsed = parseSalary(j.salary);
+        if (!parsed) return filterSalary === "all";
+        const max = parsed.max;
+        switch (filterSalary) {
+          case "0-50": return max <= 50;
+          case "50-100": return max > 50 && max <= 100;
+          case "100-150": return max > 100 && max <= 150;
+          case "150+": return max > 150;
+          default: return true;
+        }
+      });
+    }
     return result;
-  }, [jobs, filterType, filterRole]);
+  }, [jobs, filterType, filterRole, filterSalary]);
 
   // Ctrl/Cmd+A to select all visible cards
   useEffect(() => {
@@ -172,7 +199,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
 
   const getColumnJobs = (columnId: ColumnId) => filteredJobs.filter((j) => j.columnId === columnId);
 
-  const hasActiveFilters = filterType !== "All" || filterStage !== "all_stages" || filterRole !== "all_roles";
+  const hasActiveFilters = filterType !== "All" || filterStage !== "all_stages" || filterRole !== "all_roles" || filterSalary !== "all";
 
   return (
     <>
@@ -216,18 +243,33 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
           </SelectContent>
         </Select>
 
+        <Select value={filterSalary} onValueChange={setFilterSalary}>
+          <SelectTrigger className="w-[130px] sm:w-[150px] h-9">
+            <SelectValue placeholder="Salary" />
+          </SelectTrigger>
+          <SelectContent>
+            {SALARY_BRACKETS.map((b) => (
+              <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         {hasActiveFilters && (
           <Button
             variant="ghost"
             size="sm"
             className="h-9 gap-1.5 text-muted-foreground"
-            onClick={() => { setFilterType("All"); setFilterStage("all_stages"); setFilterRole("all_roles"); }}
+            onClick={() => { setFilterType("All"); setFilterStage("all_stages"); setFilterRole("all_roles"); setFilterSalary("all"); }}
           >
             <X className="h-3.5 w-3.5" /> Clear
           </Button>
         )}
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2">
+            <Switch id="compact-mode" checked={compact} onCheckedChange={handleCompactToggle} />
+            <Label htmlFor="compact-mode" className="text-xs text-muted-foreground cursor-pointer">Compact</Label>
+          </div>
           <Button
             variant={selectMode ? "secondary" : "ghost"}
             size="sm"
@@ -267,6 +309,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
                 selected={selectedIds.has(job.id)}
                 onToggleSelect={toggleSelect}
                 selectMode={selectMode}
+                compact={compact}
               />
             ))}
             {getColumnJobs(mobileStage).length === 0 && (
@@ -296,13 +339,15 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
                   selectedIds={selectedIds}
                   onToggleSelect={toggleSelect}
                   selectMode={selectMode}
+                  compact={compact}
+                  autoCollapse={filterStage === "all_stages"}
                 />
               ))}
             </div>
             <DragOverlay>
               {activeJob ? (
                 <div className="rotate-3 scale-105">
-                  <JobCard job={activeJob} onDelete={() => {}} columnId={activeJob.columnId} />
+                  <JobCard job={activeJob} onDelete={() => {}} columnId={activeJob.columnId} compact={compact} />
                 </div>
               ) : null}
             </DragOverlay>

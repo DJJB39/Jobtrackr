@@ -17,6 +17,7 @@ interface UseOnboardingProps {
 
 export const useOnboarding = ({ jobCount, loading, addJob }: UseOnboardingProps) => {
   const [showBanner, setShowBanner] = useState(false);
+  const [tourReady, setTourReady] = useState(false);
   const seeded = useRef(false);
 
   useEffect(() => {
@@ -43,10 +44,11 @@ export const useOnboarding = ({ jobCount, loading, addJob }: UseOnboardingProps)
       });
       localStorage.setItem(ONBOARDED_KEY, "1");
       setShowBanner(true);
+      setTourReady(true);
     };
 
     seed();
   }, [jobCount, loading, addJob]);
 
-  return { showBanner, dismissBanner: () => setShowBanner(false) };
+  return { showBanner, dismissBanner: () => setShowBanner(false), tourReady };
 };

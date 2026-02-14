@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { parseSalary } from "@/lib/salary";
 import { COLUMNS, type JobApplication, type ColumnId } from "@/types/job";
 import { format } from "date-fns";
 import { ArrowUpDown } from "lucide-react";
@@ -68,14 +69,7 @@ const ListView = ({ jobs, onSelectJob, searchQuery }: ListViewProps) => {
         case "createdAt":
           return mult * a.createdAt.localeCompare(b.createdAt);
         case "salary": {
-          const parseSalary = (s?: string | null) => {
-            if (!s) return 0;
-            const nums = s.match(/[\d,.]+/g);
-            if (!nums) return 0;
-            const val = parseFloat(nums[0].replace(/,/g, ""));
-            return s.toLowerCase().includes("k") ? val * 1000 : val;
-          };
-          return mult * (parseSalary(a.salary) - parseSalary(b.salary));
+          return mult * ((parseSalary(a.salary)?.min ?? 0) - (parseSalary(b.salary)?.min ?? 0));
         }
         default:
           return 0;

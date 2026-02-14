@@ -55,9 +55,10 @@ const HOW_IT_WORKS = [
 ];
 
 const stats = [
-  { value: "10,000+", label: "Applications Tracked" },
-  { value: "2,500+", label: "Job Seekers" },
+  { value: "Unlimited", label: "Applications" },
   { value: "100%", label: "Free Forever" },
+  { value: "Zero", label: "Ads, Ever" },
+  { value: "Private", label: "By Default" },
 ];
 
 /* ── Component ── */
@@ -154,7 +155,7 @@ const Landing = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
         className="mx-auto max-w-3xl px-6 pb-20"
       >
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {stats.map((s) => (
             <div key={s.label} className="text-center">
               <div className="text-2xl sm:text-3xl font-display font-bold text-gradient">
