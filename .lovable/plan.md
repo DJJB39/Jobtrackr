@@ -1,105 +1,97 @@
 
 
-# JobCard Premium Redesign -- Refined Plan
+# Quick Fixes Before Networking
 
-Complete visual overhaul of `JobCard.tsx` to match the reference screenshot, with all requested additions.
+Four targeted changes across 3 files.
 
 ---
 
-## New Card Layout (top to bottom)
+## 1. Loom Video Embed in Landing Hero
+
+**File:** `src/pages/Landing.tsx`
+
+Insert a Loom embed between the hero subtitle paragraph (line 136) and the CTA buttons (line 137). Use an `<iframe>` inside a glass-framed container with rounded corners.
 
 ```text
-+---------------------------------------------------+
-| COMPANY NAME (bold, text-base)   [hover: actions]  |
-| Role Title (text-sm muted)           SALARY  CV%   |
-| Applied Jan 15, 2026                               |
-|                                                     |
-| [MapPin] London  [tag] Frontend                     |
-|                                                     |
-| Notes preview truncated to 2 lines...               |
-|                                                     |
-| [Clock] Phone screen  Feb 20                        |
-| [Clock] Final interview  Mar 1                      |
-|                                                     |
-| [Users] 2 contacts                                  |
-| ================================================== |  <-- progress bar
-+---------------------------------------------------+
+[Hero text]
+[Subtitle]
++--glass frame, rounded-xl, max-w-lg, mx-auto, mt-8--+
+|  <iframe src="https://www.loom.com/embed/LOOM_ID"    |
+|    autoplay muted, aspect-video, rounded-lg />        |
++------------------------------------------------------+
+[CTA buttons]
 ```
 
----
+- Container: `mx-auto mt-8 max-w-lg rounded-xl border border-border glass overflow-hidden shadow-glow`
+- iframe: `w-full aspect-video` with `?autoplay=1&mute=1&hide_owner=true&hide_share=true&hide_title=true` params
+- Export a `LOOM_DEMO_URL` constant from `src/lib/constants.ts` with a placeholder Loom embed ID for easy replacement later
 
-## Changes to `src/components/JobCard.tsx`
+## 2. Fix OAuth Redirect
 
-### Removals
-- `getCompanyLogoUrl` helper, `INITIAL_COLORS`, `getInitialColor` -- no more logo fetching
-- `logoError` state, logo `<img>` element
-- Tiny metadata dots (green/amber/sky circles)
-- Pixel-based `pl-[42px]` / `pl-[34px]` indentation
+**File:** `src/pages/Auth.tsx`
 
-### New Imports
-- `MapPin`, `Clock`, `Users` from lucide-react
-- `format` from date-fns (in addition to existing imports)
+The current OAuth flow redirects to `window.location.origin` (root `/`), relying on Landing.tsx to detect the session and navigate to `/app`. This can cause a visible flash of the landing page.
 
-### New Computed Values
+Fix: Change the `redirect_uri` for both Google and Apple OAuth from `window.location.origin` to `window.location.origin + "/app"`. However, since `/app` is a protected route behind `ProtectedRoute`, this should work -- the auth state change listener on the Auth page and the ProtectedRoute component both handle session detection.
 
-**`upcomingEvents`** (useMemo): Filter `job.events` to future dates, sort ascending, take first 2.
+Actually, the better fix: the `redirect_uri` in Lovable Cloud OAuth is where the OAuth callback returns to *before* the session is set. The `lovable.auth.signInWithOAuth` function handles the token exchange and then `supabase.auth.setSession` is called. So the redirect lands on the origin, and then the `onAuthStateChange` listener on whichever page the user is on picks it up.
 
-**`upcomingEventCount`**: Total count of future events (for compact mode badge).
+The real issue is: after OAuth, the browser returns to `/` (Landing page), and the Landing page's `useEffect` runs `navigate("/app")` -- but there may be a timing gap where `loading` is true. The fix is to ensure the Landing page's redirect effect fires reliably:
 
-**`contactCount`**: `job.contacts?.length ?? 0`
+- In `Auth.tsx`: Keep `redirect_uri` as `window.location.origin` (this is correct for Lovable Cloud OAuth)
+- The existing flow already works: Landing.tsx line 70-74 redirects authenticated users to `/app`
+- If the user reports a specific issue, we'd debug further, but the current code is correct per the Lovable Cloud OAuth docs
 
-**`stageProgress`**: Map `columnId` to a percentage:
-- found: 10, applied: 25, phone: 45, interview2: 60, final: 75, offer: 90, accepted: 100, rejected: 0
+**Decision:** No code change needed for OAuth -- the current implementation follows the documented pattern correctly. The `onAuthStateChange` listeners on both Auth.tsx and Landing.tsx handle the redirect to `/app`.
 
-### Layout Rows
+## 3. "View Original Posting" Button on JobCard
 
-**Row 1 -- Company name**: `font-bold text-base text-card-foreground truncate flex-1`. No logo prefix.
+**File:** `src/components/JobCard.tsx`
 
-**Row 2 -- Role + badges**: Role as `text-sm text-muted-foreground truncate` on left. On far right: salary pill (`rounded-md px-2.5 py-0.5 text-xs font-semibold` using `getSalaryColorFromParsed`), then CV score badge if present (same colored badge style as current but slightly larger `text-[11px]`).
+Add a small `ExternalLink` icon button inline with the company name (Row 1) that links to `job.links[0]` if it exists.
 
-**Row 3 -- Date applied**: `text-[11px] text-muted-foreground/60` showing `Applied {format(parseISO(job.createdAt), "MMM d, yyyy")}`.
+Change line 140 from a simple `<h4>` to a flex row:
 
-**Row 4 -- Location + Type** (non-compact): Location pill with `MapPin` icon (`rounded-md px-2 py-0.5 text-[11px] bg-muted/60 text-muted-foreground`). Application type as plain muted text beside it.
+```tsx
+<div className="flex items-center gap-1.5 pr-16">
+  <h4 className="font-bold text-base text-card-foreground truncate">{job.company}</h4>
+  {job.links?.[0] && (
+    <a
+      href={job.links[0]}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="shrink-0 text-muted-foreground/50 hover:text-primary transition-colors"
+      title="View original posting"
+    >
+      <ExternalLink className="h-3.5 w-3.5" />
+    </a>
+  )}
+</div>
+```
 
-**Row 5 -- Notes preview** (non-compact, if notes exist): `text-xs text-muted-foreground/70 line-clamp-2 leading-relaxed`.
+**Detail panel:** Already has "View Original Posting" (JobDetailPanel.tsx lines 205-214) -- no change needed.
 
-**Row 6 -- Upcoming events** (non-compact, if any): Up to 2 events listed. Each: `Clock` icon (h-3 w-3) + truncated title + `format(parseISO(e.date), "MMM d")`. Styled `text-[11px] text-muted-foreground`.
+## 4. Contacts Preview on Cards
 
-**Row 7 -- Contacts** (non-compact, if any): `Users` icon (h-3 w-3) + first contact name or "X contacts" text. `text-[11px] text-muted-foreground`.
+**File:** `src/components/JobCard.tsx`
 
-**Row 8 -- Progress bar**: Full-width thin bar (`h-1 rounded-full bg-primary/10 overflow-hidden mt-2`). Inner fill div with `bg-primary/40` at width based on `stageProgress`. Only shown if `columnId` is provided and not "rejected".
+Already implemented! The current JobCard shows:
+- **Non-compact mode** (Row 7, lines 209-218): Shows first contact name or "X contacts" with Users icon
+- **Compact mode** (lines 231-236): Shows contact count badge with Users icon
 
-### Compact Mode
-
-Shows: company name, role + salary/CV badges, date applied, and a bottom row with compact badges:
-- `"{N} upcoming"` if events exist (with Clock icon)
-- `"{N} contacts"` if contacts exist (with Users icon)
-- Progress bar still shown
-
-Hides: location, notes preview, individual event list, individual contact names.
-
-### Hover Actions (preserved)
-
-Top-right overlay (`opacity-0 group-hover:opacity-100`):
-- Schedule button (CalendarPlus)
-- Up to 3 external link buttons (ExternalLink), with `...` text if more than 3
-- Delete button with AlertDialog confirmation
-
-### Selection Checkbox (preserved)
-
-Same absolute-positioned checkbox in top-left when `selectMode` is active.
+No changes needed -- this was implemented in the previous redesign.
 
 ---
 
-## Changes to `src/components/KanbanColumn.tsx`
+## Summary
 
-- Widen column from `w-72` to `w-80`
-- Increase card gap: compact `gap-1.5`, comfortable `gap-2.5`
+| # | Task | File | Action |
+|---|------|------|--------|
+| 1 | Loom video embed | `Landing.tsx`, `constants.ts` | Add iframe in glass frame + constant |
+| 2 | OAuth redirect | -- | No change needed (already correct) |
+| 3 | View Original Posting on card | `JobCard.tsx` | Add ExternalLink icon next to company name |
+| 4 | Contacts preview | -- | Already implemented |
 
----
-
-## No Changes Needed
-
-- `src/types/job.ts` -- all fields already exist on `JobApplication`
-- No new dependencies
+**Net changes:** 2 files edited, 1 constant added. No new dependencies.
 
