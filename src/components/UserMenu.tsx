@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { LogOut, Sun, Moon, Bell, Mail, BellRing } from "lucide-react";
+import { LogOut, Sun, Moon, Bell, Mail, BellRing, MessageSquarePlus } from "lucide-react";
+import { FEEDBACK_FORM_URL } from "@/lib/constants";
 import {
   Tooltip,
   TooltipContent,
@@ -164,6 +165,10 @@ const UserMenu = () => {
         <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
           {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
           {theme === "dark" ? "Light mode" : "Dark mode"}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => window.open(FEEDBACK_FORM_URL, "_blank")}>
+          <MessageSquarePlus className="mr-2 h-4 w-4" />
+          Feedback
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
