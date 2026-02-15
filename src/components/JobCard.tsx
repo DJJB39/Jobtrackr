@@ -137,7 +137,21 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
       )}
 
       {/* Row 1: Company name */}
-      <h4 className="font-bold text-base text-card-foreground truncate pr-16">{job.company}</h4>
+      <div className="flex items-center gap-1.5 pr-16">
+        <h4 className="font-bold text-base text-card-foreground truncate">{job.company}</h4>
+        {job.links?.[0] && (
+          <a
+            href={job.links[0]}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0 text-muted-foreground/50 hover:text-primary transition-colors"
+            title="View original posting"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        )}
+      </div>
 
       {/* Row 2: Role + salary + CV score */}
       <div className="flex items-center gap-2 mt-0.5">
