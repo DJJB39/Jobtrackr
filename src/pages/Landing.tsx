@@ -23,7 +23,7 @@ import ComparisonTable from "@/components/landing/ComparisonTable";
 import PricingSection from "@/components/landing/PricingSection";
 import FAQSection from "@/components/landing/FAQSection";
 import ChromeExtensionCTA from "@/components/landing/ChromeExtensionCTA";
-import { FEEDBACK_FORM_URL } from "@/lib/constants";
+import { FEEDBACK_FORM_URL, LOOM_DEMO_URL } from "@/lib/constants";
 
 /* ── Helpers ── */
 const fadeUp = {
@@ -134,6 +134,15 @@ const Landing = () => {
           Paste a job link and auto-fill the details. Drag applications through stages.
           Set reminders so nothing slips. Private by default — only you see your data.
         </p>
+        <div className="mx-auto mt-8 max-w-lg rounded-xl border border-border glass overflow-hidden shadow-glow">
+          <iframe
+            src={`${LOOM_DEMO_URL}?autoplay=1&mute=1&hide_owner=true&hide_share=true&hide_title=true`}
+            className="w-full aspect-video"
+            allowFullScreen
+            allow="autoplay"
+            title="JobTrackr demo video"
+          />
+        </div>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Button size="lg" className="text-base px-8 shadow-glow" asChild>
             <Link to="/auth?tab=signup">
