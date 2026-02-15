@@ -23,6 +23,7 @@ import ComparisonTable from "@/components/landing/ComparisonTable";
 import PricingSection from "@/components/landing/PricingSection";
 import FAQSection from "@/components/landing/FAQSection";
 import ChromeExtensionCTA from "@/components/landing/ChromeExtensionCTA";
+import { FEEDBACK_FORM_URL } from "@/lib/constants";
 
 /* ── Helpers ── */
 const fadeUp = {
@@ -325,8 +326,16 @@ const Landing = () => {
     </main>
 
     {/* Footer */}
-    <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">
-      © {new Date().getFullYear()} JobTrackr. Built with Lovable.
+    <footer className="border-t border-border py-6 px-6">
+      <div className="mx-auto max-w-6xl flex items-center justify-between text-xs text-muted-foreground">
+        <span>© {new Date().getFullYear()} JobTrackr. Built with Lovable.</span>
+        <button
+          onClick={() => window.open(FEEDBACK_FORM_URL, "_blank")}
+          className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 text-xs"
+        >
+          Feedback
+        </button>
+      </div>
     </footer>
   </div>
   );
