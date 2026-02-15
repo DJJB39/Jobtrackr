@@ -6,8 +6,11 @@ import {
   Trash2,
   ExternalLink,
   CalendarPlus,
+  MapPin,
+  Clock,
+  Users,
 } from "lucide-react";
-import { differenceInDays, parseISO, startOfDay, isBefore } from "date-fns";
+import { differenceInDays, parseISO, startOfDay, isBefore, format } from "date-fns";
 import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { getSalaryColorFromParsed } from "@/lib/salary";
@@ -23,33 +26,19 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 
-const getCompanyLogoUrl = (job: JobApplication): string => {
-  if (job.links?.[0]) {
-    try {
-      const domain = new URL(job.links[0]).hostname.replace("www.", "");
-      return `https://logo.clearbit.com/${domain}`;
-    } catch {
-      /* fall through */
-    }
-  }
-  const guess = job.company.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com";
-  return `https://logo.clearbit.com/${guess}`;
+const STAGE_PROGRESS: Record<string, number> = {
+  found: 10,
+  applied: 25,
+  phone: 45,
+  interview2: 60,
+  final: 75,
+  offer: 90,
+  accepted: 100,
+  rejected: 0,
 };
 
-const formatSalary = (salary: string): string => {
-  return salary.length > 12 ? salary.slice(0, 12) + "…" : salary;
-};
-
-const INITIAL_COLORS = [
-  "bg-blue-500", "bg-violet-500", "bg-emerald-500", "bg-amber-500",
-  "bg-rose-500", "bg-cyan-500", "bg-orange-500", "bg-pink-500",
-];
-
-const getInitialColor = (name: string): string => {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return INITIAL_COLORS[Math.abs(hash) % INITIAL_COLORS.length];
-};
+const formatSalary = (salary: string): string =>
+  salary.length > 14 ? salary.slice(0, 14) + "…" : salary;
 
 interface JobCardProps {
   job: JobApplication;
@@ -68,7 +57,6 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
     id: job.id,
     data: { type: "job", job },
   });
-  const [logoError, setLogoError] = useState(false);
   const { user } = useAuth();
   const [cvScore, setCvScore] = useState<number | null>(null);
 
@@ -88,21 +76,25 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
     transition,
   };
 
-  const hasUpcomingEvents = useMemo(() => {
+  const upcomingEvents = useMemo(() => {
     const today = startOfDay(new Date());
-    return (job.events ?? []).some((e) => {
-      try { return !isBefore(parseISO(e.date), today); } catch { return false; }
-    });
+    return (job.events ?? [])
+      .filter((e) => { try { return !isBefore(parseISO(e.date), today); } catch { return false; } })
+      .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
+      .slice(0, 2);
   }, [job.events]);
 
-  const deadlineSoon = useMemo(() => {
-    if (!job.closeDate) return false;
-    try { return differenceInDays(parseISO(job.closeDate), new Date()) < 7; } catch { return false; }
-  }, [job.closeDate]);
+  const upcomingEventCount = useMemo(() => {
+    const today = startOfDay(new Date());
+    return (job.events ?? []).filter((e) => {
+      try { return !isBefore(parseISO(e.date), today); } catch { return false; }
+    }).length;
+  }, [job.events]);
 
-  const logoUrl = useMemo(() => getCompanyLogoUrl(job), [job.company, job.links]);
-
-  const logoSize = compact ? "h-6 w-6" : "h-8 w-8";
+  const contactCount = job.contacts?.length ?? 0;
+  const stageProgress = columnId ? (STAGE_PROGRESS[columnId] ?? 0) : 0;
+  const visibleLinks = (job.links ?? []).slice(0, 3);
+  const hasMoreLinks = (job.links ?? []).length > 3;
 
   return (
     <motion.div
@@ -122,7 +114,7 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
           onClick?.(job);
         }
       }}
-      className={`group relative cursor-grab active:cursor-grabbing rounded-xl ${compact ? "p-2" : "p-3"} shadow-sm transition-all duration-200 glow-hover
+      className={`group relative cursor-grab active:cursor-grabbing rounded-xl ${compact ? "p-2.5" : "p-3.5"} shadow-sm transition-all duration-200 glow-hover
         ${isDragging ? "shadow-glow-lg scale-105 z-50 opacity-90" : "hover:shadow-glow"}
         ${selected
           ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5 glass-card"
@@ -144,62 +136,119 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
         </div>
       )}
 
-      {/* Row 1: Logo + Company + Salary */}
-      <div className="flex items-center gap-2.5">
-        <div className={`${logoSize} shrink-0 rounded-lg overflow-hidden flex items-center justify-center ring-1 ring-border/30 ${logoError ? getInitialColor(job.company) : "bg-muted/50"}`}>
-          {!logoError ? (
-            <img
-              src={logoUrl}
-              alt=""
-              className="h-full w-full object-contain"
-              onError={() => setLogoError(true)}
-            />
-          ) : (
-            <span className={`${compact ? "text-[9px]" : "text-xs"} font-bold text-white`}>{job.company[0]?.toUpperCase()}</span>
-          )}
-        </div>
-        <span className="font-semibold text-sm text-card-foreground truncate flex-1">{job.company}</span>
+      {/* Row 1: Company name */}
+      <h4 className="font-bold text-base text-card-foreground truncate pr-16">{job.company}</h4>
+
+      {/* Row 2: Role + salary + CV score */}
+      <div className="flex items-center gap-2 mt-0.5">
+        <span className="text-sm text-muted-foreground truncate flex-1">{job.role}</span>
+        {job.salary && (
+          <span className={`shrink-0 rounded-md px-2.5 py-0.5 text-xs font-semibold ${getSalaryColorFromParsed(job.salary)}`}>
+            {formatSalary(job.salary)}
+          </span>
+        )}
         {cvScore !== null && (
-          <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-bold font-mono ${
-            cvScore >= 75 ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/20" :
-            cvScore >= 50 ? "bg-amber-500/20 text-amber-400 border-amber-500/20" :
-            "bg-rose-500/20 text-rose-400 border-rose-500/20"
+          <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-bold font-mono ${
+            cvScore >= 75 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/20" :
+            cvScore >= 50 ? "bg-amber-500/20 text-amber-400 border border-amber-500/20" :
+            "bg-rose-500/20 text-rose-400 border border-rose-500/20"
           }`} title={`CV Match: ${cvScore}%`}>
             {cvScore}%
           </span>
         )}
-        {job.salary && (
-          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold font-mono ${getSalaryColorFromParsed(job.salary)}`}>
-            {formatSalary(job.salary)}
-          </span>
-        )}
       </div>
 
-      {/* Row 2: Role */}
-      <p className={`mt-1.5 text-xs text-muted-foreground truncate ${compact ? "pl-[34px]" : "pl-[42px]"}`}>{job.role}</p>
+      {/* Row 3: Date applied */}
+      <p className="text-[11px] text-muted-foreground/60 mt-1">
+        Applied {(() => { try { return format(parseISO(job.createdAt), "MMM d, yyyy"); } catch { return "—"; } })()}
+      </p>
 
-      {/* Row 3: Metadata dots + type (hidden in compact) */}
+      {/* Non-compact details */}
       {!compact && (
-        <div className="mt-2 flex items-center gap-2 pl-[42px]">
-          {job.applicationType && job.applicationType !== "Other" && job.applicationType !== "All" && (
-            <span className="text-[10px] text-muted-foreground/60 font-medium tracking-wide uppercase truncate">{job.applicationType}</span>
+        <>
+          {/* Row 4: Location + Type */}
+          {(job.location || (job.applicationType && job.applicationType !== "Other" && job.applicationType !== "All")) && (
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              {job.location && (
+                <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] bg-muted/60 text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  {job.location}
+                </span>
+              )}
+              {job.applicationType && job.applicationType !== "Other" && job.applicationType !== "All" && (
+                <span className="text-[11px] text-muted-foreground/60 font-medium tracking-wide uppercase">
+                  {job.applicationType}
+                </span>
+              )}
+            </div>
           )}
-          <div className="flex items-center gap-1.5 ml-auto">
-            {hasUpcomingEvents && (
-              <div className="h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" title="Events scheduled" />
-            )}
-            {deadlineSoon && (
-              <div className="h-2 w-2 rounded-full bg-amber-500 ring-2 ring-amber-500/20" title="Deadline approaching" />
-            )}
-            {job.links?.[0] && (
-              <div className="h-2 w-2 rounded-full bg-sky-400 ring-2 ring-sky-400/20" title="Has link" />
-            )}
-          </div>
+
+          {/* Row 5: Notes preview */}
+          {job.notes && (
+            <p className="text-xs text-muted-foreground/70 line-clamp-2 leading-relaxed mt-2">
+              {job.notes}
+            </p>
+          )}
+
+          {/* Row 6: Upcoming events */}
+          {upcomingEvents.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {upcomingEvents.map((e) => (
+                <div key={e.id} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <Clock className="h-3 w-3 shrink-0 text-primary/60" />
+                  <span className="truncate flex-1">{e.title}</span>
+                  <span className="shrink-0 text-muted-foreground/50">
+                    {(() => { try { return format(parseISO(e.date), "MMM d"); } catch { return ""; } })()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Row 7: Contacts */}
+          {contactCount > 0 && (
+            <div className="flex items-center gap-1.5 mt-2 text-[11px] text-muted-foreground">
+              <Users className="h-3 w-3 shrink-0" />
+              <span>
+                {contactCount === 1
+                  ? job.contacts[0]?.name || "1 contact"
+                  : `${contactCount} contacts`}
+              </span>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Compact mode: badges row */}
+      {compact && (upcomingEventCount > 0 || contactCount > 0) && (
+        <div className="flex items-center gap-2.5 mt-1.5">
+          {upcomingEventCount > 0 && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Clock className="h-3 w-3 text-primary/60" />
+              {upcomingEventCount} upcoming
+            </span>
+          )}
+          {contactCount > 0 && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Users className="h-3 w-3" />
+              {contactCount}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Progress bar */}
+      {columnId && columnId !== "rejected" && (
+        <div className="h-1 rounded-full bg-primary/10 overflow-hidden mt-2.5">
+          <div
+            className="h-full rounded-full bg-primary/40 transition-all duration-500"
+            style={{ width: `${stageProgress}%` }}
+          />
         </div>
       )}
 
       {/* Hover actions */}
-      <div className="absolute top-2 right-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200 glass rounded-lg px-1.5 py-1">
+      <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200 glass rounded-lg px-1.5 py-1">
         {onSchedule && (
           <button
             onClick={(e) => { e.stopPropagation(); onSchedule(job); }}
@@ -209,9 +258,10 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
             <CalendarPlus className="h-3.5 w-3.5" />
           </button>
         )}
-        {job.links?.[0] && (
+        {visibleLinks.map((link, i) => (
           <a
-            href={job.links[0]}
+            key={i}
+            href={link}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
@@ -219,6 +269,9 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
           >
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
+        ))}
+        {hasMoreLinks && (
+          <span className="text-muted-foreground text-xs px-0.5">…</span>
         )}
         <AlertDialog>
           <AlertDialogTrigger asChild>

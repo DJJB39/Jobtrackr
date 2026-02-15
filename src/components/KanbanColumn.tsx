@@ -60,7 +60,7 @@ const KanbanColumn = ({ column, jobs, onDeleteJob, onClickJob, onScheduleJob, se
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-72 shrink-0 flex-col rounded-2xl transition-all duration-300 ${
+      className={`flex w-80 shrink-0 flex-col rounded-2xl transition-all duration-300 ${
         isOver
           ? "ring-2 ring-primary/40 bg-primary/5"
           : "glass-surface"
@@ -79,7 +79,7 @@ const KanbanColumn = ({ column, jobs, onDeleteJob, onClickJob, onScheduleJob, se
         </span>
       </div>
 
-      <div className={`flex min-h-[120px] flex-1 flex-col ${compact ? "gap-1" : "gap-2"} px-2 pb-3 pt-1`}>
+      <div className={`flex min-h-[120px] flex-1 flex-col ${compact ? "gap-1.5" : "gap-2.5"} px-2 pb-3 pt-1`}>
         <SortableContext items={jobs.map((j) => j.id)} strategy={verticalListSortingStrategy}>
           <AnimatePresence mode="popLayout">
             {jobs.map((job) => (
