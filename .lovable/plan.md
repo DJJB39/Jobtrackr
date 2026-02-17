@@ -1,97 +1,139 @@
 
 
-# Quick Fixes Before Networking
+# Automated Test Suite Implementation
 
-Four targeted changes across 3 files.
-
----
-
-## 1. Loom Video Embed in Landing Hero
-
-**File:** `src/pages/Landing.tsx`
-
-Insert a Loom embed between the hero subtitle paragraph (line 136) and the CTA buttons (line 137). Use an `<iframe>` inside a glass-framed container with rounded corners.
-
-```text
-[Hero text]
-[Subtitle]
-+--glass frame, rounded-xl, max-w-lg, mx-auto, mt-8--+
-|  <iframe src="https://www.loom.com/embed/LOOM_ID"    |
-|    autoplay muted, aspect-video, rounded-lg />        |
-+------------------------------------------------------+
-[CTA buttons]
-```
-
-- Container: `mx-auto mt-8 max-w-lg rounded-xl border border-border glass overflow-hidden shadow-glow`
-- iframe: `w-full aspect-video` with `?autoplay=1&mute=1&hide_owner=true&hide_share=true&hide_title=true` params
-- Export a `LOOM_DEMO_URL` constant from `src/lib/constants.ts` with a placeholder Loom embed ID for easy replacement later
-
-## 2. Fix OAuth Redirect
-
-**File:** `src/pages/Auth.tsx`
-
-The current OAuth flow redirects to `window.location.origin` (root `/`), relying on Landing.tsx to detect the session and navigate to `/app`. This can cause a visible flash of the landing page.
-
-Fix: Change the `redirect_uri` for both Google and Apple OAuth from `window.location.origin` to `window.location.origin + "/app"`. However, since `/app` is a protected route behind `ProtectedRoute`, this should work -- the auth state change listener on the Auth page and the ProtectedRoute component both handle session detection.
-
-Actually, the better fix: the `redirect_uri` in Lovable Cloud OAuth is where the OAuth callback returns to *before* the session is set. The `lovable.auth.signInWithOAuth` function handles the token exchange and then `supabase.auth.setSession` is called. So the redirect lands on the origin, and then the `onAuthStateChange` listener on whichever page the user is on picks it up.
-
-The real issue is: after OAuth, the browser returns to `/` (Landing page), and the Landing page's `useEffect` runs `navigate("/app")` -- but there may be a timing gap where `loading` is true. The fix is to ensure the Landing page's redirect effect fires reliably:
-
-- In `Auth.tsx`: Keep `redirect_uri` as `window.location.origin` (this is correct for Lovable Cloud OAuth)
-- The existing flow already works: Landing.tsx line 70-74 redirects authenticated users to `/app`
-- If the user reports a specific issue, we'd debug further, but the current code is correct per the Lovable Cloud OAuth docs
-
-**Decision:** No code change needed for OAuth -- the current implementation follows the documented pattern correctly. The `onAuthStateChange` listeners on both Auth.tsx and Landing.tsx handle the redirect to `/app`.
-
-## 3. "View Original Posting" Button on JobCard
-
-**File:** `src/components/JobCard.tsx`
-
-Add a small `ExternalLink` icon button inline with the company name (Row 1) that links to `job.links[0]` if it exists.
-
-Change line 140 from a simple `<h4>` to a flex row:
-
-```tsx
-<div className="flex items-center gap-1.5 pr-16">
-  <h4 className="font-bold text-base text-card-foreground truncate">{job.company}</h4>
-  {job.links?.[0] && (
-    <a
-      href={job.links[0]}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
-      className="shrink-0 text-muted-foreground/50 hover:text-primary transition-colors"
-      title="View original posting"
-    >
-      <ExternalLink className="h-3.5 w-3.5" />
-    </a>
-  )}
-</div>
-```
-
-**Detail panel:** Already has "View Original Posting" (JobDetailPanel.tsx lines 205-214) -- no change needed.
-
-## 4. Contacts Preview on Cards
-
-**File:** `src/components/JobCard.tsx`
-
-Already implemented! The current JobCard shows:
-- **Non-compact mode** (Row 7, lines 209-218): Shows first contact name or "X contacts" with Users icon
-- **Compact mode** (lines 231-236): Shows contact count badge with Users icon
-
-No changes needed -- this was implemented in the previous redesign.
+Create 7 test files and a shared utility, delete the placeholder, and update docs. Priority order: foundation first, then high-value components.
 
 ---
 
-## Summary
+## Prerequisites
 
-| # | Task | File | Action |
-|---|------|------|--------|
-| 1 | Loom video embed | `Landing.tsx`, `constants.ts` | Add iframe in glass frame + constant |
-| 2 | OAuth redirect | -- | No change needed (already correct) |
-| 3 | View Original Posting on card | `JobCard.tsx` | Add ExternalLink icon next to company name |
-| 4 | Contacts preview | -- | Already implemented |
+The testing infrastructure is already in place:
+- `vitest.config.ts` configured with jsdom, globals, and setup file
+- `src/test/setup.ts` has jest-dom and matchMedia mock
+- `tsconfig.app.json` includes `vitest/globals`
+- Dependencies installed (`vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `jsdom`)
 
-**Net changes:** 2 files edited, 1 constant added. No new dependencies.
+The existing build error (`npm:openai@^4.52.5`) is an edge function type resolution issue unrelated to frontend tests -- no action needed.
+
+---
+
+## Files to Create
+
+### 1. `src/test/test-utils.tsx` -- Shared render wrapper and mock factories
+
+- Custom `renderWithProviders` wrapping components in `MemoryRouter`, `QueryClientProvider`, `ThemeProvider`, `TooltipProvider`
+- `createMockJob()` factory returning a fully populated `JobApplication` object
+- `createMockColumn()` factory returning a `Column` object
+- Shared Supabase auth mock setup helper
+
+### 2. `src/test/Landing.test.tsx` -- 6 tests
+
+| Test | Maps to |
+|------|---------|
+| Hero headline "Stop Losing Track of Applications" renders | LP-01 |
+| Trust strip "Free to use" badge visible | LP-01 |
+| CTA buttons "Sign Up Free" and "Try Interactive Demo" present | LP-01 |
+| Features grid renders 6 cards (Kanban Board, URL Auto-Fill, etc.) | LP-02 |
+| Pricing section text "Free Forever" present | LP-04 |
+| Loom embed iframe rendered with correct src | Custom |
+
+Mocks: `useAuth` returns `{ user: null, loading: false }`, `useNavigate` returns `vi.fn()`.
+
+### 3. `src/test/Auth.test.tsx` -- 5 tests
+
+| Test | Maps to |
+|------|---------|
+| Login form renders with email, password, "Sign In" button | AF-05 |
+| OAuth buttons "Continue with Google" and "Continue with Apple" visible | AF-03/04 |
+| Clicking "Sign up" switches to signup mode with "Sign Up" button | AF-01 |
+| Clicking "Forgot password?" shows reset mode with "Send Reset Link" | AF-07 |
+| "Back to sign in" returns to login mode | AF-07 |
+
+Mocks: `supabase.auth.onAuthStateChange` returns stub subscription, `supabase.auth.getSession` resolves with null session.
+
+### 4. `src/test/JobCard.test.tsx` -- 10 tests
+
+| Test | Maps to |
+|------|---------|
+| Renders company name as bold text | KB core |
+| Renders role subtitle | KB core |
+| Renders salary pill when salary exists | KB core |
+| Hides salary pill when no salary | KB edge |
+| Renders "View Original Posting" link when links[0] exists | New feature |
+| Hides posting link when no links | Edge |
+| Renders location with MapPin icon | KB core |
+| Renders contacts count badge | New feature |
+| Progress bar width matches stage (e.g. "applied" = 25%) | New feature |
+| Compact mode hides notes but shows event/contact count badges | KB compact |
+
+Mocks: `useSortable` from `@dnd-kit/sortable` returns no-op refs/transforms, `useAuth` returns test user, `localStorage.getItem` for CV score.
+
+### 5. `src/test/KanbanColumn.test.tsx` -- 3 tests
+
+| Test | Maps to |
+|------|---------|
+| Renders column title and job count badge | KB layout |
+| Empty column shows "Drop here" empty state | KB edge |
+| Renders correct number of JobCard components | KB layout |
+
+Mocks: `useDroppable` from `@dnd-kit/core`, `useSortable`, `useAuth`.
+
+### 6. `src/test/ResetPassword.test.tsx` -- 2 tests
+
+| Test | Maps to |
+|------|---------|
+| Shows "Verifying your reset link" initially (spinner, no form) | AF-07 |
+| Renders password form fields when ready | AF-07 |
+
+Mocks: `supabase.auth.onAuthStateChange`, `useNavigate`.
+
+### 7. `src/test/constants.test.ts` -- 2 tests
+
+- `FEEDBACK_FORM_URL` is a non-empty string
+- `LOOM_DEMO_URL` is a non-empty string
+
+---
+
+## Files to Delete
+
+- `src/test/example.test.ts` -- replaced by real tests
+
+---
+
+## Files to Update
+
+### `docs/testing.md`
+
+Add sections for:
+- Kanban Board tests (KB-01 to KB-06)
+- Job Detail Panel tests (JD-01 to JD-05)
+- Dashboard/Calendar/List/CV View tests (DV-01 to DV-04)
+- Reminders & Notifications (RN-01 to RN-03)
+- Chrome Extension (CE-01 to CE-02)
+- Edge Cases & Performance (EC-01 to EC-04)
+- New "Automated Tests" section referencing test file locations and `npx vitest` command
+
+---
+
+## Mocking Strategy
+
+| Dependency | Mock approach |
+|------------|--------------|
+| `@/integrations/supabase/client` | `vi.mock` -- stub `auth.onAuthStateChange`, `auth.getSession`, `auth.signInWithPassword` |
+| `@/integrations/lovable/index` | `vi.mock` -- stub `lovable.auth.signInWithOAuth` |
+| `@/hooks/useAuth` | `vi.mock` -- return `{ user: null/testUser, loading: false, signOut: vi.fn() }` |
+| `@dnd-kit/sortable` | `vi.mock` -- `useSortable` returns `{ attributes: {}, listeners: {}, setNodeRef: vi.fn(), transform: null, transition: null, isDragging: false }` |
+| `@dnd-kit/core` | `vi.mock` -- `useDroppable` returns `{ setNodeRef: vi.fn(), isOver: false }` |
+| `localStorage` | `vi.spyOn(Storage.prototype, "getItem")` for CV score |
+| `react-router-dom` | Wrapped with `MemoryRouter`; `useNavigate` mocked where needed |
+
+---
+
+## Expected Output
+
+- ~28 test cases across 7 files
+- All automatable checks from `docs/testing.md` covered
+- Run with `npx vitest` or the run-tests tool
+- No new dependencies required
 
