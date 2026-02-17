@@ -1,13 +1,15 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, Component } from "react";
 import CVUploadSection from "@/components/CVUploadSection";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sparkles, Loader2, FileText, CheckCircle2 } from "lucide-react";
+import { Sparkles, Loader2, FileText, CheckCircle2, Flame, Copy, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import type { JobApplication } from "@/types/job";
 import { COLUMNS } from "@/types/job";
 import { motion, AnimatePresence } from "framer-motion";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import ReactMarkdown from "react-markdown";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assist`;
 
@@ -47,6 +49,18 @@ const ScoreRing = ({ score }: { score: number }) => {
   );
 };
 
+class MarkdownErrorBoundary extends Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) return <div className="text-sm text-destructive p-4">Failed to render review</div>;
+    return this.props.children;
+  }
+}
+
 const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
   const { user, session } = useAuth();
   const { toast } = useToast();
@@ -54,6 +68,27 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Record<string, SuitabilityResult>>({});
+
+  // Ruthless review state
+  const [ruthlessLoading, setRuthlessLoading] = useState(false);
+  const [ruthlessText, setRuthlessText] = useState("");
+  const [ruthlessOpen, setRuthlessOpen] = useState(false);
+  const [ruthlessCooldown, setRuthlessCooldown] = useState(false);
+
+  // Cooldown logic
+  useEffect(() => {
+    const checkCooldown = () => {
+      const ts = localStorage.getItem("ruthless-cooldown");
+      if (!ts) return;
+      const elapsed = Date.now() - parseInt(ts, 10);
+      if (elapsed < 30000) {
+        setRuthlessCooldown(true);
+        const timer = setTimeout(() => setRuthlessCooldown(false), 30000 - elapsed);
+        return () => clearTimeout(timer);
+      }
+    };
+    return checkCooldown();
+  }, []);
 
   const handleCVText = useCallback((text: string | null) => {
     setCvText(text);
@@ -124,6 +159,81 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
     }
   };
 
+  const startRuthlessReview = async () => {
+    if (!cvText) {
+      toast({ title: "No CV uploaded", description: "Upload your CV first", variant: "destructive" });
+      return;
+    }
+    if (!session?.access_token) {
+      toast({ title: "Please log in", description: "Authentication required", variant: "destructive" });
+      return;
+    }
+    if (cvText.length > 6000) {
+      toast({ title: "CV truncated", description: "CV truncated to 6000 chars for review" });
+    }
+
+    localStorage.setItem("ruthless-cooldown", Date.now().toString());
+    setRuthlessCooldown(true);
+    setTimeout(() => setRuthlessCooldown(false), 30000);
+
+    setRuthlessLoading(true);
+    setRuthlessText("");
+    setRuthlessOpen(true);
+
+    try {
+      const resp = await fetch(AI_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          mode: "ruthless_review",
+          job: {},
+          cvText,
+        }),
+      });
+
+      if (!resp.ok) {
+        toast({ title: "Grok review unavailable", description: "Try again later", variant: "destructive" });
+        setRuthlessLoading(false);
+        return;
+      }
+
+      const reader = resp.body?.getReader();
+      if (!reader) { setRuthlessLoading(false); return; }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              setRuthlessText((prev) => prev + content);
+            }
+          } catch { /* skip malformed chunks */ }
+        }
+      }
+    } catch {
+      toast({ title: "Grok review unavailable", description: "Try again later", variant: "destructive" });
+    } finally {
+      setRuthlessLoading(false);
+    }
+  };
+
   const activeJobs = jobs.filter((j) => j.columnId !== "rejected" && j.columnId !== "accepted");
   const selectedResult = selectedJobId ? results[selectedJobId] : null;
 
@@ -140,6 +250,23 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
             Upload your CV once and review it against any job in your pipeline.
           </p>
           <CVUploadSection onCVTextReady={handleCVText} />
+          {cvText && (
+            <div className="space-y-1">
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-2"
+                onClick={startRuthlessReview}
+                disabled={ruthlessLoading || ruthlessCooldown}
+              >
+                {ruthlessLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Flame className="h-4 w-4" />}
+                {ruthlessCooldown ? "Cooldown..." : "Ruthless Review"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Takes 5–15s. Be prepared — this is brutal.
+              </p>
+            </div>
+          )}
         </section>
 
         {/* Section 2: Job review grid */}
@@ -296,6 +423,47 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
           </div>
         )}
       </div>
+
+      {/* Ruthless Review Sheet */}
+      <Sheet open={ruthlessOpen} onOpenChange={setRuthlessOpen}>
+        <SheetContent className="sm:max-w-lg flex flex-col">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2 text-destructive">
+              <Flame className="h-5 w-5" /> Ruthless CV Review
+            </SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="flex-1 pr-4">
+            <MarkdownErrorBoundary>
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown>{ruthlessText || "Waiting for the roast..."}</ReactMarkdown>
+              </div>
+            </MarkdownErrorBoundary>
+          </ScrollArea>
+          <SheetFooter className="flex-row gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => {
+                navigator.clipboard.writeText(ruthlessText);
+                toast({ title: "Copied ruthless review to clipboard" });
+              }}
+              disabled={!ruthlessText || ruthlessLoading}
+            >
+              <Copy className="h-4 w-4" /> Copy
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={startRuthlessReview}
+              disabled={ruthlessLoading || ruthlessCooldown}
+            >
+              <RefreshCw className="h-4 w-4" /> Retry
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
