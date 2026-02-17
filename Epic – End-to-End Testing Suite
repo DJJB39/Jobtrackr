@@ -1,0 +1,26 @@
+Parent issue for all manual end-to-end test cases for JobTrackr.
+
+Full checklist lives in → [docs/testing.md](docs/testing.md)
+
+Goal: 90%+ pass rate before any networking push or major feature release.
+
+Sub-issues:
+- #2 Landing Page & Public Flows Tests
+- #3 Authentication Flow Tests
+- #4 Onboarding Tests
+- #5 Kanban Board Tests
+- #6 Job Detail Panel Tests
+- #7 Dashboard / Calendar / List / CV View Tests
+- #8 Reminders & Notifications Tests
+- #9 Chrome Extension Tests
+- #10 Edge Cases & Performance Tests
+
+Status legend in testing.md:
+- [ ] Not tested
+- [x] Passed
+- [ ] Failed (see comment)
+- [~] Partial / needs retest
+
+Last full run target: [add date after first run]
+
+Milestone: Beta Stability
