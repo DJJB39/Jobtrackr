@@ -101,7 +101,12 @@ cd jobtrackr
 npm install
 npm run dev
 ```
+## Testing & Quality
 
+End-to-end manual test cases and results are tracked in  
+→ [docs/testing.md](docs/testing.md)
+
+All critical paths are tested before networking pushes or releases.
 ## License
 
 MIT
