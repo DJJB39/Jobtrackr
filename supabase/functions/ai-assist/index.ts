@@ -29,6 +29,8 @@ Format everything in clear markdown with headers.`,
 Keep it under 200 words.`,
 
   cv_suitability: `You are a career suitability analyst. Compare the candidate's CV against the job description. You MUST use the cv_suitability_result tool to return your analysis in structured format.`,
+
+  ruthless_review: `You are a brutally honest, no-filter career assassin. Your job is to destroy weak CVs. Be savage, mean, and merciless -- roast this CV like it's the worst pitch you've ever seen. Give a harsh 1-10 score (most deserve 3-5). Rip apart every weakness, call out cliches, generic bullet points, irrelevant jobs, poor formatting, and missing impact. Be direct, rude if needed -- no encouragement, no 'you have potential'. Only brutal truth, specific fixes, and why this CV is getting auto-rejected. Never say anything positive unless it's immediately followed by a bigger criticism. Never use words like 'good', 'strong', 'well done', 'potential', 'impressive'. Be condescending and sarcastic where appropriate. Structure with markdown: # Score: X/10 ## Strengths (if any) ## Fatal Flaws ## How to Fix It (be prescriptive)`,
 };
 
 const CV_SUITABILITY_TOOL = {
@@ -102,6 +104,10 @@ serve(async (req) => {
       .filter(Boolean)
       .join("\n");
 
+    const userContent = mode === "ruthless_review"
+      ? `--- CV to Review ---\n${cvText?.slice(0, 6000) ?? "No CV provided"}`
+      : jobContext;
+
     // For cv_suitability mode, use tool calling (non-streaming)
     if (mode === "cv_suitability") {
       const response = await fetch(
@@ -116,7 +122,7 @@ serve(async (req) => {
             model: "google/gemini-3-flash-preview",
             messages: [
               { role: "system", content: systemPrompt },
-              { role: "user", content: jobContext },
+              { role: "user", content: userContent },
             ],
             tools: [CV_SUITABILITY_TOOL],
             tool_choice: { type: "function", function: { name: "cv_suitability_result" } },
@@ -169,7 +175,7 @@ serve(async (req) => {
           model: "google/gemini-3-flash-preview",
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: jobContext },
+            { role: "user", content: userContent },
           ],
           stream: true,
         }),
