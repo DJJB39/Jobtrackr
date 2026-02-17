@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, Component } from "react";
 import CVUploadSection from "@/components/CVUploadSection";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sparkles, Loader2, FileText, CheckCircle2, Flame, Copy, RefreshCw } from "lucide-react";
+import { Sparkles, Loader2, FileText, CheckCircle2, Flame, Copy, RefreshCw, AlertTriangle, ClipboardList } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import type { JobApplication } from "@/types/job";
@@ -12,6 +12,15 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/com
 import ReactMarkdown from "react-markdown";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assist`;
+
+type Intensity = "soft" | "medium" | "hard" | "nuclear";
+
+const INTENSITY_OPTIONS: { value: Intensity; label: string; color: string }[] = [
+  { value: "soft", label: "Soft", color: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 data-[state=on]:bg-emerald-500 data-[state=on]:text-white" },
+  { value: "medium", label: "Medium", color: "bg-amber-500/15 text-amber-600 border-amber-500/30 data-[state=on]:bg-amber-500 data-[state=on]:text-white" },
+  { value: "hard", label: "Hard", color: "bg-red-500/15 text-red-600 border-red-500/30 data-[state=on]:bg-red-500 data-[state=on]:text-white" },
+  { value: "nuclear", label: "Nuclear ☢️", color: "bg-purple-500/15 text-purple-600 border-purple-500/30 data-[state=on]:bg-purple-500 data-[state=on]:text-white" },
+];
 
 interface CVViewProps {
   jobs: JobApplication[];
@@ -61,6 +70,23 @@ class MarkdownErrorBoundary extends Component<
   }
 }
 
+const markdownComponents = {
+  h2: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => {
+    const text = String(children);
+    if (text.toLowerCase().includes("checklist")) {
+      return (
+        <h2 className="bg-destructive/10 border-l-4 border-destructive px-3 py-2 rounded font-bold text-destructive mt-6 mb-3" {...props}>
+          {children}
+        </h2>
+      );
+    }
+    return <h2 {...props}>{children}</h2>;
+  },
+  li: ({ children, ...props }: React.HTMLAttributes<HTMLLIElement>) => (
+    <li className="checklist-item font-semibold mb-3" {...props}>{children}</li>
+  ),
+};
+
 const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
   const { user, session } = useAuth();
   const { toast } = useToast();
@@ -74,6 +100,7 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
   const [ruthlessText, setRuthlessText] = useState("");
   const [ruthlessOpen, setRuthlessOpen] = useState(false);
   const [ruthlessCooldown, setRuthlessCooldown] = useState(false);
+  const [ruthlessIntensity, setRuthlessIntensity] = useState<Intensity>("hard");
 
   // Cooldown logic
   useEffect(() => {
@@ -191,11 +218,12 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
           mode: "ruthless_review",
           job: {},
           cvText,
+          intensity: ruthlessIntensity,
         }),
       });
 
       if (!resp.ok) {
-        toast({ title: "Grok review unavailable", description: "Try again later", variant: "destructive" });
+        toast({ title: "Review unavailable", description: "Try again later", variant: "destructive" });
         setRuthlessLoading(false);
         return;
       }
@@ -228,7 +256,7 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
         }
       }
     } catch {
-      toast({ title: "Grok review unavailable", description: "Try again later", variant: "destructive" });
+      toast({ title: "Review unavailable", description: "Try again later", variant: "destructive" });
     } finally {
       setRuthlessLoading(false);
     }
@@ -251,17 +279,43 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
           </p>
           <CVUploadSection onCVTextReady={handleCVText} />
           {cvText && (
-            <div className="space-y-1">
-              <Button
-                variant="destructive"
-                size="sm"
-                className="gap-2"
-                onClick={startRuthlessReview}
-                disabled={ruthlessLoading || ruthlessCooldown}
-              >
-                {ruthlessLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Flame className="h-4 w-4" />}
-                {ruthlessCooldown ? "Cooldown..." : "Ruthless Review"}
-              </Button>
+            <div className="space-y-3">
+              {/* Intensity selector */}
+              <div className="flex flex-wrap items-center gap-2">
+                {INTENSITY_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setRuthlessIntensity(opt.value)}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-all ${opt.color} ${
+                      ruthlessIntensity === opt.value ? "ring-2 ring-offset-1 ring-offset-background" : "opacity-70 hover:opacity-100"
+                    }`}
+                    data-state={ruthlessIntensity === opt.value ? "on" : "off"}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Nuclear disclaimer */}
+              {ruthlessIntensity === "nuclear" && (
+                <p className="text-xs text-destructive flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  Nuclear mode contains harsh language — proceed at your own risk
+                </p>
+              )}
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="gap-2"
+                  onClick={startRuthlessReview}
+                  disabled={ruthlessLoading || ruthlessCooldown}
+                >
+                  {ruthlessLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Flame className="h-4 w-4" />}
+                  {ruthlessCooldown ? "Cooldown..." : "Ruthless Review"}
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground">
                 Takes 5–15s. Be prepared — this is brutal.
               </p>
@@ -426,16 +480,51 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
 
       {/* Ruthless Review Sheet */}
       <Sheet open={ruthlessOpen} onOpenChange={setRuthlessOpen}>
-        <SheetContent className="sm:max-w-lg flex flex-col">
+        <SheetContent className="sm:max-w-2xl flex flex-col">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2 text-destructive">
               <Flame className="h-5 w-5" /> Ruthless CV Review
             </SheetTitle>
+            {ruthlessIntensity === "nuclear" && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1">
+                <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                Nuclear mode — harsh language ahead
+              </p>
+            )}
           </SheetHeader>
+
+          {/* Intensity selector + Update Roast inside sheet */}
+          <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-border/40">
+            {INTENSITY_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setRuthlessIntensity(opt.value)}
+                className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all ${opt.color} ${
+                  ruthlessIntensity === opt.value ? "ring-2 ring-offset-1 ring-offset-background" : "opacity-70 hover:opacity-100"
+                }`}
+                data-state={ruthlessIntensity === opt.value ? "on" : "off"}
+              >
+                {opt.label}
+              </button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 ml-auto h-7 text-xs"
+              onClick={startRuthlessReview}
+              disabled={ruthlessLoading || ruthlessCooldown}
+            >
+              {ruthlessLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              Update Roast
+            </Button>
+          </div>
+
           <ScrollArea className="flex-1 pr-4">
             <MarkdownErrorBoundary>
               <div className="prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown>{ruthlessText || "Waiting for the roast..."}</ReactMarkdown>
+                <ReactMarkdown components={markdownComponents}>
+                  {ruthlessText || "Waiting for the roast..."}
+                </ReactMarkdown>
               </div>
             </MarkdownErrorBoundary>
           </ScrollArea>
@@ -451,6 +540,19 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
               disabled={!ruthlessText || ruthlessLoading}
             >
               <Copy className="h-4 w-4" /> Copy
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => {
+                const checklist = ruthlessText.split("## Immediate Action Checklist")[1] || ruthlessText;
+                navigator.clipboard.writeText(checklist.trim());
+                toast({ title: "Checklist copied" });
+              }}
+              disabled={!ruthlessText || ruthlessLoading}
+            >
+              <ClipboardList className="h-4 w-4" /> Copy Checklist Only
             </Button>
             <Button
               variant="outline"
