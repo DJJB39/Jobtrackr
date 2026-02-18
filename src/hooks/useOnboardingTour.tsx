@@ -35,6 +35,11 @@ export const TOUR_STEPS: TourStep[] = [
     title: "Quick Search",
     description: "Search all your applications instantly. Try ⌘K too.",
   },
+  {
+    target: "cv-tab",
+    title: "Get Your CV Brutally Roasted",
+    description: "Upload CV, get savage roast + fix checklist (demo shows sample).",
+  },
 ];
 
 interface UseOnboardingTourProps {
