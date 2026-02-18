@@ -1,62 +1,84 @@
 
 
-# Polish Ruthless Review: Intensity Levels, Disclaimer, Update Button, Checklist Styling, Copy Checklist
+# Enhanced Demo Mode: CV Roast Showcase
 
 ## Overview
 
-Four changes across two files to add intensity selection, nuclear disclaimer, better checklist visibility, and a "Copy Checklist Only" button.
+Create the demo CV experience with simulated uploads, pre-written roasts at 4 intensity levels, fake suitability scores with before/after jumps, and sign-up teasers. No API calls or persistence.
 
 ---
 
-## 1. Edge Function -- Intensity-aware prompts
+## New Files
 
-**File:** `supabase/functions/ai-assist/index.ts`
+### 1. `src/lib/demo-cv-data.ts`
 
-Replace the single `ruthless_review` string with a map of 4 intensity levels. Each shares the same markdown structure and ends with the Immediate Action Checklist instruction. Tone varies:
+All hardcoded demo constants:
 
-- **soft**: Direct and constructive, balanced feedback, includes encouragement
-- **medium**: Honest and critical, some sarcasm, no insults
-- **hard**: Current savage prompt (unchanged behavior)
-- **nuclear**: Full assassin -- mean, rude, insulting, tears it apart
+- **DEMO_CV_TEXT**: ~500-word generic software engineer CV (plain text)
+- **DEMO_ROASTS**: Object keyed by intensity (`soft`, `medium`, `hard`, `nuclear`):
+  - `nuclear`: Extra savage 3/10 roast with full markdown (Score, Strengths (if any), Fatal Flaws, How to Fix It, ## Immediate Action Checklist with 6-8 items). Condescending, insulting, mean language.
+  - `hard`: 4/10, savage but less personal insults
+  - `medium`: 5/10, critical with sarcasm, no insults
+  - `soft`: 6/10, constructive and balanced, includes encouragement
+- **DEMO_SUITABILITY**: Pre-computed scores keyed by demo job ID (e.g., `demo-1: 72`, `demo-4: 32`, etc.)
+- **DEMO_PROJECTED_SCORES**: Post-roast projected scores (e.g., `demo-1: 89`, `demo-4: 78`)
 
-Update request parsing (~line 81) to read `intensity` from the body, defaulting to `"hard"`. Resolve the prompt via `RUTHLESS_PROMPTS[intensity]` when mode is `ruthless_review`.
+### 2. `src/components/DemoCVView.tsx`
 
-## 2. Frontend -- Intensity selector + Nuclear disclaimer + Update button
+Self-contained demo CV view -- no API calls, no Supabase imports.
 
-**File:** `src/components/CVView.tsx`
+**Structure:**
 
-Add state: `ruthlessIntensity` (`"soft" | "medium" | "hard" | "nuclear"`, default `"hard"`).
+- **Banner at top**: "In real mode, upload your CV and get a personalised savage roast" with sign-up CTA
+- **Simulated upload zone**: Styled like CVUploadSection but clicking it instantly loads `DEMO_CV_TEXT` into state with a brief animation. Shows green checkmark + "sample-cv.pdf" after "upload"
+- **Intensity selector**: Same 4-button row (Soft/Medium/Hard/Nuclear) with nuclear disclaimer, identical styling to CVView
+- **Ruthless Review button**: On click, sets loading state for 3-5s (`setTimeout`), then displays matching `DEMO_ROASTS[intensity]`
+- **Update Roast button**: Swaps to different pre-written roast instantly (no loading after first)
+- **Results Sheet**: Same layout as CVView (sm:max-w-2xl, SheetHeader, ScrollArea with ReactMarkdown using `markdownComponents`, SheetFooter with Copy + Copy Checklist Only). Copy buttons work on mock text
+- **Banner after roast**: "Sign up to roast your real CV and track improvements" with CTA button
+- **Banner hint after first roast**: "Want it harsher? Switch to Nuclear and hit Update Roast"
+- **No cooldown** in demo mode
 
-Below the "Ruthless Review" button (lines 253-268), add:
-- A row of 4 small toggle buttons: Soft (green), Medium (amber), Hard (red), Nuclear (purple)
-- When Nuclear is selected, show a small warning: "Nuclear mode contains harsh language -- proceed at your own risk"
-- An "Update Roast" button (outline, sm) that calls `startRuthlessReview`, disabled when loading
+**Job Suitability Grid:**
 
-Pass `intensity` in the fetch body of `startRuthlessReview` (line 190-194).
+- Shows demo jobs with fake scores from `DEMO_SUITABILITY`
+- Initially shows "Current CV match: 32%" (or appropriate score)
+- After mock roast completes, updates display to show both: "Current: 32%" and "Projected after fixes: 78%" with a green arrow up indicator
+- Tooltip on projected score: "Sign up to see real improvements"
 
-## 3. Frontend -- Wider Sheet + Disclaimer in header
+---
 
-**File:** `src/components/CVView.tsx`
+## Modified Files
 
-- Change `SheetContent` class from `sm:max-w-lg` to `sm:max-w-2xl` (line 429)
-- When intensity is `"nuclear"`, add a small muted disclaimer below the SheetTitle
+### 3. `src/pages/DemoPage.tsx`
 
-## 4. Frontend -- Enhanced checklist styling + Copy Checklist Only
+- Add `"cv"` to `View` type union
+- Import `FileUp` icon from lucide-react and `DemoCVView` component
+- Add `{ key: "cv", icon: FileUp, label: "CV" }` to both desktop and mobile view switcher arrays (with `data-tour="cv-tab"` attribute)
+- Add `view === "cv"` render branch for `<DemoCVView jobs={jobs} />`
+- Wrap `addJob`, `updateJob`, `deleteJob` to also fire toast: "Demo mode -- nothing saved. Sign up to keep your data."
 
-**File:** `src/components/CVView.tsx`
+### 4. `src/hooks/useOnboardingTour.tsx`
 
-- Add a `components` prop to `ReactMarkdown` (line 438) that:
-  - Renders `h2` elements containing "Checklist" with `bg-destructive/10 border-l-4 border-destructive px-3 py-2 rounded font-bold text-destructive`
-  - Renders `li` elements with `font-semibold mb-3`
+Update the existing tour step at index 3 (view-switcher) description to mention CV, and add a new 6th step:
 
-- Add a "Copy Checklist Only" button in SheetFooter (after existing Copy button) that extracts text after `## Immediate Action Checklist` and copies just that portion
+```
+{
+  target: "cv-tab",
+  title: "Get Your CV Brutally Roasted",
+  description: "Upload CV, get savage roast + fix checklist (demo shows sample)."
+}
+```
+
+---
 
 ## Technical Summary
 
-| File | Changes |
-|------|---------|
-| `supabase/functions/ai-assist/index.ts` | Replace single prompt with 4 intensity prompts; read `intensity` from request body |
-| `src/components/CVView.tsx` | Add intensity state + 4-button selector; nuclear disclaimer; "Update Roast" button; widen Sheet to `sm:max-w-2xl`; styled `ReactMarkdown` components for checklist; "Copy Checklist Only" button |
+| File | Action |
+|------|--------|
+| `src/lib/demo-cv-data.ts` | New -- hardcoded CV, 4 roasts, suitability + projected scores |
+| `src/components/DemoCVView.tsx` | New -- full demo CV view with simulated upload, roast, suitability, before/after scores, banners |
+| `src/pages/DemoPage.tsx` | Add CV to view switcher, render DemoCVView, demo save toasts |
+| `src/hooks/useOnboardingTour.tsx` | Add 6th tour step for CV tab |
 
-No new dependencies required.
-
+No API calls, no Supabase writes, no new dependencies.
