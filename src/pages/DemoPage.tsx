@@ -3,27 +3,48 @@ import KanbanBoard from "@/components/KanbanBoard";
 import Dashboard from "@/components/Dashboard";
 import ListView from "@/components/ListView";
 import AddJobDialog from "@/components/AddJobDialog";
-import { Briefcase, LayoutDashboard, Columns3, Download, CalendarDays, X, List, Search, ArrowLeft } from "lucide-react";
+import { Briefcase, LayoutDashboard, Columns3, CalendarDays, X, List, Search, ArrowLeft, FileUp } from "lucide-react";
 import CalendarView from "@/components/CalendarView";
 import JobDetailPanel from "@/components/JobDetailPanel";
 import CommandPalette from "@/components/CommandPalette";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import DemoCVView from "@/components/DemoCVView";
 import type { JobApplication } from "@/types/job";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { COLUMNS } from "@/types/job";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
-type View = "board" | "dashboard" | "calendar" | "list";
+type View = "board" | "dashboard" | "calendar" | "list" | "cv";
 
 const DemoPage = () => {
-  const { jobs, setJobs, addJob, updateJob, deleteJob } = useGuestMode();
+  const { jobs, setJobs, addJob: rawAddJob, updateJob: rawUpdateJob, deleteJob: rawDeleteJob } = useGuestMode();
   const [view, setView] = useState<View>("board");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
+
+  const demoToast = useCallback(() => {
+    toast({ title: "Demo mode", description: "Nothing saved. Sign up to keep your data." });
+  }, [toast]);
+
+  const addJob = useCallback((...args: Parameters<typeof rawAddJob>) => {
+    rawAddJob(...args);
+    demoToast();
+  }, [rawAddJob, demoToast]);
+
+  const updateJob = useCallback((updated: JobApplication) => {
+    rawUpdateJob(updated);
+    demoToast();
+  }, [rawUpdateJob, demoToast]);
+
+  const deleteJob = useCallback((id: string) => {
+    rawDeleteJob(id);
+    demoToast();
+  }, [rawDeleteJob, demoToast]);
 
   const handleSelectJob = useCallback((job: JobApplication) => {
     setSelectedJob(job);
@@ -42,6 +63,14 @@ const DemoPage = () => {
         );
       })
     : jobs;
+
+  const VIEW_ITEMS: { key: View; icon: typeof Columns3; label: string; tourAttr?: string }[] = [
+    { key: "board", icon: Columns3, label: "Board" },
+    { key: "list", icon: List, label: "List" },
+    { key: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { key: "calendar", icon: CalendarDays, label: "Calendar" },
+    { key: "cv", icon: FileUp, label: "CV", tourAttr: "cv-tab" },
+  ];
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-[hsl(var(--gradient-start))] via-background to-[hsl(var(--gradient-end))]">
@@ -87,16 +116,12 @@ const DemoPage = () => {
               )}
             </div>
 
-            <nav className="hidden sm:flex items-center rounded-lg border border-border bg-muted p-0.5 mr-1">
-              {([
-                { key: "board" as View, icon: Columns3, label: "Board" },
-                { key: "list" as View, icon: List, label: "List" },
-                { key: "dashboard" as View, icon: LayoutDashboard, label: "Dashboard" },
-                { key: "calendar" as View, icon: CalendarDays, label: "Calendar" },
-              ]).map(({ key, icon: Icon, label }) => (
+            <nav className="hidden sm:flex items-center rounded-lg border border-border bg-muted p-0.5 mr-1" data-tour="view-switcher">
+              {VIEW_ITEMS.map(({ key, icon: Icon, label, tourAttr }) => (
                 <button
                   key={key}
                   onClick={() => setView(key)}
+                  data-tour={tourAttr}
                   className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                     view === key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                   }`}
@@ -108,13 +133,8 @@ const DemoPage = () => {
             </nav>
 
             <div className="flex sm:hidden items-center rounded-lg border border-border bg-muted p-0.5 mr-1">
-              {([
-                { key: "board" as View, icon: Columns3 },
-                { key: "list" as View, icon: List },
-                { key: "dashboard" as View, icon: LayoutDashboard },
-                { key: "calendar" as View, icon: CalendarDays },
-              ]).map(({ key, icon: Icon }) => (
-                <button key={key} onClick={() => setView(key)} className={`p-1.5 rounded-md ${view === key ? "bg-background shadow-sm" : ""}`}>
+              {VIEW_ITEMS.map(({ key, icon: Icon, tourAttr }) => (
+                <button key={key} onClick={() => setView(key)} data-tour={tourAttr} className={`p-1.5 rounded-md ${view === key ? "bg-background shadow-sm" : ""}`}>
                   <Icon className="h-4 w-4" />
                 </button>
               ))}
@@ -131,6 +151,8 @@ const DemoPage = () => {
         <ListView jobs={jobs} onSelectJob={handleSelectJob} searchQuery={searchQuery} />
       ) : view === "dashboard" ? (
         <Dashboard jobs={filteredJobs} onUpdateJob={updateJob} />
+      ) : view === "cv" ? (
+        <DemoCVView jobs={jobs} />
       ) : (
         <CalendarView jobs={filteredJobs} onSelectJob={handleSelectJob} />
       )}
