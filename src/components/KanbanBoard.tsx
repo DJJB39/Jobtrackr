@@ -10,7 +10,7 @@ import {
   type DragEndEvent,
   closestCorners,
 } from "@dnd-kit/core";
-import { APPLICATION_TYPES, type ColumnId, type JobApplication } from "@/types/job";
+import { type ColumnId, type JobApplication } from "@/types/job";
 import { useStages } from "@/hooks/useStages";
 import KanbanColumn from "./KanbanColumn";
 import JobCard from "./JobCard";
@@ -28,7 +28,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Filter, X, CheckSquare } from "lucide-react";
+import { Filter, X, CheckSquare, Plus } from "lucide-react";
+import StageManager from "./StageManager";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -55,7 +56,6 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
-  const [filterType, setFilterType] = useState("all_types");
   const [filterStage, setFilterStage] = useState("all_stages");
   const [filterRole, setFilterRole] = useState("all_roles");
   const [filterSalary, setFilterSalary] = useState("all");
@@ -73,6 +73,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
+  const [stageManagerOpen, setStageManagerOpen] = useState(false);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -164,7 +165,6 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
 
   const filteredJobs = useMemo(() => {
     let result = jobs;
-    if (filterType !== "all_types") result = result.filter((j) => j.applicationType === filterType);
     if (filterRole !== "all_roles") result = result.filter((j) => j.role.toLowerCase().includes(filterRole.toLowerCase()));
     if (filterSalary !== "all") {
       result = result.filter((j) => {
@@ -182,7 +182,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
       });
     }
     return result;
-  }, [jobs, filterType, filterRole, filterSalary]);
+  }, [jobs, filterRole, filterSalary]);
 
   // Ctrl/Cmd+A to select all visible cards
   useEffect(() => {
@@ -203,24 +203,13 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
 
   const getColumnJobs = (columnId: string) => filteredJobs.filter((j) => j.columnId === columnId);
 
-  const hasActiveFilters = filterType !== "all_types" || filterStage !== "all_stages" || filterRole !== "all_roles" || filterSalary !== "all";
+  const hasActiveFilters = filterStage !== "all_stages" || filterRole !== "all_roles" || filterSalary !== "all";
 
   return (
     <>
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2 px-4 sm:px-6 pt-4 pb-0">
         <Filter className="h-4 w-4 text-muted-foreground hidden sm:block" />
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[140px] sm:w-[180px] h-9">
-            <SelectValue placeholder="Filter by type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all_types">All Types</SelectItem>
-            {APPLICATION_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>{type}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
 
         {!isMobile && (
           <Select value={filterStage} onValueChange={setFilterStage}>
@@ -264,7 +253,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
             variant="ghost"
             size="sm"
             className="h-9 gap-1.5 text-muted-foreground"
-            onClick={() => { setFilterType("all_types"); setFilterStage("all_stages"); setFilterRole("all_roles"); setFilterSalary("all"); }}
+            onClick={() => { setFilterStage("all_stages"); setFilterRole("all_roles"); setFilterSalary("all"); }}
           >
             <X className="h-3.5 w-3.5" /> Clear
           </Button>
@@ -348,6 +337,15 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
                   autoCollapse={filterStage === "all_stages"}
                 />
               ))}
+              {/* Add Stage column */}
+              <button
+                onClick={() => setStageManagerOpen(true)}
+                className="flex h-[calc(100vh-14rem)] min-w-[3rem] w-12 flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/20 hover:border-primary/40 hover:bg-accent/50 transition-colors shrink-0 gap-2"
+                title="Add or manage stages"
+              >
+                <Plus className="h-5 w-5 text-muted-foreground" />
+                <span className="text-[10px] text-muted-foreground [writing-mode:vertical-lr]">Add Stage</span>
+              </button>
             </div>
             <DragOverlay>
               {activeJob ? (
@@ -387,6 +385,8 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
         onDelete={handleBulkDelete}
         onClear={clearSelection}
       />
+
+      <StageManager open={stageManagerOpen} onOpenChange={setStageManagerOpen} />
     </>
   );
 };
