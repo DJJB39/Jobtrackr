@@ -148,6 +148,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_stages: {
+        Row: {
+          color_class: string
+          created_at: string
+          id: string
+          position: number
+          stage_id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          color_class: string
+          created_at?: string
+          id?: string
+          position: number
+          stage_id: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          color_class?: string
+          created_at?: string
+          id?: string
+          position?: number
+          stage_id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
