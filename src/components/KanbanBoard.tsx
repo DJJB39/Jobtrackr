@@ -53,7 +53,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
-  const [filterType, setFilterType] = useState("All");
+  const [filterType, setFilterType] = useState("all_types");
   const [filterStage, setFilterStage] = useState("all_stages");
   const [filterRole, setFilterRole] = useState("all_roles");
   const [filterSalary, setFilterSalary] = useState("all");
@@ -162,7 +162,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
 
   const filteredJobs = useMemo(() => {
     let result = jobs;
-    if (filterType !== "All") result = result.filter((j) => j.applicationType === filterType);
+    if (filterType !== "all_types") result = result.filter((j) => j.applicationType === filterType);
     if (filterRole !== "all_roles") result = result.filter((j) => j.role.toLowerCase().includes(filterRole.toLowerCase()));
     if (filterSalary !== "all") {
       result = result.filter((j) => {
@@ -201,7 +201,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
 
   const getColumnJobs = (columnId: ColumnId) => filteredJobs.filter((j) => j.columnId === columnId);
 
-  const hasActiveFilters = filterType !== "All" || filterStage !== "all_stages" || filterRole !== "all_roles" || filterSalary !== "all";
+  const hasActiveFilters = filterType !== "all_types" || filterStage !== "all_stages" || filterRole !== "all_roles" || filterSalary !== "all";
 
   return (
     <>
@@ -213,6 +213,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
             <SelectValue placeholder="Filter by type" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all_types">All Types</SelectItem>
             {APPLICATION_TYPES.map((type) => (
               <SelectItem key={type} value={type}>{type}</SelectItem>
             ))}
@@ -261,7 +262,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
             variant="ghost"
             size="sm"
             className="h-9 gap-1.5 text-muted-foreground"
-            onClick={() => { setFilterType("All"); setFilterStage("all_stages"); setFilterRole("all_roles"); setFilterSalary("all"); }}
+            onClick={() => { setFilterType("all_types"); setFilterStage("all_stages"); setFilterRole("all_roles"); setFilterSalary("all"); }}
           >
             <X className="h-3.5 w-3.5" /> Clear
           </Button>

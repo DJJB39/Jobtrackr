@@ -22,7 +22,6 @@ export interface NextStep {
 }
 
 export const APPLICATION_TYPES = [
-  "All",
   "Frontend",
   "Backend",
   "Full Stack",
