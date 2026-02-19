@@ -174,7 +174,7 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
 
       {/* Row 3: Date applied */}
       <p className="text-[11px] text-muted-foreground/60 mt-1">
-        Applied {(() => { try { return format(parseISO(job.createdAt), "MMM d, yyyy"); } catch { return "—"; } })()}
+        Added {(() => { try { return format(parseISO(job.createdAt), "MMM d, yyyy"); } catch { return "—"; } })()}
       </p>
 
       {/* Non-compact details */}
