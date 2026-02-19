@@ -2,22 +2,59 @@ import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
-import { Sparkles, Loader2, FileText, CheckCircle2, Flame, Copy, RefreshCw, AlertTriangle, ClipboardList, Upload, ArrowUp, Info } from "lucide-react";
+import {
+  Sparkles,
+  Loader2,
+  FileText,
+  CheckCircle2,
+  Flame,
+  Copy,
+  RefreshCw,
+  AlertTriangle,
+  ClipboardList,
+  Upload,
+  ArrowUp,
+  Info,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { DEMO_CV_TEXT, DEMO_ROASTS, DEMO_SUITABILITY, DEMO_PROJECTED_SCORES, type DemoIntensity } from "@/lib/demo-cv-data";
+import {
+  DEMO_CV_TEXT,
+  DEMO_ROASTS,
+  DEMO_SUITABILITY,
+  DEMO_PROJECTED_SCORES,
+  type DemoIntensity,
+} from "@/lib/demo-cv-data";
 import type { JobApplication } from "@/types/job";
 import { COLUMNS } from "@/types/job";
 
 const INTENSITY_OPTIONS: { value: DemoIntensity; label: string; color: string }[] = [
-  { value: "soft", label: "Soft", color: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 data-[state=on]:bg-emerald-500 data-[state=on]:text-white" },
-  { value: "medium", label: "Medium", color: "bg-amber-500/15 text-amber-600 border-amber-500/30 data-[state=on]:bg-amber-500 data-[state=on]:text-white" },
-  { value: "hard", label: "Hard", color: "bg-red-500/15 text-red-600 border-red-500/30 data-[state=on]:bg-red-500 data-[state=on]:text-white" },
-  { value: "nuclear", label: "Nuclear ☢️", color: "bg-purple-500/15 text-purple-600 border-purple-500/30 data-[state=on]:bg-purple-500 data-[state=on]:text-white" },
+  {
+    value: "soft",
+    label: "Soft",
+    color:
+      "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 data-[state=on]:bg-emerald-500 data-[state=on]:text-white",
+  },
+  {
+    value: "medium",
+    label: "Medium",
+    color: "bg-amber-500/15 text-amber-600 border-amber-500/30 data-[state=on]:bg-amber-500 data-[state=on]:text-white",
+  },
+  {
+    value: "hard",
+    label: "Hard",
+    color: "bg-red-500/15 text-red-600 border-red-500/30 data-[state=on]:bg-red-500 data-[state=on]:text-white",
+  },
+  {
+    value: "nuclear",
+    label: "Nuclear ☢️",
+    color:
+      "bg-purple-500/15 text-purple-600 border-purple-500/30 data-[state=on]:bg-purple-500 data-[state=on]:text-white",
+  },
 ];
 
 const markdownComponents = {
@@ -25,7 +62,10 @@ const markdownComponents = {
     const text = String(children);
     if (text.toLowerCase().includes("checklist")) {
       return (
-        <h2 className="bg-destructive/10 border-l-4 border-destructive px-3 py-2 rounded font-bold text-destructive mt-6 mb-3" {...props}>
+        <h2
+          className="bg-destructive/10 border-l-4 border-destructive px-3 py-2 rounded font-bold text-destructive mt-6 mb-3"
+          {...props}
+        >
           {children}
         </h2>
       );
@@ -33,7 +73,9 @@ const markdownComponents = {
     return <h2 {...props}>{children}</h2>;
   },
   li: ({ children, ...props }: React.HTMLAttributes<HTMLLIElement>) => (
-    <li className="checklist-item font-semibold mb-3" {...props}>{children}</li>
+    <li className="checklist-item font-semibold mb-3" {...props}>
+      {children}
+    </li>
   ),
 };
 
@@ -45,7 +87,19 @@ const ScoreRing = ({ score }: { score: number }) => {
     <div className="relative h-20 w-20 flex items-center justify-center">
       <svg className="absolute h-full w-full -rotate-90" viewBox="0 0 80 80">
         <circle cx="40" cy="40" r="36" fill="none" stroke="hsl(var(--border))" strokeWidth="5" />
-        <circle cx="40" cy="40" r="36" fill="none" className={color} stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset} style={{ transition: "stroke-dashoffset 0.8s ease" }} />
+        <circle
+          cx="40"
+          cy="40"
+          r="36"
+          fill="none"
+          className={color}
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 0.8s ease" }}
+        />
       </svg>
       <span className={`text-xl font-display font-bold ${color}`}>{score}</span>
     </div>
@@ -100,11 +154,13 @@ const DemoCVView = ({ jobs }: DemoCVViewProps) => {
           {/* Banner */}
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">🎯 In real mode, upload your CV and get a personalised savage roast</p>
+              <p className="text-sm font-medium text-foreground">
+                🎯 In real mode, upload your CV and get a personalised savage roast
+              </p>
               <p className="text-xs text-muted-foreground mt-0.5">AI-powered analysis with actionable fix checklist</p>
             </div>
             <Button size="sm" className="h-8 text-xs shrink-0" asChild>
-              <Link to="/auth?tab=signup">Sign Up Free</Link>
+              <Link to="/auth?tab=signup">Sign Up</Link>
             </Button>
           </div>
 
@@ -113,7 +169,9 @@ const DemoCVView = ({ jobs }: DemoCVViewProps) => {
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
               <h2 className="text-lg font-display font-semibold text-foreground">Master CV</h2>
-              <Badge variant="outline" className="text-[10px] ml-1">Demo</Badge>
+              <Badge variant="outline" className="text-[10px] ml-1">
+                Demo
+              </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
               Upload your CV once and review it against any job in your pipeline.
@@ -131,7 +189,9 @@ const DemoCVView = ({ jobs }: DemoCVViewProps) => {
                   <Upload className="h-8 w-8 text-muted-foreground" />
                 )}
                 <div className="text-center">
-                  <p className="text-sm font-medium text-foreground">{uploading ? "Loading sample CV…" : "Click to upload CV"}</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {uploading ? "Loading sample CV…" : "Click to upload CV"}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">Demo: loads a sample CV instantly</p>
                 </div>
               </button>
@@ -140,9 +200,13 @@ const DemoCVView = ({ jobs }: DemoCVViewProps) => {
                 <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground">sample-cv.pdf</p>
-                  <p className="text-xs text-muted-foreground">Sample CV loaded • {DEMO_CV_TEXT.split(/\s+/).length} words</p>
+                  <p className="text-xs text-muted-foreground">
+                    Sample CV loaded • {DEMO_CV_TEXT.split(/\s+/).length} words
+                  </p>
                 </div>
-                <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setCvUploaded(false)}>Remove</Button>
+                <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setCvUploaded(false)}>
+                  Remove
+                </Button>
               </div>
             )}
 
@@ -155,7 +219,9 @@ const DemoCVView = ({ jobs }: DemoCVViewProps) => {
                       key={opt.value}
                       onClick={() => setIntensity(opt.value)}
                       className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-all ${opt.color} ${
-                        intensity === opt.value ? "ring-2 ring-offset-1 ring-offset-background" : "opacity-70 hover:opacity-100"
+                        intensity === opt.value
+                          ? "ring-2 ring-offset-1 ring-offset-background"
+                          : "opacity-70 hover:opacity-100"
                       }`}
                       data-state={intensity === opt.value ? "on" : "off"}
                     >
@@ -172,7 +238,13 @@ const DemoCVView = ({ jobs }: DemoCVViewProps) => {
                 )}
 
                 <div className="flex items-center gap-2">
-                  <Button variant="destructive" size="sm" className="gap-2" onClick={startRoast} disabled={roastLoading}>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-2"
+                    onClick={startRoast}
+                    disabled={roastLoading}
+                  >
                     {roastLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Flame className="h-4 w-4" />}
                     Ruthless Review
                   </Button>
@@ -190,7 +262,9 @@ const DemoCVView = ({ jobs }: DemoCVViewProps) => {
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
                 <h2 className="text-lg font-display font-semibold text-foreground">Job Suitability</h2>
-                <Badge variant="outline" className="text-[10px] ml-1">Demo</Badge>
+                <Badge variant="outline" className="text-[10px] ml-1">
+                  Demo
+                </Badge>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -219,24 +293,28 @@ const DemoCVView = ({ jobs }: DemoCVViewProps) => {
                           {col && (
                             <div className="flex items-center gap-1.5 mt-1.5">
                               <div className={`h-2 w-2 rounded-full ${col.colorClass}`} />
-                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{col.title}</span>
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                                {col.title}
+                              </span>
                             </div>
                           )}
                         </div>
                         <div className="shrink-0">
-                          <div className={`flex items-center justify-center h-10 w-10 rounded-full border-2 ${
-                            score >= 75 ? "border-emerald-500 text-emerald-500" :
-                            score >= 50 ? "border-amber-500 text-amber-500" :
-                            "border-red-500 text-red-500"
-                          }`}>
+                          <div
+                            className={`flex items-center justify-center h-10 w-10 rounded-full border-2 ${
+                              score >= 75
+                                ? "border-emerald-500 text-emerald-500"
+                                : score >= 50
+                                  ? "border-amber-500 text-amber-500"
+                                  : "border-red-500 text-red-500"
+                            }`}
+                          >
                             <span className="text-xs font-bold font-mono">{score}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        Current CV match: {score}%
-                      </div>
+                      <div className="mt-2 text-xs text-muted-foreground">Current CV match: {score}%</div>
 
                       {hasRoasted && (
                         <div className="mt-1 flex items-center gap-1.5">
@@ -311,7 +389,9 @@ const DemoCVView = ({ jobs }: DemoCVViewProps) => {
             <SheetHeader>
               <SheetTitle className="flex items-center gap-2 text-destructive">
                 <Flame className="h-5 w-5" /> Ruthless CV Review
-                <Badge variant="outline" className="text-[10px] ml-1">Demo</Badge>
+                <Badge variant="outline" className="text-[10px] ml-1">
+                  Demo
+                </Badge>
               </SheetTitle>
               {intensity === "nuclear" && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1">
@@ -328,7 +408,9 @@ const DemoCVView = ({ jobs }: DemoCVViewProps) => {
                   key={opt.value}
                   onClick={() => setIntensity(opt.value)}
                   className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all ${opt.color} ${
-                    intensity === opt.value ? "ring-2 ring-offset-1 ring-offset-background" : "opacity-70 hover:opacity-100"
+                    intensity === opt.value
+                      ? "ring-2 ring-offset-1 ring-offset-background"
+                      : "opacity-70 hover:opacity-100"
                   }`}
                   data-state={intensity === opt.value ? "on" : "off"}
                 >
@@ -373,7 +455,9 @@ const DemoCVView = ({ jobs }: DemoCVViewProps) => {
             {roastText && !roastLoading && (
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 flex items-center gap-3">
                 <div className="flex-1">
-                  <p className="text-xs font-medium text-foreground">🚀 Sign up to roast your real CV and track improvements</p>
+                  <p className="text-xs font-medium text-foreground">
+                    🚀 Sign up to roast your real CV and track improvements
+                  </p>
                 </div>
                 <Button size="sm" className="h-7 text-xs shrink-0" asChild>
                   <Link to="/auth?tab=signup">Sign Up</Link>
