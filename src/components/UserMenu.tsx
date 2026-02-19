@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { LogOut, Sun, Moon, Bell, Mail, BellRing, MessageSquarePlus } from "lucide-react";
+import { LogOut, Sun, Moon, Bell, Mail, BellRing, MessageSquarePlus, Columns3 } from "lucide-react";
 import { FEEDBACK_FORM_URL } from "@/lib/constants";
 import {
   Tooltip,
@@ -21,6 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import StageManager from "./StageManager";
 
 const UserMenu = () => {
   const { user, signOut } = useAuth();
@@ -28,6 +29,7 @@ const UserMenu = () => {
   const [emailReminders, setEmailReminders] = useState(false);
   const [weeklyDigest, setWeeklyDigest] = useState(false);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
+  const [stageManagerOpen, setStageManagerOpen] = useState(false);
   const push = usePushNotifications();
 
   useEffect(() => {
@@ -84,6 +86,7 @@ const UserMenu = () => {
     : null;
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className="rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
@@ -166,6 +169,10 @@ const UserMenu = () => {
           {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
           {theme === "dark" ? "Light mode" : "Dark mode"}
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setStageManagerOpen(true)}>
+          <Columns3 className="mr-2 h-4 w-4" />
+          Manage Stages
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => window.open(FEEDBACK_FORM_URL, "_blank")}>
           <MessageSquarePlus className="mr-2 h-4 w-4" />
           Feedback
@@ -177,6 +184,8 @@ const UserMenu = () => {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    <StageManager open={stageManagerOpen} onOpenChange={setStageManagerOpen} />
+    </>
   );
 };
 

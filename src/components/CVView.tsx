@@ -6,7 +6,7 @@ import { Sparkles, Loader2, FileText, CheckCircle2, Flame, Copy, RefreshCw, Aler
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import type { JobApplication } from "@/types/job";
-import { COLUMNS } from "@/types/job";
+import { useStages } from "@/hooks/useStages";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import ReactMarkdown from "react-markdown";
@@ -88,6 +88,7 @@ const markdownComponents = {
 };
 
 const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
+  const { stages } = useStages();
   const { user, session } = useAuth();
   const { toast } = useToast();
   const [cvText, setCvText] = useState<string | null>(null);
@@ -338,7 +339,7 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
               {activeJobs.map((job) => {
                 const result = results[job.id];
                 const isSelected = selectedJobId === job.id;
-                const col = COLUMNS.find((c) => c.id === job.columnId);
+                const col = stages.find((c) => c.id === job.columnId);
 
                 return (
                   <motion.button

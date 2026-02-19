@@ -10,7 +10,8 @@ import {
   type DragEndEvent,
   closestCorners,
 } from "@dnd-kit/core";
-import { COLUMNS, APPLICATION_TYPES, type ColumnId, type JobApplication } from "@/types/job";
+import { APPLICATION_TYPES, type ColumnId, type JobApplication } from "@/types/job";
+import { useStages } from "@/hooks/useStages";
 import KanbanColumn from "./KanbanColumn";
 import JobCard from "./JobCard";
 import JobDetailPanel from "./JobDetailPanel";
@@ -49,6 +50,7 @@ const SALARY_BRACKETS = [
 ];
 
 const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardProps) => {
+  const { stages } = useStages();
   const [activeJob, setActiveJob] = useState<JobApplication | null>(null);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -57,7 +59,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
   const [filterStage, setFilterStage] = useState("all_stages");
   const [filterRole, setFilterRole] = useState("all_roles");
   const [filterSalary, setFilterSalary] = useState("all");
-  const [mobileStage, setMobileStage] = useState<ColumnId>("found");
+  const [mobileStage, setMobileStage] = useState<string>(stages[0]?.id ?? "found");
   const isMobile = useIsMobile();
 
   const [compact, setCompact] = useState(() => localStorage.getItem("jobtrackr-compact") === "1");
@@ -119,7 +121,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const overColumn = COLUMNS.find((c) => c.id === overId);
+    const overColumn = stages.find((c) => c.id === overId);
     const targetColumnId = overColumn
       ? overColumn.id
       : jobs.find((j) => j.id === overId)?.columnId;
@@ -195,11 +197,11 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
   }, [selectMode, filteredJobs]);
 
   const visibleColumns = useMemo(
-    () => filterStage === "all_stages" ? COLUMNS : COLUMNS.filter((c) => c.id === filterStage),
-    [filterStage]
+    () => filterStage === "all_stages" ? stages : stages.filter((c) => c.id === filterStage),
+    [filterStage, stages]
   );
 
-  const getColumnJobs = (columnId: ColumnId) => filteredJobs.filter((j) => j.columnId === columnId);
+  const getColumnJobs = (columnId: string) => filteredJobs.filter((j) => j.columnId === columnId);
 
   const hasActiveFilters = filterType !== "all_types" || filterStage !== "all_stages" || filterRole !== "all_roles" || filterSalary !== "all";
 
@@ -227,7 +229,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all_stages">All Stages</SelectItem>
-              {COLUMNS.map((col) => (
+              {stages.map((col) => (
                 <SelectItem key={col.id} value={col.id}>{col.title}</SelectItem>
               ))}
             </SelectContent>
@@ -288,12 +290,12 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
       {/* Mobile: stage selector + single column */}
       {isMobile ? (
         <div className="flex-1 flex flex-col p-4 space-y-3">
-          <Select value={mobileStage} onValueChange={(v) => setMobileStage(v as ColumnId)}>
+          <Select value={mobileStage} onValueChange={setMobileStage}>
             <SelectTrigger className="h-10">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {COLUMNS.map((col) => (
+              {stages.map((col) => (
                 <SelectItem key={col.id} value={col.id}>
                   {col.title} ({getColumnJobs(col.id).length})
                 </SelectItem>
@@ -308,7 +310,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
                 onDelete={onDeleteJob}
                 onClick={handleCardClick}
                 onSchedule={handleScheduleFromCard}
-                columnId={mobileStage}
+                columnId={mobileStage as ColumnId}
                 selected={selectedIds.has(job.id)}
                 onToggleSelect={toggleSelect}
                 selectMode={selectMode}

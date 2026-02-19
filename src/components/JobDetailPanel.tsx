@@ -26,7 +26,8 @@ import DetailEventsTab from "./detail/DetailEventsTab";
 import DetailLinksTab from "./detail/DetailLinksTab";
 import DetailCVTab from "./detail/DetailCVTab";
 import type { JobApplication } from "@/types/job";
-import { COLUMNS, APPLICATION_TYPES } from "@/types/job";
+import { APPLICATION_TYPES } from "@/types/job";
+import { useStages } from "@/hooks/useStages";
 import {
   Select,
   SelectContent,
@@ -45,6 +46,7 @@ interface JobDetailPanelProps {
 }
 
 const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetailPanelProps) => {
+  const { stages } = useStages();
   const [editedJob, setEditedJob] = useState<JobApplication | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
@@ -85,7 +87,7 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetail
 
   if (!editedJob) return null;
 
-  const column = COLUMNS.find((c) => c.id === editedJob.columnId);
+  const column = stages.find((c) => c.id === editedJob.columnId);
 
   const update = <K extends keyof JobApplication>(key: K, value: JobApplication[K]) => {
     const updated = { ...editedJob, [key]: value };
@@ -121,7 +123,7 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetail
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {COLUMNS.map((col) => (
+                    {stages.map((col) => (
                       <SelectItem key={col.id} value={col.id}>{col.title}</SelectItem>
                     ))}
                   </SelectContent>

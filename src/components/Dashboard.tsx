@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { COLUMNS, type JobApplication, type ColumnId } from "@/types/job";
+import { type JobApplication, type ColumnId } from "@/types/job";
+import { useStages } from "@/hooks/useStages";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   AreaChart, Area, PieChart, Pie, Legend, FunnelChart, Funnel, LabelList,
@@ -65,6 +66,7 @@ const STALE_THRESHOLD_DAYS = 14;
 const GHOST_THRESHOLD_DAYS = 7;
 
 const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
+  const { stages } = useStages();
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
 
@@ -75,13 +77,13 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
     const active = jobs.filter((j) => j.columnId !== "found" && j.columnId !== "rejected");
     const pastApplied = jobs.filter((j) => !["found", "rejected"].includes(j.columnId));
     const funnelDropOff = jobs.length > 0 ? Math.round((pastApplied.length / jobs.length) * 100) : 0;
-    const breakdown = COLUMNS.map((col) => ({
+    const breakdown = stages.map((col) => ({
       name: col.title,
       count: jobs.filter((j) => j.columnId === col.id).length,
       id: col.id,
     }));
     return { thisWeek: thisWeek.length, active: active.length, funnelDropOff, breakdown, total: jobs.length };
-  }, [jobs]);
+  }, [jobs, stages]);
 
   // Conversion funnel data — cumulative count at each stage or beyond
   const funnelData = useMemo(() => {
@@ -177,7 +179,7 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
             <StatCard icon={<TrendingUp className="h-4 w-4" />} label="This Week" value={stats.thisWeek} sub={`of ${stats.total} total`} accentColor={STAT_ACCENTS.gold} />
             <StatCard icon={<Zap className="h-4 w-4" />} label="Active" value={stats.active} sub="in pipeline" accentColor={STAT_ACCENTS.green} />
             <StatCard icon={<Activity className="h-4 w-4" />} label="Funnel Rate" value={`${stats.funnelDropOff}%`} sub="moved past Found" accentColor={STAT_ACCENTS.blue} />
-            <StatCard icon={<Layers className="h-4 w-4" />} label="Total" value={stats.total} sub={`${COLUMNS.length} stages`} accentColor={STAT_ACCENTS.purple} />
+            <StatCard icon={<Layers className="h-4 w-4" />} label="Total" value={stats.total} sub={`${stages.length} stages`} accentColor={STAT_ACCENTS.purple} />
           </div>
 
           {/* Conversion Funnel */}
@@ -351,7 +353,7 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
                             <p className="text-[10px] text-muted-foreground truncate">{job.role}</p>
                           </div>
                           <Badge variant="secondary" className="text-[9px] shrink-0 ml-2">
-                            {COLUMNS.find((c) => c.id === job.columnId)?.title}
+                            {stages.find((c) => c.id === job.columnId)?.title}
                           </Badge>
                         </button>
                       ))}
