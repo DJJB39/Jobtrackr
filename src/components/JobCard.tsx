@@ -9,6 +9,7 @@ import {
   MapPin,
   Clock,
   Users,
+  Flame,
 } from "lucide-react";
 import { differenceInDays, parseISO, startOfDay, isBefore, format } from "date-fns";
 import { useMemo, useState, useEffect } from "react";
@@ -50,15 +51,18 @@ interface JobCardProps {
   onToggleSelect?: (id: string) => void;
   selectMode?: boolean;
   compact?: boolean;
+  onNavigateToCV?: () => void;
+  cardIndex?: number;
 }
 
-const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onToggleSelect, selectMode, compact }: JobCardProps) => {
+const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onToggleSelect, selectMode, compact, onNavigateToCV, cardIndex }: JobCardProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: job.id,
     data: { type: "job", job },
   });
   const { user } = useAuth();
   const [cvScore, setCvScore] = useState<number | null>(null);
+  const [hasStoredCV, setHasStoredCV] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -68,6 +72,7 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
         const results = JSON.parse(raw);
         if (results[job.id]?.score != null) setCvScore(results[job.id].score);
       }
+      setHasStoredCV(!!localStorage.getItem(`cv-text-${user.id}`));
     } catch { /* ignore */ }
   }, [user, job.id]);
 
@@ -258,6 +263,18 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
             className="h-full rounded-full bg-primary/40 transition-all duration-500"
             style={{ width: `${stageProgress}%` }}
           />
+        </div>
+      )}
+
+      {/* Boost match CTA */}
+      {cvScore === null && hasStoredCV && onNavigateToCV && (
+        <div
+          onClick={(e) => { e.stopPropagation(); onNavigateToCV(); }}
+          className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 cursor-pointer hover:bg-amber-500/15 transition-all text-amber-500"
+          style={{ opacity: cardIndex !== undefined && cardIndex > 5 ? 0.5 : 1 }}
+        >
+          <Flame className="h-3 w-3 shrink-0" />
+          <span className="text-[11px] font-medium">Boost match — Get CV Review</span>
         </div>
       )}
 

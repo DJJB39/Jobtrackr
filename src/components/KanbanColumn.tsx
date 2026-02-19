@@ -16,9 +16,10 @@ interface KanbanColumnProps {
   selectMode?: boolean;
   compact?: boolean;
   autoCollapse?: boolean;
+  onNavigateToCV?: () => void;
 }
 
-const KanbanColumn = ({ column, jobs, onDeleteJob, onClickJob, onScheduleJob, selectedIds, onToggleSelect, selectMode, compact, autoCollapse }: KanbanColumnProps) => {
+const KanbanColumn = ({ column, jobs, onDeleteJob, onClickJob, onScheduleJob, selectedIds, onToggleSelect, selectMode, compact, autoCollapse, onNavigateToCV }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const [forceExpanded, setForceExpanded] = useState(false);
 
@@ -82,7 +83,7 @@ const KanbanColumn = ({ column, jobs, onDeleteJob, onClickJob, onScheduleJob, se
       <div className={`flex min-h-[120px] flex-1 flex-col ${compact ? "gap-1.5" : "gap-2.5"} px-2 pb-3 pt-1`}>
         <SortableContext items={jobs.map((j) => j.id)} strategy={verticalListSortingStrategy}>
           <AnimatePresence mode="popLayout">
-            {jobs.map((job) => (
+            {jobs.map((job, index) => (
               <JobCard
                 key={job.id}
                 job={job}
@@ -94,6 +95,8 @@ const KanbanColumn = ({ column, jobs, onDeleteJob, onClickJob, onScheduleJob, se
                 onToggleSelect={onToggleSelect}
                 selectMode={selectMode}
                 compact={compact}
+                onNavigateToCV={onNavigateToCV}
+                cardIndex={index}
               />
             ))}
           </AnimatePresence>

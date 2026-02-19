@@ -39,6 +39,7 @@ interface KanbanBoardProps {
   setJobs: React.Dispatch<React.SetStateAction<JobApplication[]>>;
   onUpdateJob: (job: JobApplication) => void;
   onDeleteJob: (id: string) => void;
+  onSwitchView?: (view: string) => void;
 }
 
 const SALARY_BRACKETS = [
@@ -50,7 +51,7 @@ const SALARY_BRACKETS = [
   { value: "120+", label: "120k+" },
 ];
 
-const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardProps) => {
+const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob, onSwitchView }: KanbanBoardProps) => {
   const { stages } = useStages();
   const [activeJob, setActiveJob] = useState<JobApplication | null>(null);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
@@ -292,7 +293,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
             </SelectContent>
           </Select>
           <div className="space-y-2">
-            {getColumnJobs(mobileStage).map((job) => (
+          {getColumnJobs(mobileStage).map((job, index) => (
               <JobCard
                 key={job.id}
                 job={job}
@@ -304,6 +305,8 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
                 onToggleSelect={toggleSelect}
                 selectMode={selectMode}
                 compact={compact}
+                onNavigateToCV={() => onSwitchView?.("cv")}
+                cardIndex={index}
               />
             ))}
             {getColumnJobs(mobileStage).length === 0 && (
@@ -335,6 +338,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob }: KanbanBoardPro
                   selectMode={selectMode}
                   compact={compact}
                   autoCollapse={filterStage === "all_stages"}
+                  onNavigateToCV={() => onSwitchView?.("cv")}
                 />
               ))}
               {/* Add Stage column */}

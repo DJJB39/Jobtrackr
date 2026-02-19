@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 
 interface CVUploadSectionProps {
-  onCVTextReady?: (text: string | null) => void;
+  onCVTextReady?: (text: string | null, isNewUpload?: boolean) => void;
 }
 
 async function extractTextFromPDF(file: File): Promise<string> {
@@ -55,7 +55,7 @@ const CVUploadSection = ({ onCVTextReady }: CVUploadSectionProps) => {
   useEffect(() => {
     if (!user) return;
     const cached = localStorage.getItem(`cv-text-${user.id}`);
-    onCVTextReady?.(cached || null);
+    onCVTextReady?.(cached || null, false);
   }, [user, onCVTextReady]);
 
   const handleFile = async (file: File) => {
@@ -73,7 +73,7 @@ const CVUploadSection = ({ onCVTextReady }: CVUploadSectionProps) => {
       // Extract text first
       const text = await extractTextFromPDF(file);
       localStorage.setItem(`cv-text-${user.id}`, text);
-      onCVTextReady?.(text);
+      onCVTextReady?.(text, true);
 
       // Upload to storage
       const { error } = await supabase.storage.from("resumes").upload(storagePath, file, { upsert: true });

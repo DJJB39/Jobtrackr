@@ -309,7 +309,7 @@ const AppPage = () => {
           <AddJobDialog onAdd={addJob} open={dialogOpen} onOpenChange={setDialogOpen} jobs={jobs} />
         </motion.div>
       ) : view === "board" ? (
-        <KanbanBoard jobs={searchQuery ? filteredJobs : jobs} setJobs={setJobs} onUpdateJob={updateJob} onDeleteJob={deleteJob} />
+        <KanbanBoard jobs={searchQuery ? filteredJobs : jobs} setJobs={setJobs} onUpdateJob={updateJob} onDeleteJob={deleteJob} onSwitchView={(v) => setView(v as View)} />
       ) : view === "list" ? (
         <ListView jobs={jobs} onSelectJob={handleSelectJob} searchQuery={searchQuery} />
       ) : view === "dashboard" ? (
