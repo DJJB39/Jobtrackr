@@ -284,7 +284,7 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {APPLICATION_TYPES.filter((t) => t !== "All").map((type) => (
+                {APPLICATION_TYPES.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
                   </SelectItem>
