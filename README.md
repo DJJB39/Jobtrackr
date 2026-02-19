@@ -109,4 +109,7 @@ End-to-end manual test cases and results are tracked in
 All critical paths are tested before networking pushes or releases.
 ## License
 
+## My Journey
+[Read how JobTrackr started and where it's going](/docs/journey.md)
+
 MIT
