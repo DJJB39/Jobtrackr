@@ -1,95 +1,36 @@
 
 
-# Remove "All" Filter Option + Custom Pipeline Stages
+# Remove Type Filter + Make Stage Management Discoverable
 
-## Overview
+## What's changing
 
-Two changes: (1) quick removal of "All" from `APPLICATION_TYPES`, and (2) user-customizable pipeline stages (columns) stored in the database.
-
----
-
-## Part 1: Remove "All" from APPLICATION_TYPES (Quick Fix)
-
-**File:** `src/types/job.ts`
-
-Remove `"All"` from the `APPLICATION_TYPES` array. Then update the two places that rely on it:
-
-**File:** `src/components/KanbanBoard.tsx`
-- Change the type filter `Select` to show a manual "All Types" option with value `"all_types"`, followed by `APPLICATION_TYPES.map(...)` (no more filtering needed since "All" is gone)
-- Update `filterType` default state from `"All"` to `"all_types"`
-- Update `hasActiveFilters` check accordingly
-
-**File:** `src/components/AddJobDialog.tsx`
-- Remove the `.filter((t) => t !== "All")` since "All" no longer exists in the array
+1. **Remove the "Application Type" filter dropdown** from the Kanban board filter bar entirely -- it adds no value.
+2. **Add a "+" column** at the end of the Kanban board so users can add/manage stages directly from the board without hunting through the user menu.
 
 ---
 
-## Part 2: Custom Pipeline Stages (User Preference)
+## Technical Details
 
-This is a larger feature. It requires a new database table and changes across many components.
+### 1. Remove Application Type Filter (KanbanBoard.tsx)
 
-### Database Migration
+- Delete the `filterType` state variable and its `Select` dropdown (lines 213-223)
+- Remove the `APPLICATION_TYPES` import
+- Remove the `filterType` filtering logic from the `filteredJobs` memo
+- Remove `filterType` from the `hasActiveFilters` check and the "Clear" button reset
 
-Create a `user_stages` table:
+Also remove the `APPLICATION_TYPES` import from `KanbanBoard.tsx` (it's still used in `AddJobDialog` and `JobDetailPanel` for the job type selector when adding/editing jobs, so the constant itself stays).
 
-```text
-user_stages
-  id          uuid PK default gen_random_uuid()
-  user_id     uuid NOT NULL (references auth.uid())
-  stage_id    text NOT NULL (e.g. "found", "applied", custom slugs)
-  title       text NOT NULL
-  color_class text NOT NULL
-  position    int  NOT NULL (for ordering)
-  created_at  timestamptz default now()
+### 2. Add "+" Column to Kanban Board (KanbanBoard.tsx)
 
-  UNIQUE(user_id, stage_id)
-  RLS: user_id = auth.uid()
-```
+After the last `KanbanColumn` in the desktop `flex gap-4` container, add a clickable "+" strip that opens the `StageManager` dialog directly:
 
-Seed with default stages matching the current `COLUMNS` array on first login (or via a database function triggered on user creation).
+- A thin column (matching collapsed column styling) with a "+" icon and "Add Stage" label
+- Clicking it opens the existing `StageManager` component
+- Add `StageManager` state (`stageManagerOpen`) and render it in `KanbanBoard.tsx`
 
-### New Hook: `src/hooks/useStages.tsx`
+This gives users an obvious, always-visible entry point to add or manage their pipeline stages right from the board itself.
 
-- Fetches user's stages from `user_stages` ordered by `position`
-- Provides `addStage`, `deleteStage`, `reorderStages` mutations
-- Falls back to default `COLUMNS` if no custom stages exist
-- Exposes a `stages` array that replaces the static `COLUMNS` import everywhere
+### Files Modified
 
-### New Component: `src/components/StageManager.tsx`
-
-A dialog/sheet accessible from the UserMenu ("Manage Stages"):
-- Lists current stages with drag-to-reorder
-- Delete button per stage (with confirmation if jobs exist in that stage -- offers to move them first)
-- "Add Stage" form at the bottom (title + color picker from preset colors)
-- Cannot delete below 2 stages
-
-### Component Updates
-
-Every file that imports `COLUMNS` from `src/types/job.ts` would need to switch to using the `useStages` hook instead. Affected files:
-
-- `KanbanBoard.tsx` -- render dynamic columns
-- `KanbanColumn.tsx` -- receive column data as prop (likely already does)
-- `JobDetailPanel.tsx` -- stage selector dropdown
-- `AddJobDialog.tsx` -- stage selector
-- `BulkActionBar.tsx` -- bulk move dropdown
-- `ListView.tsx` -- stage display and sorting
-- `Dashboard.tsx` -- charts and stats
-- `ShareStats.tsx` -- stage breakdown
-- `CommandPalette.tsx` -- stage labels
-- `CVView.tsx` -- stage display
-- `AppPage.tsx` -- CSV export stage mapping
-
-The static `COLUMNS` array in `types/job.ts` would remain as the default fallback but would no longer be the source of truth for logged-in users.
-
-### UserMenu Addition
-
-**File:** `src/components/UserMenu.tsx`
-
-Add a "Manage Stages" menu item (with a `Columns3` icon) that opens the StageManager dialog.
-
----
-
-## Recommendation
-
-Part 1 (removing "All") is a quick 3-file change. Part 2 (custom stages) is a significant feature touching 12+ files and requiring a database migration. I recommend implementing them separately -- Part 1 now, Part 2 as a follow-up.
+- `src/components/KanbanBoard.tsx` -- remove type filter, add "+" column with StageManager trigger
 
