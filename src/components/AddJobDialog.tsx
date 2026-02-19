@@ -27,8 +27,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Link as LinkIcon, Loader2, DollarSign, CalendarDays, Undo2 } from "lucide-react";
-import { COLUMNS, APPLICATION_TYPES, type ColumnId } from "@/types/job";
+import { APPLICATION_TYPES, type ColumnId } from "@/types/job";
 import type { JobApplication } from "@/types/job";
+import { useStages } from "@/hooks/useStages";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -46,6 +47,7 @@ interface AddJobDialogProps {
 }
 
 const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenChange, jobs = [] }: AddJobDialogProps) => {
+  const { stages } = useStages();
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen ?? internalOpen;
   const setOpen = externalOnOpenChange ?? setInternalOpen;
@@ -267,7 +269,7 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {COLUMNS.map((col) => (
+                {stages.map((col) => (
                   <SelectItem key={col.id} value={col.id}>
                     {col.title}
                   </SelectItem>

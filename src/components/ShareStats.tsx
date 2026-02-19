@@ -9,10 +9,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { COLUMNS, type JobApplication } from "@/types/job";
+import { type JobApplication } from "@/types/job";
+import { useStages } from "@/hooks/useStages";
 import { useToast } from "@/hooks/use-toast";
 
 const ShareStats = ({ jobs }: { jobs: JobApplication[] }) => {
+  const { stages } = useStages();
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
@@ -21,13 +23,13 @@ const ShareStats = ({ jobs }: { jobs: JobApplication[] }) => {
     const active = jobs.filter((j) => !["found", "rejected"].includes(j.columnId)).length;
     const interviews = jobs.filter((j) => ["phone", "interview2", "final"].includes(j.columnId)).length;
     const offers = jobs.filter((j) => j.columnId === "offer" || j.columnId === "accepted").length;
-    const stages = COLUMNS.map((c) => ({
+    const stages_breakdown = stages.map((c) => ({
       name: c.title,
       count: jobs.filter((j) => j.columnId === c.id).length,
     })).filter((s) => s.count > 0);
 
-    return { total, active, interviews, offers, stages };
-  }, [jobs]);
+    return { total, active, interviews, offers, stages: stages_breakdown };
+  }, [jobs, stages]);
 
   const shareText = useMemo(() => {
     const lines = [

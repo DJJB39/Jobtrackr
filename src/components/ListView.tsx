@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { parseSalary } from "@/lib/salary";
-import { COLUMNS, type JobApplication, type ColumnId } from "@/types/job";
+import { type JobApplication, type ColumnId } from "@/types/job";
+import { useStages } from "@/hooks/useStages";
 import { format } from "date-fns";
 import { ArrowUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -22,13 +23,11 @@ interface ListViewProps {
 type SortKey = "company" | "role" | "columnId" | "applicationType" | "createdAt" | "salary";
 type SortDir = "asc" | "desc";
 
-const stageMap = Object.fromEntries(COLUMNS.map((c) => [c.id, c.title]));
-
-const STAGE_ORDER: Record<ColumnId, number> = {
-  found: 0, applied: 1, phone: 2, interview2: 3, final: 4, offer: 5, accepted: 6, rejected: 7,
-};
-
 const ListView = ({ jobs, onSelectJob, searchQuery }: ListViewProps) => {
+  const { stages } = useStages();
+  const stageMap = Object.fromEntries(stages.map((c) => [c.id, c.title]));
+  const stageOrder = Object.fromEntries(stages.map((c, i) => [c.id, i]));
+
   const [sortKey, setSortKey] = useState<SortKey>("createdAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -63,7 +62,7 @@ const ListView = ({ jobs, onSelectJob, searchQuery }: ListViewProps) => {
         case "role":
           return mult * a.role.localeCompare(b.role);
         case "columnId":
-          return mult * (STAGE_ORDER[a.columnId] - STAGE_ORDER[b.columnId]);
+          return mult * ((stageOrder[a.columnId] ?? 99) - (stageOrder[b.columnId] ?? 99));
         case "applicationType":
           return mult * a.applicationType.localeCompare(b.applicationType);
         case "createdAt":
@@ -106,7 +105,7 @@ const ListView = ({ jobs, onSelectJob, searchQuery }: ListViewProps) => {
           </TableHeader>
           <TableBody>
             {sorted.map((job) => {
-              const col = COLUMNS.find((c) => c.id === job.columnId);
+              const col = stages.find((c) => c.id === job.columnId);
               return (
                 <TableRow
                   key={job.id}

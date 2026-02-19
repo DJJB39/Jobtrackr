@@ -1,4 +1,5 @@
-import { COLUMNS, type ColumnId } from "@/types/job";
+import { type ColumnId } from "@/types/job";
+import { useStages } from "@/hooks/useStages";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, ArrowRight, X } from "lucide-react";
@@ -24,6 +25,7 @@ interface BulkActionBarProps {
 }
 
 const BulkActionBar = ({ selectedCount, onMove, onDelete, onClear }: BulkActionBarProps) => {
+  const { stages } = useStages();
   const [moveTarget, setMoveTarget] = useState<string>("");
 
   return (
@@ -51,7 +53,7 @@ const BulkActionBar = ({ selectedCount, onMove, onDelete, onClear }: BulkActionB
                 </div>
               </SelectTrigger>
               <SelectContent>
-                {COLUMNS.map((col) => (
+                {stages.map((col) => (
                   <SelectItem key={col.id} value={col.id}>{col.title}</SelectItem>
                 ))}
               </SelectContent>

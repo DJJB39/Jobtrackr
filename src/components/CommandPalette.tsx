@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/command";
 import { Briefcase, LayoutDashboard, Columns3, CalendarDays, Download, Plus, List } from "lucide-react";
 import type { JobApplication } from "@/types/job";
-import { COLUMNS } from "@/types/job";
+import { useStages } from "@/hooks/useStages";
 
 interface CommandPaletteProps {
   jobs: JobApplication[];
@@ -20,6 +20,7 @@ interface CommandPaletteProps {
 }
 
 const CommandPalette = ({ jobs, onSelectJob, onSwitchView, onAddJob, onExport }: CommandPaletteProps) => {
+  const { stages } = useStages();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -33,7 +34,7 @@ const CommandPalette = ({ jobs, onSelectJob, onSwitchView, onAddJob, onExport }:
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  const stageMap = Object.fromEntries(COLUMNS.map((c) => [c.id, c.title]));
+  const stageMap = Object.fromEntries(stages.map((c) => [c.id, c.title]));
 
   const handleSelectJob = useCallback((job: JobApplication) => {
     onSelectJob(job);

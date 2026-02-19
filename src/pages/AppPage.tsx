@@ -20,7 +20,7 @@ import type { JobApplication } from "@/types/job";
 import { useLoginReminders } from "@/hooks/useLoginReminders";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { COLUMNS } from "@/types/job";
+import { useStages } from "@/hooks/useStages";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -35,6 +35,7 @@ const VIEW_ITEMS = [
 ];
 
 const AppPage = () => {
+  const { stages } = useStages();
   const { jobs, setJobs, loading, addJob, updateJob, deleteJob } = useJobs();
   const [view, setView] = useState<View>("board");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -80,7 +81,7 @@ const AppPage = () => {
     : jobs;
 
   const exportToCSV = () => {
-    const stageMap = Object.fromEntries(COLUMNS.map((c) => [c.id, c.title]));
+    const stageMap = Object.fromEntries(stages.map((c) => [c.id, c.title]));
     const headers = ["Company", "Role", "Stage", "Type", "Created", "Location", "Salary", "Deadline", "Events", "Notes", "Description", "Links"];
     const rows = jobs.map((j) => [
       j.company,
@@ -316,7 +317,7 @@ const AppPage = () => {
           jobs={filteredJobs}
           onUpdateJob={updateJob}
           onFilterByStage={(stageId) => {
-            const col = COLUMNS.find((c) => c.id === stageId);
+            const col = stages.find((c) => c.id === stageId);
             if (col) {
               setSearchQuery(col.title);
               setView("list");
