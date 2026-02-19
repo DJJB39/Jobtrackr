@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, Component } from "react";
 import CVUploadSection from "@/components/CVUploadSection";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sparkles, Loader2, FileText, CheckCircle2, Flame, Copy, RefreshCw, AlertTriangle, ClipboardList } from "lucide-react";
+import { Sparkles, Loader2, FileText, CheckCircle2, Flame, Copy, RefreshCw, AlertTriangle, ClipboardList, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import type { JobApplication } from "@/types/job";
@@ -10,6 +10,10 @@ import { useStages } from "@/hooks/useStages";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import ReactMarkdown from "react-markdown";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assist`;
 
@@ -87,6 +91,8 @@ const markdownComponents = {
   ),
 };
 
+type GenMode = "cover_letter" | "interview_prep" | "summarize";
+
 const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
   const { stages } = useStages();
   const { user, session } = useAuth();
@@ -103,6 +109,16 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
   const [ruthlessCooldown, setRuthlessCooldown] = useState(false);
   const [ruthlessIntensity, setRuthlessIntensity] = useState<Intensity>("hard");
 
+  // Auto-roast toggle
+  const [autoRoast, setAutoRoast] = useState(() => localStorage.getItem("auto_roast_new_uploads") !== "false");
+
+  // AI generation state
+  const [genOpen, setGenOpen] = useState(false);
+  const [genMode, setGenMode] = useState<GenMode | null>(null);
+  const [genJobId, setGenJobId] = useState<string | null>(null);
+  const [genContent, setGenContent] = useState("");
+  const [genLoading, setGenLoading] = useState(false);
+
   // Cooldown logic
   useEffect(() => {
     const checkCooldown = () => {
@@ -118,9 +134,98 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
     return checkCooldown();
   }, []);
 
-  const handleCVText = useCallback((text: string | null) => {
-    setCvText(text);
+  const handleAutoRoastToggle = useCallback((val: boolean) => {
+    setAutoRoast(val);
+    localStorage.setItem("auto_roast_new_uploads", val ? "true" : "false");
   }, []);
+
+  const startRuthlessReview = useCallback(async (intensityOverride?: Intensity, skipCooldown?: boolean) => {
+    if (!cvText) {
+      toast({ title: "No CV uploaded", description: "Upload your CV first", variant: "destructive" });
+      return;
+    }
+    if (!session?.access_token) {
+      toast({ title: "Please log in", description: "Authentication required", variant: "destructive" });
+      return;
+    }
+    if (cvText.length > 6000) {
+      toast({ title: "CV truncated", description: "CV truncated to 6000 chars for review" });
+    }
+
+    if (!skipCooldown) {
+      localStorage.setItem("ruthless-cooldown", Date.now().toString());
+      setRuthlessCooldown(true);
+      setTimeout(() => setRuthlessCooldown(false), 30000);
+    }
+
+    const intensity = intensityOverride || ruthlessIntensity;
+
+    setRuthlessLoading(true);
+    setRuthlessText("");
+    setRuthlessOpen(true);
+
+    try {
+      const resp = await fetch(AI_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          mode: "ruthless_review",
+          job: {},
+          cvText,
+          intensity,
+        }),
+      });
+
+      if (!resp.ok) {
+        toast({ title: "Review unavailable", description: "Try again later", variant: "destructive" });
+        setRuthlessLoading(false);
+        return;
+      }
+
+      const reader = resp.body?.getReader();
+      if (!reader) { setRuthlessLoading(false); return; }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              setRuthlessText((prev) => prev + content);
+            }
+          } catch { /* skip malformed chunks */ }
+        }
+      }
+    } catch {
+      toast({ title: "Review unavailable", description: "Try again later", variant: "destructive" });
+    } finally {
+      setRuthlessLoading(false);
+    }
+  }, [cvText, session, ruthlessIntensity, toast]);
+
+  const handleCVText = useCallback((text: string | null, isNewUpload?: boolean) => {
+    setCvText(text);
+    if (isNewUpload && text && autoRoast && !ruthlessText) {
+      // Auto-trigger ruthless review on fresh upload
+      setTimeout(() => startRuthlessReview("hard", true), 500);
+    }
+  }, [autoRoast, ruthlessText, startRuthlessReview]);
 
   // Load cached results
   useEffect(() => {
@@ -187,26 +292,19 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
     }
   };
 
-  const startRuthlessReview = async () => {
-    if (!cvText) {
-      toast({ title: "No CV uploaded", description: "Upload your CV first", variant: "destructive" });
-      return;
-    }
+  // AI generation streaming
+  const startGeneration = async (mode: GenMode) => {
+    if (!cvText || !genJobId) return;
+    const job = activeJobs.find((j) => j.id === genJobId);
+    if (!job) return;
     if (!session?.access_token) {
-      toast({ title: "Please log in", description: "Authentication required", variant: "destructive" });
+      toast({ title: "Please log in", variant: "destructive" });
       return;
     }
-    if (cvText.length > 6000) {
-      toast({ title: "CV truncated", description: "CV truncated to 6000 chars for review" });
-    }
 
-    localStorage.setItem("ruthless-cooldown", Date.now().toString());
-    setRuthlessCooldown(true);
-    setTimeout(() => setRuthlessCooldown(false), 30000);
-
-    setRuthlessLoading(true);
-    setRuthlessText("");
-    setRuthlessOpen(true);
+    setGenMode(mode);
+    setGenContent("");
+    setGenLoading(true);
 
     try {
       const resp = await fetch(AI_URL, {
@@ -216,21 +314,27 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          mode: "ruthless_review",
-          job: {},
+          mode,
+          job: {
+            company: job.company,
+            role: job.role,
+            salary: job.salary,
+            location: job.location,
+            description: job.description,
+            notes: job.notes,
+          },
           cvText,
-          intensity: ruthlessIntensity,
         }),
       });
 
       if (!resp.ok) {
-        toast({ title: "Review unavailable", description: "Try again later", variant: "destructive" });
-        setRuthlessLoading(false);
+        toast({ title: "Generation failed", description: "Try again later", variant: "destructive" });
+        setGenLoading(false);
         return;
       }
 
       const reader = resp.body?.getReader();
-      if (!reader) { setRuthlessLoading(false); return; }
+      if (!reader) { setGenLoading(false); return; }
 
       const decoder = new TextDecoder();
       let buffer = "";
@@ -251,20 +355,28 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
             const parsed = JSON.parse(data);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
-              setRuthlessText((prev) => prev + content);
+              setGenContent((prev) => prev + content);
             }
-          } catch { /* skip malformed chunks */ }
+          } catch { /* skip */ }
         }
       }
     } catch {
-      toast({ title: "Review unavailable", description: "Try again later", variant: "destructive" });
+      toast({ title: "Generation failed", variant: "destructive" });
     } finally {
-      setRuthlessLoading(false);
+      setGenLoading(false);
     }
   };
 
   const activeJobs = jobs.filter((j) => j.columnId !== "rejected" && j.columnId !== "accepted");
   const selectedResult = selectedJobId ? results[selectedJobId] : null;
+
+  // Pre-select most recent job for generation
+  const sortedActiveJobs = [...activeJobs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  useEffect(() => {
+    if (!genJobId && sortedActiveJobs.length > 0) {
+      setGenJobId(sortedActiveJobs[0].id);
+    }
+  }, [sortedActiveJobs.length]);
 
   return (
     <div className="flex-1 overflow-auto">
@@ -281,7 +393,7 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
           <CVUploadSection onCVTextReady={handleCVText} />
           {cvText && (
             <div className="space-y-3">
-              {/* Intensity selector */}
+              {/* Intensity selector + auto-roast toggle */}
               <div className="flex flex-wrap items-center gap-2">
                 {INTENSITY_OPTIONS.map((opt) => (
                   <button
@@ -295,6 +407,29 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
                     {opt.label}
                   </button>
                 ))}
+
+                <div className="ml-auto flex items-center gap-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id="auto-roast"
+                            checked={autoRoast}
+                            onCheckedChange={handleAutoRoastToggle}
+                            className="scale-90"
+                          />
+                          <label htmlFor="auto-roast" className="text-xs text-muted-foreground cursor-pointer whitespace-nowrap">
+                            Auto-roast
+                          </label>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Automatically roast new CVs on upload (can turn off)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </div>
 
               {/* Nuclear disclaimer */}
@@ -310,7 +445,7 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
                   variant="destructive"
                   size="sm"
                   className="gap-2"
-                  onClick={startRuthlessReview}
+                  onClick={() => startRuthlessReview()}
                   disabled={ruthlessLoading || ruthlessCooldown}
                 >
                   {ruthlessLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Flame className="h-4 w-4" />}
@@ -463,6 +598,110 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
           )}
         </AnimatePresence>
 
+        {/* Section 4: Career Boost — AI Generation */}
+        {cvText && activeJobs.length > 0 && (
+          <Collapsible open={genOpen} onOpenChange={setGenOpen}>
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center gap-2 w-full text-left rounded-xl border border-border/50 bg-card/60 hover:bg-card/80 px-5 py-4 transition-all group">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <span className="text-lg font-display font-semibold text-foreground flex-1">
+                  Career Boost: Generate Materials for Selected Job
+                </span>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${genOpen ? "rotate-180" : ""}`} />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="rounded-b-xl border border-t-0 border-border/50 bg-secondary/10 p-5 space-y-4">
+                {/* Job selector */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Select a job</label>
+                  <Select value={genJobId || ""} onValueChange={setGenJobId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose a job..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sortedActiveJobs.map((job) => (
+                        <SelectItem key={job.id} value={job.id}>
+                          {job.company} — {job.role}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Generation buttons */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => startGeneration("cover_letter")}
+                    disabled={genLoading || !genJobId}
+                  >
+                    {genLoading && genMode === "cover_letter" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                    Cover Letter
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => startGeneration("interview_prep")}
+                    disabled={genLoading || !genJobId}
+                  >
+                    {genLoading && genMode === "interview_prep" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                    Interview Prep
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => startGeneration("summarize")}
+                    disabled={genLoading || !genJobId}
+                  >
+                    {genLoading && genMode === "summarize" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardList className="h-3.5 w-3.5" />}
+                    Summary
+                  </Button>
+                </div>
+
+                {/* Generated content */}
+                {(genContent || genLoading) && (
+                  <div className="space-y-3">
+                    <div className="rounded-lg border border-border/50 bg-card/80 p-4 max-h-[400px] overflow-auto">
+                      <MarkdownErrorBoundary>
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown>
+                            {genContent || "Generating..."}
+                          </ReactMarkdown>
+                        </div>
+                      </MarkdownErrorBoundary>
+                    </div>
+                    {genContent && !genLoading && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => {
+                          navigator.clipboard.writeText(genContent);
+                          toast({ title: "Copied to clipboard" });
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" /> Copy
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {/* Upsell banner */}
+                <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-3 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    Sign up for unlimited generations
+                  </p>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
         {/* Empty states */}
         {!cvText && (
           <div className="text-center py-12 text-muted-foreground">
@@ -512,7 +751,7 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
               variant="outline"
               size="sm"
               className="gap-1.5 ml-auto h-7 text-xs"
-              onClick={startRuthlessReview}
+              onClick={() => startRuthlessReview()}
               disabled={ruthlessLoading || ruthlessCooldown}
             >
               {ruthlessLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
@@ -559,7 +798,7 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
               variant="outline"
               size="sm"
               className="gap-2"
-              onClick={startRuthlessReview}
+              onClick={() => startRuthlessReview()}
               disabled={ruthlessLoading || ruthlessCooldown}
             >
               <RefreshCw className="h-4 w-4" /> Retry
