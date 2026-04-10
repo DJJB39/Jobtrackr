@@ -190,7 +190,7 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI, onOpenCoach
               </div>
             </div>
 
-            {/* AI button */}
+            {/* AI + Coach buttons */}
             <div className="flex items-center gap-1.5 shrink-0 ml-3">
               {onOpenCoach && (
                 <Button
