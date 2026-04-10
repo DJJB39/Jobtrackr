@@ -94,6 +94,17 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI, onOpenCoach
 
   const column = stages.find((c) => c.id === editedJob.columnId);
 
+  // Check if job has an upcoming interview within 3 days
+  const hasUpcomingInterview = (() => {
+    const today = startOfDay(new Date());
+    return (editedJob.events ?? []).some((e) => {
+      try {
+        const eventDate = parseISO(e.date);
+        return !isBefore(eventDate, today) && differenceInDays(eventDate, today) <= 3;
+      } catch { return false; }
+    });
+  })();
+
   const update = <K extends keyof JobApplication>(key: K, value: JobApplication[K]) => {
     const updated = { ...editedJob, [key]: value };
     setEditedJob(updated);
