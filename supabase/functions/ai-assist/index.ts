@@ -503,6 +503,77 @@ Only map columns you're confident about. Skip irrelevant columns like internal I
       });
     }
 
+    // --- CV Tailor (non-streaming, tool call) ---
+    if (mode === "tailor_cv") {
+      const tailorSystemPrompt = `You are an expert CV optimizer with strict ethical guidelines. Your job is to reword the candidate's EXISTING experience to better align with the job description.
+
+CRITICAL RULES:
+1. NEVER invent new achievements, skills, or experiences the candidate doesn't have.
+2. NEVER fabricate metrics, numbers, or outcomes not present in the original.
+3. ONLY rephrase, restructure, and emphasize existing content to match JD keywords.
+4. If the candidate lacks a required skill/experience, say so in keywords_missing — do NOT try to fake it.
+5. Flag any change that might stretch the truth in the risk_note field.
+6. Be honest about the match gap — if the CV is a poor fit, say so.
+
+For each section you modify:
+- Show the original text verbatim
+- Show the tailored version that better matches the JD
+- Explain what JD requirement each change targets
+- Flag any honesty risk
+
+Focus on: summary/objective, relevant experience bullets, skills section, and any section that can be meaningfully improved. Skip sections with no room for improvement.
+
+You MUST use the cv_tailor_result tool.`;
+
+      const tailorJobContext = job ? [
+        `Company: ${job.company}`,
+        `Role: ${job.role}`,
+        job.salary ? `Salary: ${job.salary}` : null,
+        job.location ? `Location: ${job.location}` : null,
+        job.description ? `Job Description: ${job.description.slice(0, 3000)}` : null,
+      ].filter(Boolean).join("\n") : "";
+
+      const tailorUserContent = [
+        `--- Job Description ---\n${tailorJobContext}`,
+        `\n--- Candidate CV ---\n${cvText?.slice(0, 5000) ?? "No CV provided"}`,
+      ].join("\n");
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: tailorSystemPrompt },
+            { role: "user", content: tailorUserContent },
+          ],
+          tools: [CV_TAILOR_TOOL],
+          tool_choice: { type: "function", function: { name: "cv_tailor_result" } },
+        }),
+      });
+
+      if (!response.ok) {
+        const t = await response.text();
+        console.error("AI gateway error:", response.status, t);
+        return new Response(JSON.stringify({ error: "CV tailoring failed" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const data = await response.json();
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall) {
+        return new Response(JSON.stringify({ error: "AI did not return structured tailor result" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const result = JSON.parse(toolCall.function.arguments);
+      return new Response(JSON.stringify({ ...result, model }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // --- Build prompt ---
     let systemPrompt: string | undefined;
     if (mode === "ruthless_review") {

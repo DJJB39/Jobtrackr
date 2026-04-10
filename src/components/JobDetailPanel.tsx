@@ -21,6 +21,7 @@ import {
   FileUp,
   Mic,
   CalendarCheck,
+  FileText as FileTextIcon,
 } from "lucide-react";
 import InlineEdit from "./InlineEdit";
 import DetailOverviewTab from "./detail/DetailOverviewTab";
@@ -48,9 +49,10 @@ interface JobDetailPanelProps {
   onOpenAI?: () => void;
   onOpenCoach?: () => void;
   onOpenBootcamp?: () => void;
+  onOpenTailor?: () => void;
 }
 
-const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI, onOpenCoach, onOpenBootcamp }: JobDetailPanelProps) => {
+const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI, onOpenCoach, onOpenBootcamp, onOpenTailor }: JobDetailPanelProps) => {
   const { stages } = useStages();
   const [editedJob, setEditedJob] = useState<JobApplication | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -206,6 +208,16 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI, onOpenCoach
 
             {/* AI + Coach buttons */}
             <div className="flex items-center gap-1.5 shrink-0 ml-3">
+              {onOpenTailor && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onOpenTailor}
+                  className="gap-1.5 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 hover:border-emerald-500/50 transition-all"
+                >
+                  <FileTextIcon className="h-3.5 w-3.5" /> Tailor CV
+                </Button>
+              )}
               {hasUpcomingInterview && onOpenBootcamp && (
                 <Button
                   variant="outline"
