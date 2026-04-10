@@ -459,7 +459,7 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
                     size="sm"
                     className="gap-2"
                     onClick={() => generation.startGeneration("summarize")}
-                    disabled={generation.genLoading || !generation.genJobId}
+                    disabled={generation.genLoading || !generation.genJobId || aiPrefs.isLimitReached}
                   >
                     {generation.genLoading && generation.genMode === "summarize" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardList className="h-3.5 w-3.5" />}
                     Summary
