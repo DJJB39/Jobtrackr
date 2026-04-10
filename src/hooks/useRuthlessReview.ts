@@ -14,7 +14,11 @@ export const INTENSITY_OPTIONS: { value: Intensity; label: string; color: string
   { value: "nuclear", label: "Nuclear ☢️", color: "bg-purple-500/15 text-purple-600 border-purple-500/30 data-[state=on]:bg-purple-500 data-[state=on]:text-white" },
 ];
 
-export const useRuthlessReview = (cvText: string | null) => {
+export const useRuthlessReview = (
+  cvText: string | null,
+  preferredModel?: string,
+  onUsageIncrement?: () => void
+) => {
   const { session } = useAuth();
   const { toast } = useToast();
   const { content: ruthlessText, loading: ruthlessLoading, stream, reset, setContent: setRuthlessText } = useSSEStream();
@@ -23,7 +27,6 @@ export const useRuthlessReview = (cvText: string | null) => {
   const [ruthlessIntensity, setRuthlessIntensity] = useState<Intensity>("hard");
   const [autoRoast, setAutoRoast] = useState(() => localStorage.getItem("auto_roast_new_uploads") !== "false");
 
-  // Cooldown logic
   useEffect(() => {
     const ts = localStorage.getItem("ruthless-cooldown");
     if (!ts) return;
@@ -60,15 +63,23 @@ export const useRuthlessReview = (cvText: string | null) => {
     }
 
     const intensity = intensityOverride || ruthlessIntensity;
+    const model = preferredModel || "google/gemini-3-flash-preview";
     setRuthlessOpen(true);
 
     await stream(
       AI_URL,
-      { mode: "ruthless_review", job: {}, cvText, intensity },
+      { mode: "ruthless_review", job: {}, cvText, intensity, model },
       session.access_token,
-      (msg) => toast({ title: "Review unavailable", description: msg, variant: "destructive" })
+      (msg) => {
+        if (msg.includes("LIMIT_REACHED")) {
+          toast({ title: "Monthly AI limit reached", description: "Upgrade to Pro for unlimited generations.", variant: "destructive" });
+        } else {
+          toast({ title: "Review unavailable", description: msg, variant: "destructive" });
+        }
+      },
+      () => onUsageIncrement?.()
     );
-  }, [cvText, session, ruthlessIntensity, toast, stream]);
+  }, [cvText, session, ruthlessIntensity, toast, stream, preferredModel, onUsageIncrement]);
 
   return {
     ruthlessText,
