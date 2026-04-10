@@ -64,7 +64,7 @@ export const useInterviewCoach = (
   const [lastModel, setLastModel] = useState<string | null>(null);
   const [job, setJob] = useState<JobApplication | null>(null);
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<ReturnType<typeof createRecognition> | null>(null);
   const synthRef = useRef(typeof window !== "undefined" ? window.speechSynthesis : null);
 
   // Cleanup recognition on unmount
@@ -149,16 +149,17 @@ export const useInterviewCoach = (
 
         // Create session in DB
         if (user) {
+          const insertPayload = {
+            user_id: user.id,
+            job_id: selectedJob.id,
+            mode,
+            model,
+            questions: JSON.stringify(data.questions.map((q: InterviewQuestion) => q.question)),
+            status: "in_progress",
+          };
           const { data: sess } = await supabase
             .from("interview_sessions")
-            .insert({
-              user_id: user.id,
-              job_id: selectedJob.id,
-              mode,
-              model,
-              questions: data.questions.map((q: InterviewQuestion) => q.question),
-              status: "in_progress",
-            } as Record<string, unknown>)
+            .insert(insertPayload as never)
             .select("id")
             .single();
           if (sess) setSessionId(sess.id);
@@ -203,9 +204,18 @@ export const useInterviewCoach = (
     setIsListening(true);
     setState("listening");
 
-    const SpeechRecognitionClass =
-      (window as unknown as { SpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition ||
-      (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition;
+    const SpeechRecognitionClass = createRecognition;
+    if (!SpeechRecognitionClass) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recognition = new (SpeechRecognitionClass as any)() as {
+      continuous: boolean; interimResults: boolean; lang: string;
+      onresult: ((e: { resultIndex: number; results: { length: number; [i: number]: { isFinal: boolean; 0: { transcript: string } } } }) => void) | null;
+      onerror: (() => void) | null;
+      onend: (() => void) | null;
+      start: () => void;
+      stop: () => void;
+      abort: () => void;
+    };
 
     if (!SpeechRecognitionClass) return;
 
