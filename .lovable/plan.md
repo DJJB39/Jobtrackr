@@ -1,159 +1,96 @@
 
 
-# Interview Coach (Ruthless Roast Edition)
+# Day Before Interview Bootcamp
 
 ## Overview
 
-A full mock interview experience tied to a specific job. The AI generates tailored questions, speaks them aloud via browser SpeechSynthesis, listens to the user's spoken answer via SpeechRecognition, then streams per-answer feedback. Two modes: Helpful Coach and Ruthless Roast. Session results are persisted for later review.
+A focused prep feature triggered from jobs with upcoming interviews. Generates a structured 1-day plan (company snapshot, logistics, schedule, tailored questions) via AI, then lets the user jump straight into a ruthless voice coach session with bootcamp context injected.
 
----
+## Technical Changes
 
-## 1. Database Migration
+### 1. Edge Function — new `day_before_bootcamp` mode
 
-New table `interview_sessions`:
+**File**: `supabase/functions/ai-assist/index.ts`
 
-```sql
-CREATE TABLE public.interview_sessions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  job_id uuid REFERENCES public.job_applications(id) ON DELETE CASCADE,
-  mode text NOT NULL DEFAULT 'helpful',
-  model text NOT NULL DEFAULT 'google/gemini-3-flash-preview',
-  questions jsonb NOT NULL DEFAULT '[]',
-  answers jsonb NOT NULL DEFAULT '[]',
-  feedback jsonb NOT NULL DEFAULT '[]',
-  overall_score integer,
-  overall_feedback text,
-  status text NOT NULL DEFAULT 'in_progress',
-  created_at timestamptz NOT NULL DEFAULT now(),
-  completed_at timestamptz
-);
-
-ALTER TABLE public.interview_sessions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own sessions" ON public.interview_sessions
-  FOR SELECT TO authenticated USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own sessions" ON public.interview_sessions
-  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own sessions" ON public.interview_sessions
-  FOR UPDATE TO authenticated USING (auth.uid() = user_id);
-```
-
-JSONB columns store arrays of strings (questions, answers) and objects (feedback per answer with content_quality, star_structure, confidence, filler_words, relevance, score fields).
-
----
-
-## 2. Edge Function Update (`ai-assist/index.ts`)
-
-Add two new modes to the existing function:
-
-- **`interview_questions`** — Non-streaming tool call. Given job description + CV, returns 6-8 structured questions via tool calling (array of `{question, type: "behavioral"|"role_specific"}`). System prompt instructs mix of behavioural and role-specific questions tailored to the job.
-
-- **`interview_feedback`** — Streaming. Accepts the question, user's transcribed answer, job context, and mode (helpful/ruthless). Returns detailed markdown feedback analyzing: content quality, STAR structure usage, confidence indicators, filler words, relevance to job spec. Ruthless mode uses savage/sarcastic tone matching the existing roast style.
-
-- **`interview_overall`** — Non-streaming tool call. Accepts all Q&A pairs + feedback summaries, returns structured `{score: 0-100, breakdown: {...}, summary: string}`.
-
-All three modes count against the existing usage limit via `ai_usage_logs`.
-
----
-
-## 3. New Hook: `src/hooks/useInterviewCoach.ts`
-
-State machine managing the session lifecycle:
+Add a new tool-call mode `day_before_bootcamp` (non-streaming, structured JSON output) alongside the existing `csv_import_analyze` block. Uses a new tool schema:
 
 ```text
-idle → generating_questions → ready → speaking → listening → analyzing → ready (next Q) → complete
+day_before_bootcamp_result:
+  company_snapshot: { why_join, location_details, recent_news, product_context }
+  logistics: { commute_estimate, cost_estimate, time_advice }
+  schedule: [{ time, activity, duration_min, focus_area }]  (8-12 items)
+  questions: [{ question, type, context_note }]  (4-6 items)
+  summary_markdown: string  (printable overview)
 ```
 
-Key responsibilities:
-- **Question generation**: Call `ai-assist` with mode `interview_questions`, parse structured response
-- **Speech synthesis**: Use `window.speechSynthesis` to speak each question (select natural voice)
-- **Speech recognition**: Use `webkitSpeechRecognition` / `SpeechRecognition` to capture answer text, with interim results for live "Listening..." display
-- **Feedback streaming**: After each answer, call `ai-assist` with mode `interview_feedback` via `useSSEStream`
-- **Overall score**: After all questions answered, call `interview_overall` for final score
-- **Persistence**: Save session to `interview_sessions` table via Supabase client
-- **Usage tracking**: Each AI call increments usage via `onUsageIncrement`
+System prompt instructs the AI to research the company based on the job description, incorporate recent context (layoffs/funding/expansion), and produce realistic logistics if user location is provided. Ruthless tone baked in where appropriate.
 
-Exports: `startSession(job, mode)`, `nextQuestion()`, `skipQuestion()`, `stopListening()`, `currentQuestion`, `currentAnswer`, `currentFeedback`, `questions`, `answers`, `feedbacks`, `overallScore`, `sessionState`, `isListening`, `interimTranscript`
+Input: `{ mode: "day_before_bootcamp", job, cvText, userLocation? }`
 
----
+No DB migration needed — bootcamp sessions will be stored as `interview_sessions` with `mode: "bootcamp"` (column already supports any text value).
 
-## 4. New Component: `src/components/InterviewCoach.tsx`
+### 2. Hook — extend `useInterviewCoach.ts`
 
-Full-screen dialog (using existing Sheet or Dialog) with glassmorphism styling:
+Add a `startBootcampSession` method that:
+- Calls the `day_before_bootcamp` edge function mode first to get the structured prep data.
+- Stores the bootcamp result in state (`bootcampData`).
+- When user clicks "Roast Me Now", calls `startSession()` but injects the bootcamp questions (instead of generating new ones) and passes bootcamp context to the feedback prompts.
 
-**Session Start Screen:**
-- Two large cards: "Helpful Coach" (green, encouraging icon) vs "Ruthless Roast Me" (red, flame icon)
-- Job info displayed (company, role, description preview)
-- "Start Session" button
+New exports: `bootcampData`, `bootcampLoading`, `startBootcampSession`, `startBootcampRoast`.
 
-**Active Session Screen:**
-- Progress bar: "Question 3 of 7"
-- Current question displayed prominently
-- Large microphone button (animated ring when listening, pulsing red)
-- "Listening..." text with interim transcript shown live
-- "Skip Question" secondary button
+### 3. New Component — `src/components/DayBeforeBootcamp.tsx`
 
-**Feedback Screen (per question):**
-- Streaming markdown feedback (reuses ReactMarkdown pattern)
-- Model badge (consistent with AI settings)
-- Score indicators for each dimension
-- "Next Question" button
+A `Dialog` component with glassmorphism styling:
 
-**Session Complete Screen:**
-- Overall score ring (reuse ScoreRing pattern from CVView)
-- Breakdown categories with individual scores
-- Full markdown summary
-- "Save & Close" button
+**States**: `idle` → `loading` → `ready` → `roasting` (delegates to InterviewCoach)
 
----
+**Layout when ready**:
+- **Company Snapshot** — card with why_join, recent news badges, product context
+- **Logistics** — commute/cost/time advice in a compact row
+- **Schedule Timeline** — vertical timeline of the day's activities with times and focus areas
+- **Questions Preview** — numbered list with type badges
+- **Big "Roast Me Now" button** — starts ruthless coach with bootcamp questions
+- **Print/Export** — `window.print()` with print-friendly CSS
 
-## 5. Integration Points
+### 4. Integration Points
 
-### JobDetailPanel.tsx
-- Add "Interview Coach" button next to existing "AI Assist" button in the header
-- Add a 5th tab "Interview" showing past session scores for this job (fetched from `interview_sessions`)
+**JobDetailPanel** (`src/components/JobDetailPanel.tsx`):
+- Add "Day Before Bootcamp" button next to Coach button in the header.
+- Only visible when job has an upcoming interview event (within 3 days).
+- Pass `onOpenBootcamp` prop.
 
-### AppPage.tsx
-- Add state for `interviewCoachOpen` and `interviewCoachJob`
-- Pass handler to JobDetailPanel
-- Render `InterviewCoach` component
+**AppPage** (`src/pages/AppPage.tsx`):
+- Add `bootcampOpen` state + `DayBeforeBootcamp` component alongside existing `InterviewCoach`.
+- Wire `onOpenBootcamp` through `JobDetailPanel`.
 
-### JobCard.tsx
-- Add small "Coach" icon button (visible on hover) that opens interview coach for that job
+**JobCard** (`src/components/JobCard.tsx`):
+- Add a small calendar-check icon on hover for jobs with upcoming interviews (within 3 days).
+- On click, opens the detail panel and triggers bootcamp.
 
----
+### 5. Edge Function Feedback Enhancement
 
-## 6. Files Summary
+Add a new system prompt key `interview_feedback_bootcamp_ruthless` that extends the existing ruthless feedback prompt with bootcamp-specific instructions: reference company news, call out missed opportunities to mention specific company context, etc.
 
-| File | Action |
+## Files Changed
+
+| File | Change |
 |------|--------|
-| DB migration | New `interview_sessions` table |
-| `supabase/functions/ai-assist/index.ts` | Add `interview_questions`, `interview_feedback`, `interview_overall` modes + system prompts |
-| `src/hooks/useInterviewCoach.ts` | **New** — session state machine, speech APIs, streaming |
-| `src/components/InterviewCoach.tsx` | **New** — full UI with glassmorphism, mic button, feedback display |
-| `src/components/JobDetailPanel.tsx` | Add Coach button + Interview tab |
-| `src/pages/AppPage.tsx` | Wire up InterviewCoach state + rendering |
-| `src/components/JobCard.tsx` | Add hover Coach icon |
+| `supabase/functions/ai-assist/index.ts` | Add `day_before_bootcamp` mode + tool schema + `interview_feedback_bootcamp_ruthless` prompt |
+| `src/hooks/useInterviewCoach.ts` | Add bootcamp state, `startBootcampSession`, `startBootcampRoast` |
+| `src/components/DayBeforeBootcamp.tsx` | **New** — full bootcamp modal |
+| `src/components/JobDetailPanel.tsx` | Add bootcamp button (conditional on upcoming interview) |
+| `src/pages/AppPage.tsx` | Add bootcamp state + component wiring |
+| `src/components/JobCard.tsx` | Add bootcamp icon on hover for jobs with upcoming interviews |
 
----
+## What's NOT included
 
-## 7. Browser API Notes
+- **No new DB table or migration** — reuses `interview_sessions` with `mode: "bootcamp"`
+- **No real commute API** — AI estimates based on location text (good enough, no external API key needed)
+- **No separate usage bucket** — counts against existing 10/month AI limit
 
-- `SpeechRecognition` requires HTTPS (preview URL qualifies) and user gesture to start
-- `SpeechSynthesis` works without permissions
-- Both APIs have no Safari iOS support for `SpeechRecognition` — will show graceful fallback: "Type your answer instead" text input
-- Feature detection at hook level: `const hasSpeechRecognition = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window`
+## Test Scenarios
 
----
-
-## 8. Test Scenarios
-
-1. **Helpful mode flow**: Start session → hear question → answer verbally → receive encouraging feedback → complete all questions → see overall score
-2. **Ruthless mode flow**: Same flow but verify feedback tone is savage/sarcastic, scores are harsh
-3. **Usage limit**: Verify coach is disabled when monthly limit reached, shows upgrade nudge
-4. **Fallback**: Test on browser without SpeechRecognition — verify text input fallback appears
-5. **Persistence**: Complete a session, close panel, reopen job detail → verify past session score shows in Interview tab
+1. **Happy path**: Job with interview tomorrow → click "Day Before Bootcamp" → see company snapshot, schedule, questions → click "Roast Me Now" → answer with bootcamp context feedback
+2. **Company news injection**: Job at a company with known recent events → verify AI references them in snapshot and feedback
+3. **No interview scheduled**: Verify bootcamp button is hidden or shows "Schedule an interview first" tooltip
 
