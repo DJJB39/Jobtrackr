@@ -38,8 +38,7 @@ describe("CVTailorModal", () => {
     renderWithProviders(
       <CVTailorModal job={mockJob} open={true} onOpenChange={() => {}} onStartRoast={() => {}} />
     );
-    // Check for the honesty-related text
-    expect(screen.getByText(/optimizes your real experience/i)).toBeInTheDocument();
+    expect(screen.getByText(/nothing is invented/i)).toBeInTheDocument();
   });
 
   it("shows tailor button", () => {

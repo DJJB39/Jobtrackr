@@ -5,19 +5,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock supabase before importing store
 vi.mock("@/integrations/supabase/client", () => {
-  const mockFrom = vi.fn(() => ({
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    order: vi.fn().mockResolvedValue({ data: [], error: null }),
-    single: vi.fn().mockResolvedValue({ data: null, error: null }),
-  }));
+  const chainable: any = {};
+  chainable.select = vi.fn().mockReturnValue(chainable);
+  chainable.insert = vi.fn().mockReturnValue(chainable);
+  chainable.update = vi.fn().mockReturnValue(chainable);
+  chainable.delete = vi.fn().mockReturnValue(chainable);
+  chainable.eq = vi.fn().mockReturnValue(chainable);
+  chainable.order = vi.fn().mockResolvedValue({ data: [], error: null });
+  chainable.single = vi.fn().mockResolvedValue({ data: null, error: null });
+  chainable.then = vi.fn((cb: any) => Promise.resolve(cb({ data: null, error: null })));
 
   return {
     supabase: {
-      from: mockFrom,
+      from: vi.fn(() => ({ ...chainable })),
       auth: {
         onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
         getSession: vi.fn(() => Promise.resolve({ data: { session: null } })),
