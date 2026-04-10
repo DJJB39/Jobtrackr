@@ -52,6 +52,7 @@ export interface JobApplication {
   salary?: string;
   closeDate?: string;
   events: JobEvent[];
+  importedFrom?: string;
 }
 
 export type EventType = "interview" | "follow_up" | "deadline";

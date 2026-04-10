@@ -21,6 +21,7 @@ const rowToJob = (row: Record<string, unknown>): JobApplication => ({
   salary: (row.salary as string) ?? undefined,
   closeDate: (row.close_date as string) ?? undefined,
   events: (row.events ?? []) as JobEvent[],
+  importedFrom: (row.imported_from as string) ?? undefined,
 });
 
 /* ── Activity diff helper ──────────────────────────────── */

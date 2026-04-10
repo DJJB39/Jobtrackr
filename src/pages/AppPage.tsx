@@ -5,13 +5,14 @@ import Dashboard from "@/components/Dashboard";
 import ListView from "@/components/ListView";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
-import { Briefcase, LayoutDashboard, Columns3, Download, CalendarDays, X, List, Search, FileUp } from "lucide-react";
+import { Briefcase, LayoutDashboard, Columns3, Download, CalendarDays, X, List, Search, FileUp, Upload } from "lucide-react";
 import ShareStats from "@/components/ShareStats";
 import CalendarView from "@/components/CalendarView";
 import CVView from "@/components/CVView";
 import JobDetailPanel from "@/components/JobDetailPanel";
 import AIAssistPanel from "@/components/AIAssistPanel";
 import InterviewCoach from "@/components/InterviewCoach";
+import CSVImportModal from "@/components/CSVImportModal";
 import CommandPalette from "@/components/CommandPalette";
 import OnboardingTour from "@/components/OnboardingTour";
 import { useJobStore } from "@/stores/jobStore";
@@ -46,6 +47,7 @@ const AppPage = () => {
   const [panelOpen, setPanelOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const { toast } = useToast();
 
   // Fetch jobs when user is available
@@ -269,6 +271,10 @@ const AppPage = () => {
 
             <div className="hidden sm:flex items-center gap-2">
               <ShareStats jobs={jobs} />
+              <Button variant="outline" size="sm" className="gap-2 border-border/50 hover:border-border" onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4" />
+                <span>Import</span>
+              </Button>
               <Button variant="outline" size="sm" className="gap-2 border-border/50 hover:border-border" onClick={exportToCSV} disabled={jobs.length === 0}>
                 <Download className="h-4 w-4" />
                 <span>Export</span>
@@ -394,6 +400,12 @@ const AppPage = () => {
       {selectedJob && (
         <InterviewCoach job={selectedJob} open={coachOpen} onOpenChange={setCoachOpen} />
       )}
+
+      <CSVImportModal
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImportComplete={() => { if (user) fetchJobs(user.id); }}
+      />
 
       <CommandPalette
         jobs={jobs}
