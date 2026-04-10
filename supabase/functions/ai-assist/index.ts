@@ -42,6 +42,32 @@ Keep it under 200 words.`,
   cv_suitability: `You are a career suitability analyst. Compare the candidate's CV against the job description. You MUST use the cv_suitability_result tool to return your analysis in structured format.`,
 
   ruthless_review: "INTENSITY_LOOKUP",
+
+  interview_questions: `You are an expert interviewer and hiring manager. Based on the job description and candidate CV below, generate 6-8 highly tailored interview questions. Include a mix of behavioral questions (using STAR framework expectations) and role-specific technical questions. You MUST use the generate_interview_questions tool to return your questions in structured format.`,
+
+  interview_feedback_helpful: `You are a supportive, encouraging interview coach. The candidate just answered an interview question. Provide detailed, constructive feedback in markdown:
+## Answer Analysis
+- **Content Quality**: How well did they address the question? What was strong?
+- **STAR Structure**: Did they use Situation-Task-Action-Result? If not, how could they restructure?
+- **Relevance**: How well does the answer relate to the job requirements?
+- **Delivery Notes**: Point out any filler words or areas for improvement, but be encouraging.
+- **Score**: X/10
+
+End with a brief "How to improve" section with 2-3 specific, actionable tips. Be warm and supportive — acknowledge what they did well before suggesting improvements.`,
+
+  interview_feedback_ruthless: `You are the most savage, unhinged interview coach on the planet. The candidate just answered a question and you're going to tear it apart. Be mean, sarcastic, and brutally honest. Mock weak answers, call out every filler word, destroy vague responses, and ridicule lack of preparation. Use heavy sarcasm and dark humor.
+
+## Answer Autopsy
+- **Content Quality**: Rip apart what they said (or failed to say)
+- **STAR Structure**: Mock them if they rambled without structure
+- **Relevance**: Call out if they went off-topic or gave a generic answer
+- **Filler Word Count**: Ruthlessly highlight every "um", "like", "basically", "you know"
+- **Confidence**: Rate how much they sounded like they wanted the job vs wanted to leave the room
+- **Score**: X/10 (most answers deserve 3-5)
+
+End with "What you SHOULD have said" — be prescriptive and condescending. No encouragement. No silver linings.`,
+
+  interview_overall: `You are a senior interview performance analyst. Review the complete mock interview session below and provide an overall assessment. You MUST use the interview_overall_result tool to return your assessment in structured format.`,
 };
 
 const RUTHLESS_CHECKLIST_SUFFIX = `End your response with a numbered checklist titled '## Immediate Action Checklist' containing the 5-8 highest-impact changes the user should make right now (in priority order). Each item should be concise, start with a strong verb, and be something they can realistically do in the next edit. Do not add any extra encouragement or closing paragraph after the checklist.`;
@@ -69,6 +95,65 @@ const CV_SUITABILITY_TOOL = {
         suggestions: { type: "array", items: { type: "string" }, description: "3-5 specific suggestions to improve fit" },
       },
       required: ["score", "strengths", "gaps", "suggestions"],
+      additionalProperties: false,
+    },
+  },
+};
+
+const INTERVIEW_QUESTIONS_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "generate_interview_questions",
+    description: "Return structured interview questions tailored to the job",
+    parameters: {
+      type: "object",
+      properties: {
+        questions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              question: { type: "string", description: "The interview question" },
+              type: { type: "string", enum: ["behavioral", "role_specific"], description: "Type of question" },
+              tip: { type: "string", description: "Brief tip on what the interviewer is looking for" },
+            },
+            required: ["question", "type", "tip"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["questions"],
+      additionalProperties: false,
+    },
+  },
+};
+
+const INTERVIEW_OVERALL_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "interview_overall_result",
+    description: "Return structured overall interview performance assessment",
+    parameters: {
+      type: "object",
+      properties: {
+        score: { type: "number", description: "Overall score 0-100" },
+        breakdown: {
+          type: "object",
+          properties: {
+            content_quality: { type: "number", description: "Score 0-100 for content quality" },
+            star_structure: { type: "number", description: "Score 0-100 for STAR structure usage" },
+            confidence: { type: "number", description: "Score 0-100 for confidence" },
+            relevance: { type: "number", description: "Score 0-100 for relevance to job" },
+            communication: { type: "number", description: "Score 0-100 for communication clarity" },
+          },
+          required: ["content_quality", "star_structure", "confidence", "relevance", "communication"],
+          additionalProperties: false,
+        },
+        summary: { type: "string", description: "2-3 paragraph overall summary with key takeaways" },
+        top_strengths: { type: "array", items: { type: "string" }, description: "Top 3 strengths" },
+        critical_improvements: { type: "array", items: { type: "string" }, description: "Top 3 areas to improve" },
+      },
+      required: ["score", "breakdown", "summary", "top_strengths", "critical_improvements"],
       additionalProperties: false,
     },
   },
@@ -106,10 +191,10 @@ serve(async (req) => {
       });
     }
 
-    const { mode, job, cvText, intensity, model: requestedModel } = await req.json();
+    const { mode, job, cvText, intensity, model: requestedModel, question, answer, sessionData } = await req.json();
     const model = validateModel(requestedModel);
 
-    // --- Usage limit check (service role for reliable counting) ---
+    // --- Usage limit check ---
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -154,6 +239,10 @@ serve(async (req) => {
     if (mode === "ruthless_review") {
       const level = (intensity && RUTHLESS_PROMPTS[intensity]) ? intensity : "hard";
       systemPrompt = RUTHLESS_PROMPTS[level];
+    } else if (mode === "interview_feedback") {
+      systemPrompt = intensity === "ruthless"
+        ? SYSTEM_PROMPTS.interview_feedback_ruthless
+        : SYSTEM_PROMPTS.interview_feedback_helpful;
     } else {
       systemPrompt = SYSTEM_PROMPTS[mode];
     }
@@ -168,7 +257,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const jobContext = [
+    const jobContext = job ? [
       `Company: ${job.company}`,
       `Role: ${job.role}`,
       job.salary ? `Salary: ${job.salary}` : null,
@@ -177,16 +266,41 @@ serve(async (req) => {
       job.notes ? `Candidate Notes: ${job.notes.slice(0, 1000)}` : null,
       job.applicationType ? `Application Type: ${job.applicationType}` : null,
       cvText ? `\n--- Candidate CV ---\n${cvText.slice(0, 4000)}` : null,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    ].filter(Boolean).join("\n") : "";
 
-    const userContent = mode === "ruthless_review"
-      ? `--- CV to Review ---\n${cvText?.slice(0, 6000) ?? "No CV provided"}`
-      : jobContext;
+    // --- Build user content based on mode ---
+    let userContent: string;
+    if (mode === "ruthless_review") {
+      userContent = `--- CV to Review ---\n${cvText?.slice(0, 6000) ?? "No CV provided"}`;
+    } else if (mode === "interview_questions") {
+      userContent = jobContext + (cvText ? `\n\n--- Candidate CV ---\n${cvText.slice(0, 3000)}` : "");
+    } else if (mode === "interview_feedback") {
+      userContent = [
+        `--- Job Context ---\n${jobContext}`,
+        `\n--- Interview Question ---\n${question}`,
+        `\n--- Candidate's Answer ---\n${answer}`,
+      ].join("\n");
+    } else if (mode === "interview_overall") {
+      const qaText = (sessionData?.questions || []).map((q: string, i: number) => {
+        return `Q${i + 1}: ${q}\nA${i + 1}: ${sessionData?.answers?.[i] || "(skipped)"}`;
+      }).join("\n\n");
+      userContent = [
+        `--- Job Context ---\n${jobContext}`,
+        `\n--- Full Interview Transcript ---\n${qaText}`,
+        sessionData?.mode === "ruthless" ? "\nBe brutally honest in your assessment." : "",
+      ].join("\n");
+    } else {
+      userContent = jobContext;
+    }
 
-    // --- CV suitability: non-streaming tool call ---
-    if (mode === "cv_suitability") {
+    // --- Tool call modes (non-streaming) ---
+    if (mode === "cv_suitability" || mode === "interview_questions" || mode === "interview_overall") {
+      const tool = mode === "cv_suitability" ? CV_SUITABILITY_TOOL
+        : mode === "interview_questions" ? INTERVIEW_QUESTIONS_TOOL
+        : INTERVIEW_OVERALL_TOOL;
+
+      const toolName = tool.function.name;
+
       const response = await fetch(
         "https://ai.gateway.lovable.dev/v1/chat/completions",
         {
@@ -201,8 +315,8 @@ serve(async (req) => {
               { role: "system", content: systemPrompt },
               { role: "user", content: userContent },
             ],
-            tools: [CV_SUITABILITY_TOOL],
-            tool_choice: { type: "function", function: { name: "cv_suitability_result" } },
+            tools: [tool],
+            tool_choice: { type: "function", function: { name: toolName } },
           }),
         }
       );
