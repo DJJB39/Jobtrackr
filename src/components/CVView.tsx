@@ -16,6 +16,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRuthlessReview, INTENSITY_OPTIONS } from "@/hooks/useRuthlessReview";
 import { useAIGeneration } from "@/hooks/useAIGeneration";
+import { useAIPreferences } from "@/hooks/useAIPreferences";
+import { Badge } from "@/components/ui/badge";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assist`;
 
@@ -95,9 +97,12 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
 
   const activeJobs = jobs.filter((j) => j.columnId !== "rejected" && j.columnId !== "accepted");
 
-  // Extracted hooks
-  const ruthless = useRuthlessReview(cvText);
-  const generation = useAIGeneration(cvText, activeJobs);
+  // AI preferences
+  const aiPrefs = useAIPreferences();
+
+  // Extracted hooks — pass model + usage tracking
+  const ruthless = useRuthlessReview(cvText, aiPrefs.preferredModel, aiPrefs.incrementUsage);
+  const generation = useAIGeneration(cvText, activeJobs, aiPrefs.preferredModel, aiPrefs.incrementUsage);
 
   const handleCVText = useCallback((text: string | null, isNewUpload?: boolean) => {
     setCvText(text);
