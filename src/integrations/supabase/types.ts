@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage_logs: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string | null
+          mode: string
+          model: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          mode: string
+          model?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          mode?: string
+          model?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       job_activity_log: {
         Row: {
           action: string
@@ -120,6 +147,7 @@ export type Database = {
           created_at: string
           email_reminders: boolean
           id: string
+          preferred_model: string
           push_notifications: boolean
           push_subscription: Json | null
           updated_at: string
@@ -130,6 +158,7 @@ export type Database = {
           created_at?: string
           email_reminders?: boolean
           id?: string
+          preferred_model?: string
           push_notifications?: boolean
           push_subscription?: Json | null
           updated_at?: string
@@ -140,6 +169,7 @@ export type Database = {
           created_at?: string
           email_reminders?: boolean
           id?: string
+          preferred_model?: string
           push_notifications?: boolean
           push_subscription?: Json | null
           updated_at?: string
