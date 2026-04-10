@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { COLUMNS, type Column } from "@/types/job";
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 export interface UserStage {
   id: string;
@@ -73,15 +74,18 @@ export const useStages = () => {
       if (!user) return;
       const stageId = title.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
       const position = rawStages.length;
+
+      const insertPayload: TablesInsert<"user_stages"> = {
+        user_id: user.id,
+        stage_id: stageId,
+        title,
+        color_class: colorClass,
+        position,
+      };
+
       const { data, error } = await supabase
         .from("user_stages")
-        .insert({
-          user_id: user.id,
-          stage_id: stageId,
-          title,
-          color_class: colorClass,
-          position,
-        } as any)
+        .insert(insertPayload)
         .select()
         .single();
 
@@ -115,9 +119,10 @@ export const useStages = () => {
         .map((s, i) => ({ ...s, position: i }));
 
       for (const s of remaining) {
+        const updatePayload: TablesUpdate<"user_stages"> = { position: s.position };
         await supabase
           .from("user_stages")
-          .update({ position: s.position } as any)
+          .update(updatePayload)
           .eq("id", s.id);
       }
     },
@@ -130,9 +135,10 @@ export const useStages = () => {
       setRawStages(reordered);
 
       for (let i = 0; i < reordered.length; i++) {
+        const updatePayload: TablesUpdate<"user_stages"> = { position: i };
         await supabase
           .from("user_stages")
-          .update({ position: i } as any)
+          .update(updatePayload)
           .eq("id", reordered[i].id);
       }
     },
@@ -142,9 +148,10 @@ export const useStages = () => {
   const updateStage = useCallback(
     async (stageId: string, updates: { title?: string; color_class?: string }) => {
       if (!user) return;
+      const updatePayload: TablesUpdate<"user_stages"> = updates;
       await supabase
         .from("user_stages")
-        .update(updates as any)
+        .update(updatePayload)
         .eq("user_id", user.id)
         .eq("stage_id", stageId);
 
