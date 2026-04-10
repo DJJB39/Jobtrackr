@@ -1,95 +1,159 @@
 
 
-# AI Model Selection + Usage Controls (Realistic Version)
+# Interview Coach (Ruthless Roast Edition)
 
-## What actually gets built
+## Overview
 
-1. **Model selector in user settings** — Pick from Lovable AI Gateway models (Gemini Flash, Gemini Pro, GPT-5-mini, GPT-5). No user API keys. No separate SDKs.
-2. **Usage tracking** — Count generations per user per month, enforce free-tier limit (10/month), show counter in UI.
-3. **Backend: pass model preference** — Edge function reads user's preferred model from request, forwards to gateway.
-4. **Frontend: model badge + regenerate with different model** — Show which model generated the content; allow one-click regenerate with a different model.
+A full mock interview experience tied to a specific job. The AI generates tailored questions, speaks them aloud via browser SpeechSynthesis, listens to the user's spoken answer via SpeechRecognition, then streams per-answer feedback. Two modes: Helpful Coach and Ruthless Roast. Session results are persisted for later review.
 
 ---
 
-## Technical Details
+## 1. Database Migration
 
-### 1. Database Migration
+New table `interview_sessions`:
 
-New table `ai_usage_logs`:
 ```sql
-CREATE TABLE ai_usage_logs (
+CREATE TABLE public.interview_sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
-  mode text NOT NULL,
+  job_id uuid REFERENCES public.job_applications(id) ON DELETE CASCADE,
+  mode text NOT NULL DEFAULT 'helpful',
   model text NOT NULL DEFAULT 'google/gemini-3-flash-preview',
-  job_id uuid,
-  created_at timestamptz NOT NULL DEFAULT now()
+  questions jsonb NOT NULL DEFAULT '[]',
+  answers jsonb NOT NULL DEFAULT '[]',
+  feedback jsonb NOT NULL DEFAULT '[]',
+  overall_score integer,
+  overall_feedback text,
+  status text NOT NULL DEFAULT 'in_progress',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  completed_at timestamptz
 );
-ALTER TABLE ai_usage_logs ENABLE ROW LEVEL SECURITY;
--- RLS: users see/insert own logs only
+
+ALTER TABLE public.interview_sessions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own sessions" ON public.interview_sessions
+  FOR SELECT TO authenticated USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own sessions" ON public.interview_sessions
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own sessions" ON public.interview_sessions
+  FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 ```
 
-New column on `user_preferences`:
-```sql
-ALTER TABLE user_preferences
-  ADD COLUMN preferred_model text NOT NULL DEFAULT 'google/gemini-3-flash-preview';
-```
-
-### 2. Edge Function Update (`ai-assist/index.ts`)
-
-- Accept optional `model` field in request body
-- Validate against allowlist: `google/gemini-3-flash-preview`, `google/gemini-2.5-flash`, `google/gemini-2.5-pro`, `openai/gpt-5-mini`, `openai/gpt-5`
-- Default to `google/gemini-3-flash-preview` if not provided or invalid
-- Count usage: INSERT into `ai_usage_logs` using service role client
-- Check usage: SELECT count for current month; reject with 403 + clear message if over 10 (free tier)
-- Pass validated model to the existing `ai.gateway.lovable.dev` call
-
-### 3. Settings UI (new section in UserMenu or dedicated component)
-
-- **`src/components/AISettings.tsx`** — New component opened from UserMenu
-- Model selector dropdown with 5 options, showing relative speed/quality labels:
-  - Gemini Flash (fastest, default)
-  - Gemini 2.5 Flash (balanced)
-  - Gemini 2.5 Pro (best quality, slower)
-  - GPT-5 Mini (fast, good quality)
-  - GPT-5 (highest quality, slowest)
-- Usage counter: "X/10 AI generations used this month" with progress bar
-- Glassmorphism card styling matching existing UI
-
-### 4. Frontend Hook Update
-
-- **`src/hooks/useAIPreferences.ts`** — New hook that loads/saves preferred model from `user_preferences`
-- **`src/hooks/useSSEStream.ts`** — Accept optional `model` param, include in request body
-- **`src/hooks/useAIGeneration.ts`** and **`src/hooks/useRuthlessReview.ts`** — Read model from preferences hook, pass to stream calls
-- **`src/components/AIAssistPanel.tsx`** — Add small model selector dropdown next to Generate button; show model badge on generated content
-
-### 5. Usage Widget
-
-- Small pill in the app header or CV view showing "3/10 AI uses"
-- When limit reached: disable AI buttons, show "Upgrade to Pro for unlimited" message
-- Usage resets monthly (checked server-side by counting rows in current calendar month)
+JSONB columns store arrays of strings (questions, answers) and objects (feedback per answer with content_quality, star_structure, confidence, filler_words, relevance, score fields).
 
 ---
 
-## Files Modified/Created
+## 2. Edge Function Update (`ai-assist/index.ts`)
 
-| File | Change |
+Add two new modes to the existing function:
+
+- **`interview_questions`** — Non-streaming tool call. Given job description + CV, returns 6-8 structured questions via tool calling (array of `{question, type: "behavioral"|"role_specific"}`). System prompt instructs mix of behavioural and role-specific questions tailored to the job.
+
+- **`interview_feedback`** — Streaming. Accepts the question, user's transcribed answer, job context, and mode (helpful/ruthless). Returns detailed markdown feedback analyzing: content quality, STAR structure usage, confidence indicators, filler words, relevance to job spec. Ruthless mode uses savage/sarcastic tone matching the existing roast style.
+
+- **`interview_overall`** — Non-streaming tool call. Accepts all Q&A pairs + feedback summaries, returns structured `{score: 0-100, breakdown: {...}, summary: string}`.
+
+All three modes count against the existing usage limit via `ai_usage_logs`.
+
+---
+
+## 3. New Hook: `src/hooks/useInterviewCoach.ts`
+
+State machine managing the session lifecycle:
+
+```text
+idle → generating_questions → ready → speaking → listening → analyzing → ready (next Q) → complete
+```
+
+Key responsibilities:
+- **Question generation**: Call `ai-assist` with mode `interview_questions`, parse structured response
+- **Speech synthesis**: Use `window.speechSynthesis` to speak each question (select natural voice)
+- **Speech recognition**: Use `webkitSpeechRecognition` / `SpeechRecognition` to capture answer text, with interim results for live "Listening..." display
+- **Feedback streaming**: After each answer, call `ai-assist` with mode `interview_feedback` via `useSSEStream`
+- **Overall score**: After all questions answered, call `interview_overall` for final score
+- **Persistence**: Save session to `interview_sessions` table via Supabase client
+- **Usage tracking**: Each AI call increments usage via `onUsageIncrement`
+
+Exports: `startSession(job, mode)`, `nextQuestion()`, `skipQuestion()`, `stopListening()`, `currentQuestion`, `currentAnswer`, `currentFeedback`, `questions`, `answers`, `feedbacks`, `overallScore`, `sessionState`, `isListening`, `interimTranscript`
+
+---
+
+## 4. New Component: `src/components/InterviewCoach.tsx`
+
+Full-screen dialog (using existing Sheet or Dialog) with glassmorphism styling:
+
+**Session Start Screen:**
+- Two large cards: "Helpful Coach" (green, encouraging icon) vs "Ruthless Roast Me" (red, flame icon)
+- Job info displayed (company, role, description preview)
+- "Start Session" button
+
+**Active Session Screen:**
+- Progress bar: "Question 3 of 7"
+- Current question displayed prominently
+- Large microphone button (animated ring when listening, pulsing red)
+- "Listening..." text with interim transcript shown live
+- "Skip Question" secondary button
+
+**Feedback Screen (per question):**
+- Streaming markdown feedback (reuses ReactMarkdown pattern)
+- Model badge (consistent with AI settings)
+- Score indicators for each dimension
+- "Next Question" button
+
+**Session Complete Screen:**
+- Overall score ring (reuse ScoreRing pattern from CVView)
+- Breakdown categories with individual scores
+- Full markdown summary
+- "Save & Close" button
+
+---
+
+## 5. Integration Points
+
+### JobDetailPanel.tsx
+- Add "Interview Coach" button next to existing "AI Assist" button in the header
+- Add a 5th tab "Interview" showing past session scores for this job (fetched from `interview_sessions`)
+
+### AppPage.tsx
+- Add state for `interviewCoachOpen` and `interviewCoachJob`
+- Pass handler to JobDetailPanel
+- Render `InterviewCoach` component
+
+### JobCard.tsx
+- Add small "Coach" icon button (visible on hover) that opens interview coach for that job
+
+---
+
+## 6. Files Summary
+
+| File | Action |
 |------|--------|
-| `supabase/functions/ai-assist/index.ts` | Add model param, usage tracking, limit check |
-| `src/hooks/useAIPreferences.ts` | **New** — load/save model preference + usage count |
-| `src/components/AISettings.tsx` | **New** — model selector + usage display |
-| `src/components/UserMenu.tsx` | Add "AI Settings" menu item |
-| `src/hooks/useAIGeneration.ts` | Pass model to stream |
-| `src/hooks/useRuthlessReview.ts` | Pass model to stream |
-| `src/components/AIAssistPanel.tsx` | Model selector + badge |
-| `src/components/CVView.tsx` | Usage counter pill, disable when limit hit |
-| DB migration | `ai_usage_logs` table + `preferred_model` column |
+| DB migration | New `interview_sessions` table |
+| `supabase/functions/ai-assist/index.ts` | Add `interview_questions`, `interview_feedback`, `interview_overall` modes + system prompts |
+| `src/hooks/useInterviewCoach.ts` | **New** — session state machine, speech APIs, streaming |
+| `src/components/InterviewCoach.tsx` | **New** — full UI with glassmorphism, mic button, feedback display |
+| `src/components/JobDetailPanel.tsx` | Add Coach button + Interview tab |
+| `src/pages/AppPage.tsx` | Wire up InterviewCoach state + rendering |
+| `src/components/JobCard.tsx` | Add hover Coach icon |
 
-## What's NOT included (and why)
+---
 
-- **User API keys** — Security risk, bypasses gateway, unnecessary complexity
-- **Temperature/max tokens/system prompt** — Zero value for job seekers
-- **Response caching table** — Stale AI output is worse than no cache; localStorage suffices for scores
-- **Adapter pattern with separate SDKs** — The gateway IS the adapter
-- **Cost estimates in £** — You don't have per-request cost data from the gateway
+## 7. Browser API Notes
+
+- `SpeechRecognition` requires HTTPS (preview URL qualifies) and user gesture to start
+- `SpeechSynthesis` works without permissions
+- Both APIs have no Safari iOS support for `SpeechRecognition` — will show graceful fallback: "Type your answer instead" text input
+- Feature detection at hook level: `const hasSpeechRecognition = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window`
+
+---
+
+## 8. Test Scenarios
+
+1. **Helpful mode flow**: Start session → hear question → answer verbally → receive encouraging feedback → complete all questions → see overall score
+2. **Ruthless mode flow**: Same flow but verify feedback tone is savage/sarcastic, scores are harsh
+3. **Usage limit**: Verify coach is disabled when monthly limit reached, shows upgrade nudge
+4. **Fallback**: Test on browser without SpeechRecognition — verify text input fallback appears
+5. **Persistence**: Complete a session, close panel, reopen job detail → verify past session score shows in Interview tab
 
