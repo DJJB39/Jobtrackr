@@ -403,15 +403,69 @@ Only map columns you're confident about. Skip irrelevant columns like internal I
       });
     }
 
+    // --- Day Before Bootcamp (non-streaming, tool call) ---
+    if (mode === "day_before_bootcamp") {
+      const bootcampSystemPrompt = `You are a ruthlessly practical interview prep strategist. The candidate has an interview tomorrow. Based on the job description, company info, and their CV, create a comprehensive but realistic day-before prep plan. Be direct and opinionated — tell them exactly what to focus on. If you know of recent company events (funding, layoffs, product launches, leadership changes), include them. If a user location is provided, estimate commute logistics realistically. You MUST use the day_before_bootcamp_result tool.`;
+
+      const bootcampUserContent = [
+        jobContext,
+        userLocation ? `\nCandidate Location: ${userLocation}` : "",
+        cvText ? `\n--- Candidate CV ---\n${cvText.slice(0, 3000)}` : "",
+      ].join("\n");
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: bootcampSystemPrompt },
+            { role: "user", content: bootcampUserContent },
+          ],
+          tools: [DAY_BEFORE_BOOTCAMP_TOOL],
+          tool_choice: { type: "function", function: { name: "day_before_bootcamp_result" } },
+        }),
+      });
+
+      if (!response.ok) {
+        const t = await response.text();
+        console.error("AI gateway error:", response.status, t);
+        return new Response(JSON.stringify({ error: "Bootcamp generation failed" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const data = await response.json();
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall) {
+        return new Response(JSON.stringify({ error: "AI did not return structured bootcamp result" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const result = JSON.parse(toolCall.function.arguments);
+      return new Response(JSON.stringify({ ...result, model }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // --- Build prompt ---
     let systemPrompt: string | undefined;
     if (mode === "ruthless_review") {
       const level = (intensity && RUTHLESS_PROMPTS[intensity]) ? intensity : "hard";
       systemPrompt = RUTHLESS_PROMPTS[level];
     } else if (mode === "interview_feedback") {
-      systemPrompt = intensity === "ruthless"
-        ? SYSTEM_PROMPTS.interview_feedback_ruthless
-        : SYSTEM_PROMPTS.interview_feedback_helpful;
+      // Use bootcamp-enhanced ruthless prompt when bootcamp context is provided
+      if (intensity === "ruthless" && bootcampContext) {
+        systemPrompt = SYSTEM_PROMPTS.interview_feedback_bootcamp_ruthless;
+      } else if (intensity === "ruthless") {
+        systemPrompt = SYSTEM_PROMPTS.interview_feedback_ruthless;
+      } else {
+        systemPrompt = SYSTEM_PROMPTS.interview_feedback_helpful;
+      }
+    } else {
+      systemPrompt = SYSTEM_PROMPTS[mode];
+    }
     } else {
       systemPrompt = SYSTEM_PROMPTS[mode];
     }
