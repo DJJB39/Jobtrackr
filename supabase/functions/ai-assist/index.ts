@@ -499,7 +499,8 @@ Only map columns you're confident about. Skip irrelevant columns like internal I
         `--- Job Context ---\n${jobContext}`,
         `\n--- Interview Question ---\n${question}`,
         `\n--- Candidate's Answer ---\n${answer}`,
-      ].join("\n");
+        bootcampContext ? `\n--- Bootcamp Briefing Context ---\nCompany Snapshot: ${bootcampContext.company_snapshot || ""}\nRecent News: ${bootcampContext.recent_news || ""}\nProduct Context: ${bootcampContext.product_context || ""}` : "",
+      ].filter(Boolean).join("\n");
     } else if (mode === "interview_overall") {
       const qaText = (sessionData?.questions || []).map((q: string, i: number) => {
         return `Q${i + 1}: ${q}\nA${i + 1}: ${sessionData?.answers?.[i] || "(skipped)"}`;
