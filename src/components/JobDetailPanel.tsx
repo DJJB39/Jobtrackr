@@ -206,6 +206,16 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI, onOpenCoach
 
             {/* AI + Coach buttons */}
             <div className="flex items-center gap-1.5 shrink-0 ml-3">
+              {hasUpcomingInterview && onOpenBootcamp && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onOpenBootcamp}
+                  className="gap-1.5 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 transition-all"
+                >
+                  <CalendarCheck className="h-3.5 w-3.5" /> Bootcamp
+                </Button>
+              )}
               {onOpenCoach && (
                 <Button
                   variant="outline"
