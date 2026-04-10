@@ -11,6 +11,7 @@ import CalendarView from "@/components/CalendarView";
 import CVView from "@/components/CVView";
 import JobDetailPanel from "@/components/JobDetailPanel";
 import AIAssistPanel from "@/components/AIAssistPanel";
+import InterviewCoach from "@/components/InterviewCoach";
 import CommandPalette from "@/components/CommandPalette";
 import OnboardingTour from "@/components/OnboardingTour";
 import { useJobStore } from "@/stores/jobStore";
@@ -44,6 +45,7 @@ const AppPage = () => {
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [coachOpen, setCoachOpen] = useState(false);
   const { toast } = useToast();
 
   // Fetch jobs when user is available
@@ -382,10 +384,15 @@ const AppPage = () => {
         onOpenChange={setPanelOpen}
         onSave={handleUpdateJob}
         onOpenAI={() => setAiPanelOpen(true)}
+        onOpenCoach={() => setCoachOpen(true)}
       />
 
       {selectedJob && (
         <AIAssistPanel job={selectedJob} open={aiPanelOpen} onOpenChange={setAiPanelOpen} />
+      )}
+
+      {selectedJob && (
+        <InterviewCoach job={selectedJob} open={coachOpen} onOpenChange={setCoachOpen} />
       )}
 
       <CommandPalette

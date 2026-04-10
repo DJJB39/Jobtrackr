@@ -41,6 +41,62 @@ export type Database = {
         }
         Relationships: []
       }
+      interview_sessions: {
+        Row: {
+          answers: Json
+          completed_at: string | null
+          created_at: string
+          feedback: Json
+          id: string
+          job_id: string | null
+          mode: string
+          model: string
+          overall_feedback: string | null
+          overall_score: number | null
+          questions: Json
+          status: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          completed_at?: string | null
+          created_at?: string
+          feedback?: Json
+          id?: string
+          job_id?: string | null
+          mode?: string
+          model?: string
+          overall_feedback?: string | null
+          overall_score?: number | null
+          questions?: Json
+          status?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          completed_at?: string | null
+          created_at?: string
+          feedback?: Json
+          id?: string
+          job_id?: string | null
+          mode?: string
+          model?: string
+          overall_feedback?: string | null
+          overall_score?: number | null
+          questions?: Json
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_sessions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_activity_log: {
         Row: {
           action: string
