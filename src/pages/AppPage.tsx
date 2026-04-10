@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import KanbanBoard from "@/components/KanbanBoard";
 import Dashboard from "@/components/Dashboard";
@@ -13,10 +13,11 @@ import JobDetailPanel from "@/components/JobDetailPanel";
 import AIAssistPanel from "@/components/AIAssistPanel";
 import CommandPalette from "@/components/CommandPalette";
 import OnboardingTour from "@/components/OnboardingTour";
-import { useJobs } from "@/hooks/useJobs";
+import { useJobStore } from "@/stores/jobStore";
+import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
-import type { JobApplication } from "@/types/job";
+import type { JobApplication, ColumnId } from "@/types/job";
 import { useLoginReminders } from "@/hooks/useLoginReminders";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,18 +36,63 @@ const VIEW_ITEMS = [
 ];
 
 const AppPage = () => {
+  const { user } = useAuth();
   const { stages } = useStages();
-  const { jobs, setJobs, loading, addJob, updateJob, deleteJob } = useJobs();
+  const { jobs, loading, searchQuery, setSearchQuery, fetchJobs, addJob, updateJob, deleteJob, setJobs } = useJobStore();
   const [view, setView] = useState<View>("board");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+
+  // Fetch jobs when user is available
+  useEffect(() => {
+    if (user) fetchJobs(user.id);
+  }, [user, fetchJobs]);
+
   useLoginReminders(jobs);
 
-  const { showBanner, dismissBanner, tourReady } = useOnboarding({ jobCount: jobs.length, loading, addJob });
+  const handleAddJob = useCallback(
+    async (company: string, role: string, columnId: ColumnId, applicationType?: string, extras?: {
+      location?: string; description?: string; links?: string[]; salary?: string; closeDate?: string;
+    }) => {
+      if (!user) return;
+      const result = await addJob(user.id, company, role, columnId, applicationType, extras);
+      if (result) {
+        toast({ title: "Application added", description: `${company} — ${role} has been added` });
+      } else {
+        toast({ title: "Error adding job", variant: "destructive" });
+      }
+    },
+    [user, addJob, toast]
+  );
+
+  const handleUpdateJob = useCallback(
+    async (job: JobApplication) => {
+      await updateJob(job, user?.id);
+    },
+    [updateJob, user]
+  );
+
+  const handleDeleteJob = useCallback(
+    async (id: string) => {
+      const jobToDelete = jobs.find((j) => j.id === id);
+      const { undoFn } = await deleteJob(id);
+      toast({
+        title: "Application deleted",
+        description: jobToDelete ? `${jobToDelete.company} — ${jobToDelete.role}` : undefined,
+        action: undoFn ? (
+          <Button variant="outline" size="sm" onClick={() => { undoFn(); toast({ title: "Undo successful", description: "Application restored" }); }}>
+            Undo
+          </Button>
+        ) : undefined,
+      });
+    },
+    [jobs, deleteJob, toast]
+  );
+
+  const { showBanner, dismissBanner, tourReady } = useOnboarding({ jobCount: jobs.length, loading, addJob: handleAddJob });
   const tour = useOnboardingTour({ tourReady });
 
   // Search pulse animation on first visit
@@ -67,18 +113,18 @@ const AppPage = () => {
     setPanelOpen(true);
   }, []);
 
-  const filteredJobs = searchQuery
-    ? jobs.filter((j) => {
-        const q = searchQuery.toLowerCase();
-        return (
-          j.company.toLowerCase().includes(q) ||
-          j.role.toLowerCase().includes(q) ||
-          (j.notes ?? "").toLowerCase().includes(q) ||
-          (j.description ?? "").toLowerCase().includes(q) ||
-          (j.location ?? "").toLowerCase().includes(q)
-        );
-      })
-    : jobs;
+  const filteredJobs = useMemo(() => {
+    if (!searchQuery) return jobs;
+    const q = searchQuery.toLowerCase();
+    return jobs.filter(
+      (j) =>
+        j.company.toLowerCase().includes(q) ||
+        j.role.toLowerCase().includes(q) ||
+        (j.notes ?? "").toLowerCase().includes(q) ||
+        (j.description ?? "").toLowerCase().includes(q) ||
+        (j.location ?? "").toLowerCase().includes(q)
+    );
+  }, [jobs, searchQuery]);
 
   const exportToCSV = () => {
     const stageMap = Object.fromEntries(stages.map((c) => [c.id, c.title]));
@@ -108,7 +154,6 @@ const AppPage = () => {
     toast({ title: "CSV exported", description: `${jobs.length} application(s) exported` });
   };
 
-  // Detect platform for kbd shortcut
   const isMac = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
 
   if (loading) {
@@ -228,7 +273,7 @@ const AppPage = () => {
               </Button>
             </div>
             <div data-tour="add-button">
-              <AddJobDialog onAdd={addJob} jobs={jobs} />
+              <AddJobDialog onAdd={handleAddJob} jobs={jobs} />
             </div>
             <UserMenu />
           </div>
@@ -306,16 +351,16 @@ const AppPage = () => {
             <Briefcase className="h-4 w-4" />
             Add Your First Application
           </Button>
-          <AddJobDialog onAdd={addJob} open={dialogOpen} onOpenChange={setDialogOpen} jobs={jobs} />
+          <AddJobDialog onAdd={handleAddJob} open={dialogOpen} onOpenChange={setDialogOpen} jobs={jobs} />
         </motion.div>
       ) : view === "board" ? (
-        <KanbanBoard jobs={searchQuery ? filteredJobs : jobs} setJobs={setJobs} onUpdateJob={updateJob} onDeleteJob={deleteJob} onSwitchView={(v) => setView(v as View)} />
+        <KanbanBoard jobs={searchQuery ? filteredJobs : jobs} setJobs={setJobs} onUpdateJob={handleUpdateJob} onDeleteJob={handleDeleteJob} onSwitchView={(v) => setView(v as View)} />
       ) : view === "list" ? (
         <ListView jobs={jobs} onSelectJob={handleSelectJob} searchQuery={searchQuery} />
       ) : view === "dashboard" ? (
         <Dashboard
           jobs={filteredJobs}
-          onUpdateJob={updateJob}
+          onUpdateJob={handleUpdateJob}
           onFilterByStage={(stageId) => {
             const col = stages.find((c) => c.id === stageId);
             if (col) {
@@ -335,7 +380,7 @@ const AppPage = () => {
         job={selectedJob}
         open={panelOpen}
         onOpenChange={setPanelOpen}
-        onSave={updateJob}
+        onSave={handleUpdateJob}
         onOpenAI={() => setAiPanelOpen(true)}
       />
 
