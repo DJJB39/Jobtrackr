@@ -292,7 +292,7 @@ const CSVImportModal = ({ open, onOpenChange, onImportComplete, onOpenCoach }: C
                                   {TARGET_FIELDS.map((f) => (
                                     <SelectItem key={f.key} value={f.key}>
                                       {f.label}
-                                      {f.required ? " *" : ""}
+                                      {"required" in f && f.required ? " *" : ""}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
