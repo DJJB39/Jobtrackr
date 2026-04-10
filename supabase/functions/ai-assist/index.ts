@@ -234,6 +234,98 @@ serve(async (req) => {
       job_id: jobId,
     });
 
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    // --- CSV Import Analyze (non-streaming, tool call) — handled before prompt lookup ---
+    if (mode === "csv_import_analyze") {
+      const CSV_IMPORT_TOOL = {
+        type: "function" as const,
+        function: {
+          name: "csv_import_analysis",
+          description: "Return structured analysis of CSV import data with column mappings and source detection",
+          parameters: {
+            type: "object",
+            properties: {
+              source: { type: "string", enum: ["huntr", "teal", "generic"], description: "Detected source platform" },
+              confidence: { type: "number", description: "Confidence 0-1 in the detection" },
+              mappings: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    source: { type: "string", description: "Source column name" },
+                    target: { type: "string", enum: ["company", "role", "location", "salary", "url", "stage", "applied_date", "notes", "description", "application_type"], description: "Target field" },
+                  },
+                  required: ["source", "target"],
+                  additionalProperties: false,
+                },
+              },
+              stageMappings: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    sourceValue: { type: "string", description: "Original stage/status value" },
+                    targetStageId: { type: "string", enum: ["found", "applied", "phone", "interview2", "final", "offer", "accepted", "rejected"], description: "Target stage" },
+                  },
+                  required: ["sourceValue", "targetStageId"],
+                  additionalProperties: false,
+                },
+              },
+              warnings: { type: "array", items: { type: "string" }, description: "Any warnings about the data" },
+            },
+            required: ["source", "confidence", "mappings", "stageMappings", "warnings"],
+            additionalProperties: false,
+          },
+        },
+      };
+
+      const csvSystemPrompt = `You are a data import specialist for a job application tracker. Analyze the uploaded CSV files and determine:
+1. The source platform (Huntr exports have "Employer", "Job Title", "List" columns; Teal has "Company Name", "Job Title", "Status").
+2. Map each source column to the most appropriate target field.
+3. Map any stage/status values to the standard stages: found, applied, phone, interview2, final, offer, accepted, rejected.
+4. Flag any warnings (duplicate files, missing required columns, encoding issues, too many rows).
+Only map columns you're confident about. Skip irrelevant columns like internal IDs.`;
+
+      const csvUserContent = `Analyze these CSV files for import:\n${JSON.stringify(csvData, null, 2)}`;
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: csvSystemPrompt },
+            { role: "user", content: csvUserContent },
+          ],
+          tools: [CSV_IMPORT_TOOL],
+          tool_choice: { type: "function", function: { name: "csv_import_analysis" } },
+        }),
+      });
+
+      if (!response.ok) {
+        const t = await response.text();
+        console.error("AI gateway error:", response.status, t);
+        return new Response(JSON.stringify({ error: "AI analysis failed" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const data = await response.json();
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall) {
+        return new Response(JSON.stringify({ error: "AI did not return structured result" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const result = JSON.parse(toolCall.function.arguments);
+      return new Response(JSON.stringify({ ...result, model }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // --- Build prompt ---
     let systemPrompt: string | undefined;
     if (mode === "ruthless_review") {
@@ -253,9 +345,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const jobContext = job ? [
       `Company: ${job.company}`,
