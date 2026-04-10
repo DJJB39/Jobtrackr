@@ -43,9 +43,10 @@ interface JobDetailPanelProps {
   onOpenChange: (open: boolean) => void;
   onSave: (job: JobApplication) => void;
   onOpenAI?: () => void;
+  onOpenCoach?: () => void;
 }
 
-const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI }: JobDetailPanelProps) => {
+const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI, onOpenCoach }: JobDetailPanelProps) => {
   const { stages } = useStages();
   const [editedJob, setEditedJob] = useState<JobApplication | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
