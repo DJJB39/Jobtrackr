@@ -1,86 +1,95 @@
 
 
-# Career Boost Journey: Light Version
+# AI Model Selection + Usage Controls (Realistic Version)
 
-## Overview
+## What actually gets built
 
-Three interconnected changes creating a guided "Career Boost" flow:
-1. Auto-trigger ruthless review on fresh CV upload
-2. "Boost match" CTA banner on job cards linking to CV tab
-3. AI generation collapsible section directly in CV view
-
----
-
-## 1. CVUploadSection.tsx -- Signal fresh upload vs cache
-
-**Change callback signature:**
-- `onCVTextReady?: (text: string | null, isNewUpload?: boolean) => void`
-- In `handleFile` (line ~77): call `onCVTextReady?.(text, true)`
-- In cached `useEffect` (line ~58): call `onCVTextReady?.(cached || null, false)`
+1. **Model selector in user settings** — Pick from Lovable AI Gateway models (Gemini Flash, Gemini Pro, GPT-5-mini, GPT-5). No user API keys. No separate SDKs.
+2. **Usage tracking** — Count generations per user per month, enforce free-tier limit (10/month), show counter in UI.
+3. **Backend: pass model preference** — Edge function reads user's preferred model from request, forwards to gateway.
+4. **Frontend: model badge + regenerate with different model** — Show which model generated the content; allow one-click regenerate with a different model.
 
 ---
 
-## 2. CVView.tsx -- Auto-trigger ruthless review + AI generation section
+## Technical Details
 
-### Auto-roast on upload
-- Add state: `autoRoast` initialized from `localStorage.getItem("auto_roast_new_uploads") !== "false"` (default true)
-- Update `handleCVText` to accept `(text, isNewUpload?)`:
-  - If `isNewUpload && text && autoRoast && !ruthlessText`: set intensity to "hard", skip cooldown, call `startRuthlessReview`
-- Modify `startRuthlessReview` to accept optional `skipCooldown?: boolean` parameter -- when true, skip the cooldown set/check logic
-- Add auto-roast toggle UI near the intensity selector:
-  - `Switch` + label "Auto-roast new uploads"
-  - Tooltip text explaining the feature
-  - Persists to `localStorage` key `auto_roast_new_uploads`
+### 1. Database Migration
 
-### AI generation collapsible section (after Section 3, before empty states ~line 466)
-- New state: `genMode` (cover_letter | interview_prep | summarize | null), `genJobId`, `genContent`, `genLoading`
-- Uses Radix `Collapsible` component (already installed)
-- Title: "Career Boost: Generate Materials for Selected Job" with Sparkles icon
-- Only rendered when `cvText` is non-null
-- Inside:
-  - Job selector dropdown using `Select` component, populated from `activeJobs` (company + role), pre-selects most recently added job (sorted by `createdAt` desc)
-  - Three buttons in a row: Cover Letter, Interview Prep, Summary
-  - On click: POST to `AI_URL` with selected job data + `cvText`, stream SSE response (reuse exact same streaming pattern from `startRuthlessReview`)
-  - Inline `ReactMarkdown` rendering of streamed content
-  - Copy button for generated content
-
----
-
-## 3. JobCard.tsx -- "Boost match" CTA banner
-
-- Add new props: `onNavigateToCV?: () => void`, `cardIndex?: number`
-- After the progress bar (around line 213), add conditional banner:
-  - Show if: `cvScore === null` AND `localStorage` has `cv-text-{userId}` (checked via existing `useEffect`)
-  - Content: Flame icon + "Boost match -- Get CV Review"
-  - Styling: subtle amber/orange pill, small text, `opacity` fades after `cardIndex > 5` (e.g., `opacity: cardIndex > 5 ? 0.5 : 1`)
-  - On click: `e.stopPropagation(); onNavigateToCV?.()`
-- Add state `hasStoredCV` derived from localStorage check in the existing `useEffect`
-
----
-
-## 4. Threading onSwitchView prop
-
-### KanbanBoard.tsx
-- Add `onSwitchView?: (view: string) => void` to `KanbanBoardProps`
-- Pass to each `JobCard` (both mobile and desktop renders):
-  - `onNavigateToCV={() => onSwitchView?.("cv")}`
-  - `cardIndex={index}` (from `.map` callback)
-
-### AppPage.tsx
-- Line 312: Pass `onSwitchView={setView}` to `KanbanBoard`:
-```
-<KanbanBoard jobs={...} setJobs={setJobs} onUpdateJob={updateJob} onDeleteJob={deleteJob} onSwitchView={setView} />
+New table `ai_usage_logs`:
+```sql
+CREATE TABLE ai_usage_logs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  mode text NOT NULL,
+  model text NOT NULL DEFAULT 'google/gemini-3-flash-preview',
+  job_id uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE ai_usage_logs ENABLE ROW LEVEL SECURITY;
+-- RLS: users see/insert own logs only
 ```
 
+New column on `user_preferences`:
+```sql
+ALTER TABLE user_preferences
+  ADD COLUMN preferred_model text NOT NULL DEFAULT 'google/gemini-3-flash-preview';
+```
+
+### 2. Edge Function Update (`ai-assist/index.ts`)
+
+- Accept optional `model` field in request body
+- Validate against allowlist: `google/gemini-3-flash-preview`, `google/gemini-2.5-flash`, `google/gemini-2.5-pro`, `openai/gpt-5-mini`, `openai/gpt-5`
+- Default to `google/gemini-3-flash-preview` if not provided or invalid
+- Count usage: INSERT into `ai_usage_logs` using service role client
+- Check usage: SELECT count for current month; reject with 403 + clear message if over 10 (free tier)
+- Pass validated model to the existing `ai.gateway.lovable.dev` call
+
+### 3. Settings UI (new section in UserMenu or dedicated component)
+
+- **`src/components/AISettings.tsx`** — New component opened from UserMenu
+- Model selector dropdown with 5 options, showing relative speed/quality labels:
+  - Gemini Flash (fastest, default)
+  - Gemini 2.5 Flash (balanced)
+  - Gemini 2.5 Pro (best quality, slower)
+  - GPT-5 Mini (fast, good quality)
+  - GPT-5 (highest quality, slowest)
+- Usage counter: "X/10 AI generations used this month" with progress bar
+- Glassmorphism card styling matching existing UI
+
+### 4. Frontend Hook Update
+
+- **`src/hooks/useAIPreferences.ts`** — New hook that loads/saves preferred model from `user_preferences`
+- **`src/hooks/useSSEStream.ts`** — Accept optional `model` param, include in request body
+- **`src/hooks/useAIGeneration.ts`** and **`src/hooks/useRuthlessReview.ts`** — Read model from preferences hook, pass to stream calls
+- **`src/components/AIAssistPanel.tsx`** — Add small model selector dropdown next to Generate button; show model badge on generated content
+
+### 5. Usage Widget
+
+- Small pill in the app header or CV view showing "3/10 AI uses"
+- When limit reached: disable AI buttons, show "Upgrade to Pro for unlimited" message
+- Usage resets monthly (checked server-side by counting rows in current calendar month)
+
 ---
 
-## Files Modified
+## Files Modified/Created
 
-| File | Changes |
-|------|---------|
-| `src/components/CVUploadSection.tsx` | Add `isNewUpload` boolean to callback |
-| `src/components/CVView.tsx` | Auto-trigger ruthless review on upload; auto-roast toggle; collapsible AI generation section with job selector, 3 gen buttons, streaming markdown, copy |
-| `src/components/JobCard.tsx` | Add amber "Boost match" CTA pill with Flame icon; `onNavigateToCV` + `cardIndex` props; opacity fade after index 5 |
-| `src/components/KanbanBoard.tsx` | Accept `onSwitchView` prop; pass `onNavigateToCV` and `cardIndex` to each JobCard |
-| `src/pages/AppPage.tsx` | Pass `setView` as `onSwitchView` to KanbanBoard |
+| File | Change |
+|------|--------|
+| `supabase/functions/ai-assist/index.ts` | Add model param, usage tracking, limit check |
+| `src/hooks/useAIPreferences.ts` | **New** — load/save model preference + usage count |
+| `src/components/AISettings.tsx` | **New** — model selector + usage display |
+| `src/components/UserMenu.tsx` | Add "AI Settings" menu item |
+| `src/hooks/useAIGeneration.ts` | Pass model to stream |
+| `src/hooks/useRuthlessReview.ts` | Pass model to stream |
+| `src/components/AIAssistPanel.tsx` | Model selector + badge |
+| `src/components/CVView.tsx` | Usage counter pill, disable when limit hit |
+| DB migration | `ai_usage_logs` table + `preferred_model` column |
+
+## What's NOT included (and why)
+
+- **User API keys** — Security risk, bypasses gateway, unnecessary complexity
+- **Temperature/max tokens/system prompt** — Zero value for job seekers
+- **Response caching table** — Stale AI output is worse than no cache; localStorage suffices for scores
+- **Adapter pattern with separate SDKs** — The gateway IS the adapter
+- **Cost estimates in £** — You don't have per-request cost data from the gateway
 
