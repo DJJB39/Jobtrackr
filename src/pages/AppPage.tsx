@@ -401,6 +401,12 @@ const AppPage = () => {
         <InterviewCoach job={selectedJob} open={coachOpen} onOpenChange={setCoachOpen} />
       )}
 
+      <CSVImportModal
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImportComplete={() => { if (user) fetchJobs(user.id); }}
+      />
+
       <CommandPalette
         jobs={jobs}
         onSelectJob={handleSelectJob}
