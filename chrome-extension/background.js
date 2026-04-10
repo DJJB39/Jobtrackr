@@ -26,6 +26,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     });
     return true;
   }
+  if (message.type === "CAPTURE_SCREENSHOT") {
+    handleScreenshotCapture(message.payload).then(sendResponse);
+    return true;
+  }
+  if (message.type === "EXTRACT_FROM_IMAGE") {
+    handleExtractFromImage(message.payload).then(sendResponse);
+    return true;
+  }
 });
 
 async function handleLogin({ email, password }) {
@@ -134,5 +142,64 @@ async function handleSaveJob(payload) {
     return { success: true, jobId: data.jobId };
   } catch (err) {
     return { success: false, error: "Network error — check your connection" };
+  }
+}
+
+async function handleScreenshotCapture({ sourceUrl }) {
+  const token = await getAccessToken();
+  if (!token) {
+    return { success: false, error: "Not logged in" };
+  }
+
+  try {
+    // Capture the visible tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) {
+      return { success: false, error: "No active tab found" };
+    }
+
+    const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: "png", quality: 85 });
+    const base64 = dataUrl.split(",")[1];
+
+    return await callExtractEndpoint(token, base64, sourceUrl || tab.url);
+  } catch (err) {
+    return { success: false, error: err.message || "Screenshot capture failed" };
+  }
+}
+
+async function handleExtractFromImage({ imageBase64, sourceUrl }) {
+  const token = await getAccessToken();
+  if (!token) {
+    return { success: false, error: "Not logged in" };
+  }
+  return await callExtractEndpoint(token, imageBase64, sourceUrl);
+}
+
+async function callExtractEndpoint(token, imageBase64, sourceUrl) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/functions/v1/ai-assist`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          apikey: ANON_KEY,
+        },
+        body: JSON.stringify({
+          mode: "extract_from_screenshot",
+          imageBase64,
+          sourceUrl,
+        }),
+      }
+    );
+
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, error: data.error || "Extraction failed" };
+    }
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: "Network error" };
   }
 }

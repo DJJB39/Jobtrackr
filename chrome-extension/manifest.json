@@ -3,13 +3,14 @@
   "name": "JobTrackr — Save Jobs Instantly",
   "version": "0.1.0",
   "description": "Save jobs from LinkedIn, Indeed, Reed, and Greenhouse to your JobTrackr board with one click.",
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["activeTab", "storage", "tabs"],
   "host_permissions": [
     "*://*.linkedin.com/*",
     "*://*.indeed.com/*",
     "*://*.indeed.co.uk/*",
     "*://*.reed.co.uk/*",
-    "*://*.greenhouse.io/*"
+    "*://*.greenhouse.io/*",
+    "*://*.supabase.co/*"
   ],
   "action": {
     "default_popup": "popup.html",

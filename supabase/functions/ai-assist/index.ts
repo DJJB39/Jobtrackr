@@ -236,6 +236,31 @@ const DAY_BEFORE_BOOTCAMP_TOOL = {
   },
 };
 
+const SCREENSHOT_EXTRACT_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "screenshot_extract_result",
+    description: "Return structured job data extracted from a screenshot image",
+    parameters: {
+      type: "object",
+      properties: {
+        job_title: { type: "string", description: "Job title/role" },
+        company: { type: "string", description: "Company name" },
+        location: { type: "string", description: "Job location if visible" },
+        salary: { type: "string", description: "Salary range if visible" },
+        employment_type: { type: "string", description: "Full-time, Part-time, Contract, etc." },
+        description: { type: "string", description: "Job description text visible in the screenshot" },
+        key_requirements: { type: "array", items: { type: "string" }, description: "Key requirements/skills listed" },
+        posted_date: { type: "string", description: "Posted date if visible" },
+        confidence: { type: "number", description: "Confidence 0-1 in the extraction accuracy" },
+        warnings: { type: "array", items: { type: "string" }, description: "Any issues with extraction: blurry text, partial capture, etc." },
+      },
+      required: ["job_title", "company", "confidence", "warnings"],
+      additionalProperties: false,
+    },
+  },
+};
+
 const CV_TAILOR_TOOL = {
   type: "function" as const,
   function: {
@@ -313,7 +338,7 @@ serve(async (req) => {
       });
     }
 
-    const { mode, job, cvText, intensity, model: requestedModel, question, answer, sessionData, csvData, userLocation, bootcampContext } = await req.json();
+    const { mode, job, cvText, intensity, model: requestedModel, question, answer, sessionData, csvData, userLocation, bootcampContext, imageBase64, sourceUrl } = await req.json();
     const model = validateModel(requestedModel);
 
     // --- Usage limit check ---
@@ -358,6 +383,74 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    // --- Screenshot Extract (non-streaming, vision + tool call) ---
+    if (mode === "extract_from_screenshot") {
+      if (!imageBase64) {
+        return new Response(JSON.stringify({ error: "No image provided" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const screenshotSystemPrompt = `You are a precise job posting data extractor. Extract structured job information from the provided screenshot image.
+
+CRITICAL RULES:
+1. ONLY extract text that is clearly visible in the image. Do NOT hallucinate or guess missing details.
+2. If a field is not visible or unclear, omit it (return null/empty).
+3. For description, capture as much visible text as possible but note if the posting appears cut off.
+4. Set confidence based on image quality and how much data you could reliably extract.
+5. Add warnings for: blurry text, partial captures, overlapping UI elements, non-job-posting images.
+
+You MUST use the screenshot_extract_result tool.`;
+
+      const userContent: any[] = [
+        { type: "text", text: sourceUrl ? `Extract job details from this screenshot. Source URL: ${sourceUrl}` : "Extract job details from this screenshot." },
+        { type: "image_url", image_url: { url: `data:image/png;base64,${imageBase64}` } },
+      ];
+
+      // Use a vision-capable model
+      const visionModel = "google/gemini-2.5-flash";
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: visionModel,
+          messages: [
+            { role: "system", content: screenshotSystemPrompt },
+            { role: "user", content: userContent },
+          ],
+          tools: [SCREENSHOT_EXTRACT_TOOL],
+          tool_choice: { type: "function", function: { name: "screenshot_extract_result" } },
+        }),
+      });
+
+      if (!response.ok) {
+        const t = await response.text();
+        console.error("AI gateway error (screenshot):", response.status, t);
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        return new Response(JSON.stringify({ error: "Screenshot extraction failed" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const data = await response.json();
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall) {
+        return new Response(JSON.stringify({ error: "AI could not extract job data from this image" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const result = JSON.parse(toolCall.function.arguments);
+      return new Response(JSON.stringify({ ...result, model: visionModel }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // --- CSV Import Analyze (non-streaming, tool call) — handled before prompt lookup ---
     if (mode === "csv_import_analyze") {
