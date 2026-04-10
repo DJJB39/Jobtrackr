@@ -298,12 +298,13 @@ export const useInterviewCoach = (
 
       // Update session in DB
       if (sessionId && user) {
+        const updatePayload = {
+          answers: JSON.stringify(newAnswers),
+          feedback: JSON.stringify(newFeedbacks.map((f, i) => ({ questionIndex: i, text: f }))),
+        };
         await supabase
           .from("interview_sessions")
-          .update({
-            answers: newAnswers,
-            feedback: newFeedbacks.map((f, i) => ({ questionIndex: i, text: f })),
-          } as Record<string, unknown>)
+          .update(updatePayload as never)
           .eq("id", sessionId);
       }
 
@@ -385,14 +386,15 @@ export const useInterviewCoach = (
 
         // Update session in DB
         if (sessionId && user) {
+          const updatePayload = {
+            overall_score: data.score,
+            overall_feedback: data.summary,
+            status: "completed",
+            completed_at: new Date().toISOString(),
+          };
           await supabase
             .from("interview_sessions")
-            .update({
-              overall_score: data.score,
-              overall_feedback: data.summary,
-              status: "completed",
-              completed_at: new Date().toISOString(),
-            } as Record<string, unknown>)
+            .update(updatePayload as never)
             .eq("id", sessionId);
         }
       }
