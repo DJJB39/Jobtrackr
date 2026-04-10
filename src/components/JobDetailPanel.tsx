@@ -20,6 +20,7 @@ import {
   Link as LinkIcon,
   FileUp,
   Mic,
+  CalendarCheck,
 } from "lucide-react";
 import InlineEdit from "./InlineEdit";
 import DetailOverviewTab from "./detail/DetailOverviewTab";
@@ -28,6 +29,7 @@ import DetailLinksTab from "./detail/DetailLinksTab";
 import DetailCVTab from "./detail/DetailCVTab";
 import type { JobApplication } from "@/types/job";
 import { APPLICATION_TYPES } from "@/types/job";
+import { differenceInDays, parseISO, startOfDay, isBefore } from "date-fns";
 import { useStages } from "@/hooks/useStages";
 import {
   Select,
@@ -45,9 +47,10 @@ interface JobDetailPanelProps {
   onSave: (job: JobApplication) => void;
   onOpenAI?: () => void;
   onOpenCoach?: () => void;
+  onOpenBootcamp?: () => void;
 }
 
-const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI, onOpenCoach }: JobDetailPanelProps) => {
+const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI, onOpenCoach, onOpenBootcamp }: JobDetailPanelProps) => {
   const { stages } = useStages();
   const [editedJob, setEditedJob] = useState<JobApplication | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
