@@ -236,6 +236,31 @@ const DAY_BEFORE_BOOTCAMP_TOOL = {
   },
 };
 
+const SCREENSHOT_EXTRACT_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "screenshot_extract_result",
+    description: "Return structured job data extracted from a screenshot image",
+    parameters: {
+      type: "object",
+      properties: {
+        job_title: { type: "string", description: "Job title/role" },
+        company: { type: "string", description: "Company name" },
+        location: { type: "string", description: "Job location if visible" },
+        salary: { type: "string", description: "Salary range if visible" },
+        employment_type: { type: "string", description: "Full-time, Part-time, Contract, etc." },
+        description: { type: "string", description: "Job description text visible in the screenshot" },
+        key_requirements: { type: "array", items: { type: "string" }, description: "Key requirements/skills listed" },
+        posted_date: { type: "string", description: "Posted date if visible" },
+        confidence: { type: "number", description: "Confidence 0-1 in the extraction accuracy" },
+        warnings: { type: "array", items: { type: "string" }, description: "Any issues with extraction: blurry text, partial capture, etc." },
+      },
+      required: ["job_title", "company", "confidence", "warnings"],
+      additionalProperties: false,
+    },
+  },
+};
+
 const CV_TAILOR_TOOL = {
   type: "function" as const,
   function: {
@@ -313,7 +338,7 @@ serve(async (req) => {
       });
     }
 
-    const { mode, job, cvText, intensity, model: requestedModel, question, answer, sessionData, csvData, userLocation, bootcampContext } = await req.json();
+    const { mode, job, cvText, intensity, model: requestedModel, question, answer, sessionData, csvData, userLocation, bootcampContext, imageBase64, sourceUrl } = await req.json();
     const model = validateModel(requestedModel);
 
     // --- Usage limit check ---
