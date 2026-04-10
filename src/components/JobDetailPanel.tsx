@@ -19,6 +19,7 @@ import {
   Users,
   Link as LinkIcon,
   FileUp,
+  Mic,
 } from "lucide-react";
 import InlineEdit from "./InlineEdit";
 import DetailOverviewTab from "./detail/DetailOverviewTab";
@@ -190,7 +191,17 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI, onOpenCoach
             </div>
 
             {/* AI button */}
-            <div className="flex items-center gap-1 shrink-0 ml-3">
+            <div className="flex items-center gap-1.5 shrink-0 ml-3">
+              {onOpenCoach && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onOpenCoach}
+                  className="gap-1.5 border-red-500/30 text-red-500 hover:bg-red-500/10 hover:border-red-500/50 transition-all"
+                >
+                  <Mic className="h-3.5 w-3.5" /> Coach
+                </Button>
+              )}
               {onOpenAI && (
                 <Button
                   variant="outline"
