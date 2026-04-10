@@ -246,11 +246,14 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
                   size="sm"
                   className="gap-2"
                   onClick={() => ruthless.startRuthlessReview()}
-                  disabled={ruthless.ruthlessLoading || ruthless.ruthlessCooldown}
+                  disabled={ruthless.ruthlessLoading || ruthless.ruthlessCooldown || aiPrefs.isLimitReached}
                 >
                   {ruthless.ruthlessLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Flame className="h-4 w-4" />}
                   {ruthless.ruthlessCooldown ? "Cooldown..." : "Ruthless Review"}
                 </Button>
+                <Badge variant="outline" className="text-[10px] font-normal">
+                  {aiPrefs.usageCount}/{aiPrefs.usageLimit} AI uses
+                </Badge>
               </div>
               <p className="text-xs text-muted-foreground">
                 Takes 5–15s. Be prepared — this is brutal.
