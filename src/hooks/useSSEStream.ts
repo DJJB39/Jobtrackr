@@ -14,7 +14,8 @@ export const useSSEStream = () => {
       url: string,
       body: Record<string, unknown>,
       token: string,
-      onError?: (msg: string) => void
+      onError?: (msg: string) => void,
+      onComplete?: () => void
     ): Promise<string> => {
       // Abort any in-flight request
       abortRef.current?.abort();
@@ -79,6 +80,7 @@ export const useSSEStream = () => {
       } finally {
         setLoading(false);
         abortRef.current = null;
+        onComplete?.();
       }
 
       return accumulated;

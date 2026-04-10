@@ -16,6 +16,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRuthlessReview, INTENSITY_OPTIONS } from "@/hooks/useRuthlessReview";
 import { useAIGeneration } from "@/hooks/useAIGeneration";
+import { useAIPreferences } from "@/hooks/useAIPreferences";
+import { Badge } from "@/components/ui/badge";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assist`;
 
@@ -95,9 +97,12 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
 
   const activeJobs = jobs.filter((j) => j.columnId !== "rejected" && j.columnId !== "accepted");
 
-  // Extracted hooks
-  const ruthless = useRuthlessReview(cvText);
-  const generation = useAIGeneration(cvText, activeJobs);
+  // AI preferences
+  const aiPrefs = useAIPreferences();
+
+  // Extracted hooks — pass model + usage tracking
+  const ruthless = useRuthlessReview(cvText, aiPrefs.preferredModel, aiPrefs.incrementUsage);
+  const generation = useAIGeneration(cvText, activeJobs, aiPrefs.preferredModel, aiPrefs.incrementUsage);
 
   const handleCVText = useCallback((text: string | null, isNewUpload?: boolean) => {
     setCvText(text);
@@ -241,11 +246,14 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
                   size="sm"
                   className="gap-2"
                   onClick={() => ruthless.startRuthlessReview()}
-                  disabled={ruthless.ruthlessLoading || ruthless.ruthlessCooldown}
+                  disabled={ruthless.ruthlessLoading || ruthless.ruthlessCooldown || aiPrefs.isLimitReached}
                 >
                   {ruthless.ruthlessLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Flame className="h-4 w-4" />}
                   {ruthless.ruthlessCooldown ? "Cooldown..." : "Ruthless Review"}
                 </Button>
+                <Badge variant="outline" className="text-[10px] font-normal">
+                  {aiPrefs.usageCount}/{aiPrefs.usageLimit} AI uses
+                </Badge>
               </div>
               <p className="text-xs text-muted-foreground">
                 Takes 5–15s. Be prepared — this is brutal.
@@ -431,7 +439,7 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
                     size="sm"
                     className="gap-2"
                     onClick={() => generation.startGeneration("cover_letter")}
-                    disabled={generation.genLoading || !generation.genJobId}
+                    disabled={generation.genLoading || !generation.genJobId || aiPrefs.isLimitReached}
                   >
                     {generation.genLoading && generation.genMode === "cover_letter" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
                     Cover Letter
@@ -441,7 +449,7 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
                     size="sm"
                     className="gap-2"
                     onClick={() => generation.startGeneration("interview_prep")}
-                    disabled={generation.genLoading || !generation.genJobId}
+                    disabled={generation.genLoading || !generation.genJobId || aiPrefs.isLimitReached}
                   >
                     {generation.genLoading && generation.genMode === "interview_prep" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                     Interview Prep
@@ -451,7 +459,7 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
                     size="sm"
                     className="gap-2"
                     onClick={() => generation.startGeneration("summarize")}
-                    disabled={generation.genLoading || !generation.genJobId}
+                    disabled={generation.genLoading || !generation.genJobId || aiPrefs.isLimitReached}
                   >
                     {generation.genLoading && generation.genMode === "summarize" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardList className="h-3.5 w-3.5" />}
                     Summary

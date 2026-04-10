@@ -8,15 +8,20 @@ const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assist`;
 
 export type GenMode = "cover_letter" | "interview_prep" | "summarize";
 
-export const useAIGeneration = (cvText: string | null, activeJobs: JobApplication[]) => {
+export const useAIGeneration = (
+  cvText: string | null,
+  activeJobs: JobApplication[],
+  preferredModel?: string,
+  onUsageIncrement?: () => void
+) => {
   const { session } = useAuth();
   const { toast } = useToast();
   const { content: genContent, loading: genLoading, stream, reset } = useSSEStream();
   const [genOpen, setGenOpen] = useState(false);
   const [genMode, setGenMode] = useState<GenMode | null>(null);
   const [genJobId, setGenJobId] = useState<string | null>(null);
+  const [lastModel, setLastModel] = useState<string | null>(null);
 
-  // Pre-select most recent job
   const sortedActiveJobs = [...activeJobs].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
@@ -28,7 +33,7 @@ export const useAIGeneration = (cvText: string | null, activeJobs: JobApplicatio
   }, [sortedActiveJobs.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startGeneration = useCallback(
-    async (mode: GenMode) => {
+    async (mode: GenMode, modelOverride?: string) => {
       if (!cvText || !genJobId) return;
       const job = activeJobs.find((j) => j.id === genJobId);
       if (!job) return;
@@ -37,12 +42,15 @@ export const useAIGeneration = (cvText: string | null, activeJobs: JobApplicatio
         return;
       }
 
+      const model = modelOverride || preferredModel || "google/gemini-3-flash-preview";
       setGenMode(mode);
+      setLastModel(model);
 
       await stream(
         AI_URL,
         {
           mode,
+          model,
           job: {
             company: job.company,
             role: job.role,
@@ -54,10 +62,17 @@ export const useAIGeneration = (cvText: string | null, activeJobs: JobApplicatio
           cvText,
         },
         session.access_token,
-        (msg) => toast({ title: "Generation failed", description: msg, variant: "destructive" })
+        (msg) => {
+          if (msg.includes("LIMIT_REACHED")) {
+            toast({ title: "Monthly AI limit reached", description: "Upgrade to Pro for unlimited generations.", variant: "destructive" });
+          } else {
+            toast({ title: "Generation failed", description: msg, variant: "destructive" });
+          }
+        },
+        () => onUsageIncrement?.()
       );
     },
-    [cvText, genJobId, activeJobs, session, toast, stream]
+    [cvText, genJobId, activeJobs, session, toast, stream, preferredModel, onUsageIncrement]
   );
 
   const copyGenContent = useCallback(() => {
@@ -77,5 +92,6 @@ export const useAIGeneration = (cvText: string | null, activeJobs: JobApplicatio
     startGeneration,
     copyGenContent,
     resetGeneration: reset,
+    lastModel,
   };
 };

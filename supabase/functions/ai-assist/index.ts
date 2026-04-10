@@ -7,6 +7,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const ALLOWED_MODELS = [
+  "google/gemini-3-flash-preview",
+  "google/gemini-2.5-flash",
+  "google/gemini-2.5-pro",
+  "openai/gpt-5-mini",
+  "openai/gpt-5",
+];
+
+const DEFAULT_MODEL = "google/gemini-3-flash-preview";
+const FREE_TIER_LIMIT = 10;
+
 const SYSTEM_PROMPTS: Record<string, string> = {
   cover_letter: `You are an expert career coach and professional writer. Write a tailored, compelling cover letter for the candidate applying to the job described below. 
 - Keep it under 400 words, 3-4 paragraphs.
@@ -63,6 +74,11 @@ const CV_SUITABILITY_TOOL = {
   },
 };
 
+function validateModel(model: string | undefined): string {
+  if (!model || !ALLOWED_MODELS.includes(model)) return DEFAULT_MODEL;
+  return model;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -76,6 +92,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -89,8 +106,50 @@ serve(async (req) => {
       });
     }
 
-    const { mode, job, cvText, intensity } = await req.json();
+    const { mode, job, cvText, intensity, model: requestedModel } = await req.json();
+    const model = validateModel(requestedModel);
 
+    // --- Usage limit check (service role for reliable counting) ---
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const { count, error: countError } = await serviceClient
+      .from("ai_usage_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gte("created_at", monthStart);
+
+    if (countError) {
+      console.error("Usage count error:", countError);
+    }
+
+    const usageCount = count ?? 0;
+    if (usageCount >= FREE_TIER_LIMIT) {
+      return new Response(
+        JSON.stringify({
+          error: "Monthly AI limit reached (10/10). Upgrade to Pro for unlimited generations.",
+          code: "LIMIT_REACHED",
+          usage: { used: usageCount, limit: FREE_TIER_LIMIT },
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // --- Log usage ---
+    const jobId = job?.id || null;
+    await serviceClient.from("ai_usage_logs").insert({
+      user_id: user.id,
+      mode,
+      model,
+      job_id: jobId,
+    });
+
+    // --- Build prompt ---
     let systemPrompt: string | undefined;
     if (mode === "ruthless_review") {
       const level = (intensity && RUTHLESS_PROMPTS[intensity]) ? intensity : "hard";
@@ -126,7 +185,7 @@ serve(async (req) => {
       ? `--- CV to Review ---\n${cvText?.slice(0, 6000) ?? "No CV provided"}`
       : jobContext;
 
-    // For cv_suitability mode, use tool calling (non-streaming)
+    // --- CV suitability: non-streaming tool call ---
     if (mode === "cv_suitability") {
       const response = await fetch(
         "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -137,7 +196,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
+            model,
             messages: [
               { role: "system", content: systemPrompt },
               { role: "user", content: userContent },
@@ -175,12 +234,12 @@ serve(async (req) => {
       }
 
       const result = JSON.parse(toolCall.function.arguments);
-      return new Response(JSON.stringify(result), {
+      return new Response(JSON.stringify({ ...result, model }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Streaming modes (cover_letter, interview_prep, summarize)
+    // --- Streaming modes ---
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -190,7 +249,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
+          model,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userContent },
