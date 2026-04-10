@@ -5,13 +5,14 @@ import Dashboard from "@/components/Dashboard";
 import ListView from "@/components/ListView";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
-import { Briefcase, LayoutDashboard, Columns3, Download, CalendarDays, X, List, Search, FileUp } from "lucide-react";
+import { Briefcase, LayoutDashboard, Columns3, Download, CalendarDays, X, List, Search, FileUp, Upload } from "lucide-react";
 import ShareStats from "@/components/ShareStats";
 import CalendarView from "@/components/CalendarView";
 import CVView from "@/components/CVView";
 import JobDetailPanel from "@/components/JobDetailPanel";
 import AIAssistPanel from "@/components/AIAssistPanel";
 import InterviewCoach from "@/components/InterviewCoach";
+import CSVImportModal from "@/components/CSVImportModal";
 import CommandPalette from "@/components/CommandPalette";
 import OnboardingTour from "@/components/OnboardingTour";
 import { useJobStore } from "@/stores/jobStore";
@@ -46,6 +47,7 @@ const AppPage = () => {
   const [panelOpen, setPanelOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const { toast } = useToast();
 
   // Fetch jobs when user is available
