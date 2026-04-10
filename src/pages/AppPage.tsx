@@ -271,6 +271,10 @@ const AppPage = () => {
 
             <div className="hidden sm:flex items-center gap-2">
               <ShareStats jobs={jobs} />
+              <Button variant="outline" size="sm" className="gap-2 border-border/50 hover:border-border" onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4" />
+                <span>Import</span>
+              </Button>
               <Button variant="outline" size="sm" className="gap-2 border-border/50 hover:border-border" onClick={exportToCSV} disabled={jobs.length === 0}>
                 <Download className="h-4 w-4" />
                 <span>Export</span>
