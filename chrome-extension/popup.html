@@ -31,8 +31,37 @@
         Ready to save jobs
       </div>
       <p class="user-email" id="user-email"></p>
+
+      <!-- Screenshot Capture -->
+      <div class="screenshot-section">
+        <button id="screenshot-btn" class="screenshot-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+            <circle cx="12" cy="13" r="3"/>
+          </svg>
+          Capture This Page
+        </button>
+        <p class="screenshot-hint">Takes a screenshot and extracts job details with AI</p>
+      </div>
+
+      <div id="extract-result" class="extract-result" style="display:none">
+        <div class="extract-header">
+          <span class="extract-badge" id="extract-badge">Extracted</span>
+          <button id="extract-close" class="extract-close">&times;</button>
+        </div>
+        <div id="extract-fields"></div>
+        <button id="save-extracted-btn" class="save-extracted-btn">Save to Board</button>
+      </div>
+
+      <div id="extract-loading" class="extract-loading" style="display:none">
+        <div class="spinner"></div>
+        <span>Extracting job details…</span>
+      </div>
+
+      <div id="extract-error" class="extract-error" style="display:none"></div>
+
       <div class="sites">
-        <p class="sites-label">Supported sites:</p>
+        <p class="sites-label">Also auto-detects jobs on:</p>
         <div class="site-list">
           <span class="site-tag">LinkedIn</span>
           <span class="site-tag">Indeed</span>
