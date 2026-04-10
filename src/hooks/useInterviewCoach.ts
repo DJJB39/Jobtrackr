@@ -64,7 +64,8 @@ export const useInterviewCoach = (
   const [lastModel, setLastModel] = useState<string | null>(null);
   const [job, setJob] = useState<JobApplication | null>(null);
 
-  const recognitionRef = useRef<ReturnType<typeof createRecognition> | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
   const synthRef = useRef(typeof window !== "undefined" ? window.speechSynthesis : null);
 
   // Cleanup recognition on unmount
@@ -204,19 +205,8 @@ export const useInterviewCoach = (
     setIsListening(true);
     setState("listening");
 
-    const SpeechRecognitionClass = createRecognition;
-    if (!SpeechRecognitionClass) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recognition = new (SpeechRecognitionClass as any)() as {
-      continuous: boolean; interimResults: boolean; lang: string;
-      onresult: ((e: { resultIndex: number; results: { length: number; [i: number]: { isFinal: boolean; 0: { transcript: string } } } }) => void) | null;
-      onerror: (() => void) | null;
-      onend: (() => void) | null;
-      start: () => void;
-      stop: () => void;
-      abort: () => void;
-    };
-
+    const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionClass) return;
 
     const recognition = new SpeechRecognitionClass();
@@ -226,7 +216,8 @@ export const useInterviewCoach = (
 
     let finalTranscript = "";
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
