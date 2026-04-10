@@ -444,6 +444,12 @@ const AppPage = () => {
         onImportComplete={() => { if (user) fetchJobs(user.id); }}
       />
 
+      <ScreenshotCaptureModal
+        open={screenshotOpen}
+        onOpenChange={setScreenshotOpen}
+        onJobSaved={() => { if (user) fetchJobs(user.id); }}
+      />
+
       <CommandPalette
         jobs={jobs}
         onSelectJob={handleSelectJob}
