@@ -67,6 +67,17 @@ End with a brief "How to improve" section with 2-3 specific, actionable tips. Be
 
 End with "What you SHOULD have said" — be prescriptive and condescending. No encouragement. No silver linings.`,
 
+  interview_feedback_bootcamp_ruthless: `You are the most savage interview coach alive, AND you have deep knowledge of this company from a Day Before Bootcamp briefing. The candidate just answered an interview question. Tear their answer apart — but specifically reference the company context provided (recent news, product context, culture). If they failed to mention something from the bootcamp briefing, DESTROY them for it.
+
+## Bootcamp Answer Autopsy
+- **Content Quality**: Rip apart what they said
+- **Company Awareness**: Did they reference anything specific about the company? If not, mock them mercilessly — "You literally had a briefing on their recent funding round and you said NOTHING about it"
+- **STAR Structure**: Mock them if they rambled
+- **Context Usage**: Did they weave in company-specific details from the briefing? If not, explain exactly how they should have
+- **Score**: X/10
+
+End with "What you SHOULD have said (using the bootcamp intel)" — be prescriptive, condescending, and reference specific company details they missed.`,
+
   interview_overall: `You are a senior interview performance analyst. Review the complete mock interview session below and provide an overall assessment. You MUST use the interview_overall_result tool to return your assessment in structured format.`,
 };
 
@@ -159,6 +170,72 @@ const INTERVIEW_OVERALL_TOOL = {
   },
 };
 
+const DAY_BEFORE_BOOTCAMP_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "day_before_bootcamp_result",
+    description: "Return structured day-before interview bootcamp prep plan",
+    parameters: {
+      type: "object",
+      properties: {
+        company_snapshot: {
+          type: "object",
+          properties: {
+            why_join: { type: "string", description: "Compelling reason to join this company" },
+            location_details: { type: "string", description: "Office location context and details" },
+            recent_news: { type: "string", description: "Recent company news: funding, layoffs, expansion, product launches — neutral but useful" },
+            product_context: { type: "string", description: "What the company builds, their market position, competitors" },
+          },
+          required: ["why_join", "location_details", "recent_news", "product_context"],
+          additionalProperties: false,
+        },
+        logistics: {
+          type: "object",
+          properties: {
+            commute_estimate: { type: "string", description: "Estimated commute time and method" },
+            cost_estimate: { type: "string", description: "Estimated commute cost" },
+            time_advice: { type: "string", description: "When to leave, what to bring, dress code advice" },
+          },
+          required: ["commute_estimate", "cost_estimate", "time_advice"],
+          additionalProperties: false,
+        },
+        schedule: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              time: { type: "string", description: "Time slot e.g. '8:00 AM'" },
+              activity: { type: "string", description: "What to do" },
+              duration_min: { type: "number", description: "Duration in minutes" },
+              focus_area: { type: "string", description: "Category: research, practice, logistics, rest" },
+            },
+            required: ["time", "activity", "duration_min", "focus_area"],
+            additionalProperties: false,
+          },
+          description: "8-12 item realistic day schedule",
+        },
+        questions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              question: { type: "string", description: "Tailored interview question" },
+              type: { type: "string", enum: ["behavioral", "company_specific"], description: "Question type" },
+              context_note: { type: "string", description: "Why this question matters given company context" },
+            },
+            required: ["question", "type", "context_note"],
+            additionalProperties: false,
+          },
+          description: "4-6 tailored questions mixing behavioral and company-specific",
+        },
+        summary_markdown: { type: "string", description: "Printable markdown overview of the entire bootcamp plan" },
+      },
+      required: ["company_snapshot", "logistics", "schedule", "questions", "summary_markdown"],
+      additionalProperties: false,
+    },
+  },
+};
+
 function validateModel(model: string | undefined): string {
   if (!model || !ALLOWED_MODELS.includes(model)) return DEFAULT_MODEL;
   return model;
@@ -191,7 +268,7 @@ serve(async (req) => {
       });
     }
 
-    const { mode, job, cvText, intensity, model: requestedModel, question, answer, sessionData, csvData } = await req.json();
+    const { mode, job, cvText, intensity, model: requestedModel, question, answer, sessionData, csvData, userLocation, bootcampContext } = await req.json();
     const model = validateModel(requestedModel);
 
     // --- Usage limit check ---
