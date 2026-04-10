@@ -9,10 +9,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Sparkles, Copy, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useSSEStream } from "@/hooks/useSSEStream";
+import { useAIPreferences, AI_MODELS, type AIModelId } from "@/hooks/useAIPreferences";
 import type { JobApplication } from "@/types/job";
 import ReactMarkdown from "react-markdown";
 import { useEffect } from "react";
@@ -39,8 +42,10 @@ const AIAssistPanel = ({ job, open, onOpenChange }: AIAssistPanelProps) => {
   const { user } = useAuth();
   const { content, loading, stream, reset } = useSSEStream();
   const [cvText, setCvText] = useState<string | null>(null);
+  const [lastModel, setLastModel] = useState<string | null>(null);
+  const aiPrefs = useAIPreferences();
+  const [modelOverride, setModelOverride] = useState<AIModelId | "">("");
 
-  // Load cached CV text
   useEffect(() => {
     if (user) {
       const cached = localStorage.getItem(`cv-text-${user.id}`);
@@ -58,10 +63,14 @@ const AIAssistPanel = ({ job, open, onOpenChange }: AIAssistPanelProps) => {
       return;
     }
 
+    const model = modelOverride || aiPrefs.preferredModel;
+    setLastModel(model);
+
     await stream(
       AI_URL,
       {
         mode: m,
+        model,
         job: {
           company: job.company,
           role: job.role,
@@ -74,19 +83,29 @@ const AIAssistPanel = ({ job, open, onOpenChange }: AIAssistPanelProps) => {
         ...(cvText ? { cvText } : {}),
       },
       session.access_token,
-      (msg) => toast({ title: "AI Error", description: msg, variant: "destructive" })
+      (msg) => {
+        if (msg.includes("LIMIT_REACHED")) {
+          toast({ title: "Monthly AI limit reached", description: "Upgrade to Pro for unlimited generations.", variant: "destructive" });
+        } else {
+          toast({ title: "AI Error", description: msg, variant: "destructive" });
+        }
+      },
+      () => aiPrefs.incrementUsage()
     );
-  }, [mode, job, toast, cvText, stream, reset]);
+  }, [mode, job, toast, cvText, stream, reset, aiPrefs.preferredModel, modelOverride, aiPrefs.incrementUsage]);
 
   const handleModeChange = (newMode: string) => {
     setMode(newMode as Mode);
     reset();
+    setLastModel(null);
   };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(content);
     toast({ title: "Copied to clipboard" });
   };
+
+  const modelLabel = lastModel ? AI_MODELS.find((m) => m.id === lastModel)?.label : null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -115,8 +134,13 @@ const AIAssistPanel = ({ job, open, onOpenChange }: AIAssistPanelProps) => {
           </Tabs>
         </div>
 
-        <div className="px-6 py-3 flex items-center gap-2">
-          <Button onClick={() => generate()} disabled={loading} className="gap-2" size="sm">
+        <div className="px-6 py-3 flex items-center gap-2 flex-wrap">
+          <Button
+            onClick={() => generate()}
+            disabled={loading || aiPrefs.isLimitReached}
+            className="gap-2"
+            size="sm"
+          >
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             {content ? "Regenerate" : "Generate"}
           </Button>
@@ -124,6 +148,22 @@ const AIAssistPanel = ({ job, open, onOpenChange }: AIAssistPanelProps) => {
             <Button variant="outline" size="sm" onClick={copyToClipboard} className="gap-2">
               <Copy className="h-3.5 w-3.5" /> Copy
             </Button>
+          )}
+          <Select value={modelOverride} onValueChange={(v) => setModelOverride(v as AIModelId)}>
+            <SelectTrigger className="w-auto h-8 text-xs gap-1 min-w-[120px]">
+              <SelectValue placeholder="Model" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Default ({AI_MODELS.find((m) => m.id === aiPrefs.preferredModel)?.label})</SelectItem>
+              {AI_MODELS.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {aiPrefs.isLimitReached && (
+            <p className="text-xs text-destructive w-full">Monthly limit reached ({aiPrefs.usageCount}/{aiPrefs.usageLimit})</p>
           )}
         </div>
 
@@ -135,8 +175,15 @@ const AIAssistPanel = ({ job, open, onOpenChange }: AIAssistPanelProps) => {
             </div>
           )}
           {content && (
-            <div className="prose prose-sm dark:prose-invert max-w-none text-foreground">
-              <ReactMarkdown>{content}</ReactMarkdown>
+            <div className="space-y-2">
+              {modelLabel && (
+                <Badge variant="outline" className="text-[10px] font-normal">
+                  {modelLabel}
+                </Badge>
+              )}
+              <div className="prose prose-sm dark:prose-invert max-w-none text-foreground">
+                <ReactMarkdown>{content}</ReactMarkdown>
+              </div>
             </div>
           )}
           {!loading && !content && (
