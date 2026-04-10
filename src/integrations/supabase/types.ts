@@ -144,6 +144,7 @@ export type Database = {
           description: string | null
           events: Json
           id: string
+          imported_from: string | null
           links: Json
           location: string | null
           next_steps: Json
@@ -165,6 +166,7 @@ export type Database = {
           description?: string | null
           events?: Json
           id?: string
+          imported_from?: string | null
           links?: Json
           location?: string | null
           next_steps?: Json
@@ -186,6 +188,7 @@ export type Database = {
           description?: string | null
           events?: Json
           id?: string
+          imported_from?: string | null
           links?: Json
           location?: string | null
           next_steps?: Json

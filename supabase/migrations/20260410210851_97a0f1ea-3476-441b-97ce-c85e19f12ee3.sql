@@ -1,0 +1,1 @@
+ALTER TABLE public.job_applications ADD COLUMN imported_from text;
