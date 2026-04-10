@@ -407,8 +407,17 @@ Only map columns you're confident about. Skip irrelevant columns like internal I
     if (mode === "day_before_bootcamp") {
       const bootcampSystemPrompt = `You are a ruthlessly practical interview prep strategist. The candidate has an interview tomorrow. Based on the job description, company info, and their CV, create a comprehensive but realistic day-before prep plan. Be direct and opinionated — tell them exactly what to focus on. If you know of recent company events (funding, layoffs, product launches, leadership changes), include them. If a user location is provided, estimate commute logistics realistically. You MUST use the day_before_bootcamp_result tool.`;
 
+      const bootcampJobContext = job ? [
+        `Company: ${job.company}`,
+        `Role: ${job.role}`,
+        job.salary ? `Salary: ${job.salary}` : null,
+        job.location ? `Location: ${job.location}` : null,
+        job.description ? `Job Description: ${job.description.slice(0, 2000)}` : null,
+        job.notes ? `Candidate Notes: ${job.notes.slice(0, 1000)}` : null,
+      ].filter(Boolean).join("\n") : "";
+
       const bootcampUserContent = [
-        jobContext,
+        bootcampJobContext,
         userLocation ? `\nCandidate Location: ${userLocation}` : "",
         cvText ? `\n--- Candidate CV ---\n${cvText.slice(0, 3000)}` : "",
       ].join("\n");
