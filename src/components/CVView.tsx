@@ -439,7 +439,7 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
                     size="sm"
                     className="gap-2"
                     onClick={() => generation.startGeneration("cover_letter")}
-                    disabled={generation.genLoading || !generation.genJobId}
+                    disabled={generation.genLoading || !generation.genJobId || aiPrefs.isLimitReached}
                   >
                     {generation.genLoading && generation.genMode === "cover_letter" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
                     Cover Letter
@@ -449,7 +449,7 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
                     size="sm"
                     className="gap-2"
                     onClick={() => generation.startGeneration("interview_prep")}
-                    disabled={generation.genLoading || !generation.genJobId}
+                    disabled={generation.genLoading || !generation.genJobId || aiPrefs.isLimitReached}
                   >
                     {generation.genLoading && generation.genMode === "interview_prep" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                     Interview Prep
