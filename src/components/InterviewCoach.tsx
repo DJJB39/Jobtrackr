@@ -1,35 +1,18 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Mic,
-  MicOff,
-  SkipForward,
-  Volume2,
-  Send,
-  Flame,
-  Heart,
-  Loader2,
-  CheckCircle2,
-  ArrowRight,
-  RotateCcw,
-  X,
-  Keyboard,
+  Mic, MicOff, SkipForward, Volume2, Send, Flame, Heart,
+  Loader2, CheckCircle2, ArrowRight, RotateCcw, X, Keyboard,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { JobApplication } from "@/types/job";
-import {
-  useInterviewCoach,
-  type CoachMode,
-} from "@/hooks/useInterviewCoach";
+import { useInterviewCoach, type CoachMode } from "@/hooks/useInterviewCoach";
 import { AI_MODELS } from "@/hooks/useAIPreferences";
 
 interface InterviewCoachProps {
@@ -41,24 +24,19 @@ interface InterviewCoachProps {
   isLimitReached?: boolean;
 }
 
-// Score ring reused from CVView pattern
 const ScoreRing = ({ score, size = 80 }: { score: number; size?: number }) => {
   const color = score >= 75 ? "text-emerald-500" : score >= 50 ? "text-amber-500" : "text-red-500";
-  const r = (size / 2) - 4;
+  const r = size / 2 - 4;
   const circumference = 2 * Math.PI * r;
   const offset = circumference - (score / 100) * circumference;
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
       <svg className="absolute h-full w-full -rotate-90" viewBox={`0 0 ${size} ${size}`}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="hsl(var(--border))" strokeWidth="4" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="hsl(var(--border))" strokeWidth="4" />
         <circle
-          cx={size/2} cy={size/2} r={r} fill="none"
-          className={color}
-          stroke="currentColor"
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
+          cx={size / 2} cy={size / 2} r={r} fill="none"
+          className={color} stroke="currentColor" strokeWidth="4" strokeLinecap="round"
+          strokeDasharray={circumference} strokeDashoffset={offset}
           style={{ transition: "stroke-dashoffset 0.8s ease" }}
         />
       </svg>
@@ -76,31 +54,25 @@ const BreakdownBar = ({ label, score }: { label: string; score: number }) => {
         <span className="font-mono font-semibold">{score}</span>
       </div>
       <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden">
-        <motion.div
-          className={`h-full rounded-full ${color}`}
-          initial={{ width: 0 }}
-          animate={{ width: `${score}%` }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        />
+        <motion.div className={`h-full rounded-full ${color}`} initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ duration: 0.6, delay: 0.2 }} />
       </div>
     </div>
   );
 };
 
-const InterviewCoach = ({
-  job,
-  open,
-  onOpenChange,
-  preferredModel,
-  onUsageIncrement,
-  isLimitReached,
-}: InterviewCoachProps) => {
+const InterviewCoach = ({ job, open, onOpenChange, preferredModel, onUsageIncrement, isLimitReached }: InterviewCoachProps) => {
   const coach = useInterviewCoach(preferredModel, onUsageIncrement);
   const [useTextInput, setUseTextInput] = useState(!coach.hasSpeechRecognition);
 
-  const modelLabel = coach.lastModel
-    ? AI_MODELS.find((m) => m.id === coach.lastModel)?.label
-    : null;
+  const modelLabel = coach.lastModel ? AI_MODELS.find((m) => m.id === coach.lastModel)?.label : null;
+
+  const currentIndex = coach.currentIndex;
+
+  // Compute feedback for current question
+  const feedbackForCurrent = useMemo(() => {
+    if (coach.state === "analyzing" && coach.feedbackContent) return coach.feedbackContent;
+    return coach.feedbacks[currentIndex] || null;
+  }, [coach.state, coach.feedbackContent, coach.feedbacks, currentIndex]);
 
   const handleClose = () => {
     coach.resetSession();
@@ -116,16 +88,10 @@ const InterviewCoach = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 shrink-0">
           <div className="min-w-0">
             <h2 className="text-lg font-display font-semibold text-foreground flex items-center gap-2">
-              {coach.coachMode === "ruthless" ? (
-                <Flame className="h-5 w-5 text-red-500" />
-              ) : (
-                <Heart className="h-5 w-5 text-emerald-500" />
-              )}
+              {coach.coachMode === "ruthless" ? <Flame className="h-5 w-5 text-red-500" /> : <Heart className="h-5 w-5 text-emerald-500" />}
               Interview Coach
             </h2>
-            <p className="text-xs text-muted-foreground truncate">
-              {job.company} — {job.role}
-            </p>
+            <p className="text-xs text-muted-foreground truncate">{job.company} — {job.role}</p>
           </div>
           <Button variant="ghost" size="icon" onClick={handleClose} className="shrink-0">
             <X className="h-4 w-4" />
@@ -137,23 +103,10 @@ const InterviewCoach = ({
             <AnimatePresence mode="wait">
               {/* MODE SELECTION */}
               {coach.state === "idle" && (
-                <motion.div
-                  key="mode-select"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className="space-y-6"
-                >
+                <motion.div key="mode-select" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="space-y-6">
                   <div className="text-center space-y-2">
                     <h3 className="text-xl font-display font-semibold">Choose Your Coach</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Practice for your interview at {job.company}
-                    </p>
-                    {job.description && (
-                      <p className="text-xs text-muted-foreground/70 line-clamp-2 max-w-md mx-auto">
-                        {job.description.slice(0, 150)}…
-                      </p>
-                    )}
+                    <p className="text-sm text-muted-foreground">Practice for your interview at {job.company}</p>
                   </div>
 
                   {isLimitReached && (
@@ -178,9 +131,7 @@ const InterviewCoach = ({
                           <p className="text-xs text-emerald-500">Encouraging & constructive</p>
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Get supportive feedback with actionable tips. Perfect for building confidence.
-                      </p>
+                      <p className="text-sm text-muted-foreground">Get supportive feedback with actionable tips. Perfect for building confidence.</p>
                     </button>
 
                     <button
@@ -197,23 +148,15 @@ const InterviewCoach = ({
                           <p className="text-xs text-red-500">Savage & brutally honest</p>
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Get destroyed by the most savage coach alive. Not for the faint-hearted.
-                      </p>
+                      <p className="text-sm text-muted-foreground">Get destroyed by the most savage coach alive. Not for the faint-hearted.</p>
                     </button>
                   </div>
                 </motion.div>
               )}
 
-              {/* GENERATING QUESTIONS */}
+              {/* GENERATING */}
               {coach.state === "generating_questions" && (
-                <motion.div
-                  key="generating"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-col items-center justify-center py-16"
-                >
+                <motion.div key="generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center py-16">
                   <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
                   <p className="text-sm text-muted-foreground">Generating tailored questions…</p>
                   <p className="text-xs text-muted-foreground/60 mt-1">Analysing job description & your CV</p>
@@ -222,13 +165,7 @@ const InterviewCoach = ({
 
               {/* ACTIVE SESSION */}
               {(coach.state === "ready" || coach.state === "speaking" || coach.state === "listening" || coach.state === "analyzing") && coach.currentQuestion && (
-                <motion.div
-                  key="active"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="space-y-6"
-                >
+                <motion.div key="active" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
                   {/* Progress */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs text-muted-foreground">
@@ -240,17 +177,12 @@ const InterviewCoach = ({
                     <Progress value={((currentIndex + 1) / coach.questions.length) * 100} className="h-1.5" />
                   </div>
 
-                  {/* Question */}
+                  {/* Question card */}
                   <div className="rounded-xl border border-border/50 bg-card/60 p-5 space-y-3">
-                    <p className="text-lg font-semibold text-foreground leading-relaxed">
-                      {coach.currentQuestion.question}
-                    </p>
-                    <p className="text-xs text-muted-foreground/70 italic">
-                      💡 {coach.currentQuestion.tip}
-                    </p>
+                    <p className="text-lg font-semibold text-foreground leading-relaxed">{coach.currentQuestion.question}</p>
+                    <p className="text-xs text-muted-foreground/70 italic">💡 {coach.currentQuestion.tip}</p>
                     <Button
-                      variant="ghost"
-                      size="sm"
+                      variant="ghost" size="sm"
                       onClick={() => coach.speakQuestion(coach.currentQuestion!.question)}
                       disabled={coach.state === "speaking"}
                       className="gap-1.5 text-xs"
@@ -260,10 +192,9 @@ const InterviewCoach = ({
                     </Button>
                   </div>
 
-                  {/* Answer area */}
+                  {/* Answer area — only show if no feedback yet for this question */}
                   {coach.state !== "analyzing" && !feedbackForCurrent && (
                     <div className="space-y-4">
-                      {/* Mic button or text input */}
                       {!useTextInput && coach.hasSpeechRecognition ? (
                         <div className="flex flex-col items-center gap-4">
                           <button
@@ -282,34 +213,18 @@ const InterviewCoach = ({
                                 transition={{ duration: 1.5, repeat: Infinity }}
                               />
                             )}
-                            {coach.isListening ? (
-                              <MicOff className="h-8 w-8" />
-                            ) : (
-                              <Mic className="h-8 w-8" />
-                            )}
+                            {coach.isListening ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
                           </button>
-
-                          {coach.isListening && (
-                            <p className="text-sm text-red-500 font-medium animate-pulse">
-                              Listening…
-                            </p>
-                          )}
-
+                          {coach.isListening && <p className="text-sm text-red-500 font-medium animate-pulse">Listening…</p>}
                           {(coach.interimTranscript || coach.currentAnswer) && (
                             <div className="w-full rounded-lg border border-border/50 bg-muted/30 p-3">
                               <p className="text-sm text-foreground">
                                 {coach.currentAnswer}
-                                {coach.interimTranscript && (
-                                  <span className="text-muted-foreground italic"> {coach.interimTranscript}</span>
-                                )}
+                                {coach.interimTranscript && <span className="text-muted-foreground italic"> {coach.interimTranscript}</span>}
                               </p>
                             </div>
                           )}
-
-                          <button
-                            onClick={() => setUseTextInput(true)}
-                            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-                          >
+                          <button onClick={() => setUseTextInput(true)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                             <Keyboard className="h-3 w-3" /> Type instead
                           </button>
                         </div>
@@ -323,23 +238,15 @@ const InterviewCoach = ({
                             className="resize-none"
                           />
                           {coach.hasSpeechRecognition && (
-                            <button
-                              onClick={() => setUseTextInput(false)}
-                              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-                            >
+                            <button onClick={() => setUseTextInput(false)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                               <Mic className="h-3 w-3" /> Use voice instead
                             </button>
                           )}
                         </div>
                       )}
 
-                      {/* Submit / Skip */}
                       <div className="flex items-center gap-2">
-                        <Button
-                          onClick={() => coach.submitAnswer()}
-                          disabled={!coach.currentAnswer.trim()}
-                          className="gap-2"
-                        >
+                        <Button onClick={() => coach.submitAnswer()} disabled={!coach.currentAnswer.trim()} className="gap-2">
                           <Send className="h-4 w-4" /> Submit Answer
                         </Button>
                         <Button variant="ghost" size="sm" onClick={coach.skipQuestion} className="gap-1.5">
@@ -349,34 +256,26 @@ const InterviewCoach = ({
                     </div>
                   )}
 
-                  {/* Analyzing state */}
-                  {coach.state === "analyzing" && (
+                  {/* Analyzing spinner */}
+                  {coach.state === "analyzing" && !feedbackForCurrent && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       {coach.coachMode === "ruthless" ? "Preparing to destroy your answer…" : "Analyzing your response…"}
                     </div>
                   )}
 
-                  {/* Feedback display */}
+                  {/* Feedback */}
                   {feedbackForCurrent && (
                     <div className="space-y-3">
-                      {modelLabel && (
-                        <Badge variant="outline" className="text-[10px] font-normal">
-                          {modelLabel}
-                        </Badge>
-                      )}
+                      {modelLabel && <Badge variant="outline" className="text-[10px] font-normal">{modelLabel}</Badge>}
                       <div className="prose prose-sm dark:prose-invert max-w-none rounded-xl border border-border/50 bg-card/40 p-5">
                         <ReactMarkdown>{feedbackForCurrent}</ReactMarkdown>
                       </div>
                       <Button onClick={coach.nextQuestion} className="gap-2">
                         {currentIndex + 1 >= coach.questions.length ? (
-                          <>
-                            <CheckCircle2 className="h-4 w-4" /> Finish & Get Score
-                          </>
+                          <><CheckCircle2 className="h-4 w-4" /> Finish & Get Score</>
                         ) : (
-                          <>
-                            <ArrowRight className="h-4 w-4" /> Next Question
-                          </>
+                          <><ArrowRight className="h-4 w-4" /> Next Question</>
                         )}
                       </Button>
                     </div>
@@ -386,12 +285,7 @@ const InterviewCoach = ({
 
               {/* COMPLETE */}
               {coach.state === "complete" && (
-                <motion.div
-                  key="complete"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-6"
-                >
+                <motion.div key="complete" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                   {coach.overallResult ? (
                     <>
                       <div className="flex items-center gap-5">
@@ -403,8 +297,6 @@ const InterviewCoach = ({
                           </p>
                         </div>
                       </div>
-
-                      {/* Breakdown */}
                       <div className="space-y-3 rounded-xl border border-border/50 bg-card/40 p-5">
                         <h4 className="text-sm font-semibold text-foreground">Breakdown</h4>
                         <BreakdownBar label="Content Quality" score={coach.overallResult.breakdown.content_quality} />
@@ -413,16 +305,12 @@ const InterviewCoach = ({
                         <BreakdownBar label="Relevance" score={coach.overallResult.breakdown.relevance} />
                         <BreakdownBar label="Communication" score={coach.overallResult.breakdown.communication} />
                       </div>
-
-                      {/* Strengths & improvements */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {coach.overallResult.top_strengths.length > 0 && (
                           <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
                             <h4 className="text-sm font-semibold text-emerald-500 mb-2">✓ Strengths</h4>
                             <ul className="space-y-1.5">
-                              {coach.overallResult.top_strengths.map((s, i) => (
-                                <li key={i} className="text-sm text-foreground">{s}</li>
-                              ))}
+                              {coach.overallResult.top_strengths.map((s, i) => <li key={i} className="text-sm text-foreground">{s}</li>)}
                             </ul>
                           </div>
                         )}
@@ -430,15 +318,11 @@ const InterviewCoach = ({
                           <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
                             <h4 className="text-sm font-semibold text-red-500 mb-2">⚠ Improve</h4>
                             <ul className="space-y-1.5">
-                              {coach.overallResult.critical_improvements.map((s, i) => (
-                                <li key={i} className="text-sm text-foreground">{s}</li>
-                              ))}
+                              {coach.overallResult.critical_improvements.map((s, i) => <li key={i} className="text-sm text-foreground">{s}</li>)}
                             </ul>
                           </div>
                         )}
                       </div>
-
-                      {/* Summary */}
                       <div className="prose prose-sm dark:prose-invert max-w-none rounded-xl border border-border/50 bg-card/40 p-5">
                         <ReactMarkdown>{coach.overallResult.summary}</ReactMarkdown>
                       </div>
@@ -447,12 +331,10 @@ const InterviewCoach = ({
                     <div className="text-center py-8">
                       <CheckCircle2 className="h-12 w-12 text-primary mx-auto mb-3" />
                       <h3 className="text-lg font-semibold">Session Complete</h3>
-                      <p className="text-sm text-muted-foreground">Could not generate overall score.</p>
                     </div>
                   )}
-
                   <div className="flex items-center gap-2">
-                    <Button onClick={() => { coach.resetSession(); }} variant="outline" className="gap-2">
+                    <Button onClick={coach.resetSession} variant="outline" className="gap-2">
                       <RotateCcw className="h-4 w-4" /> New Session
                     </Button>
                     <Button onClick={handleClose}>Close</Button>
@@ -465,17 +347,6 @@ const InterviewCoach = ({
       </DialogContent>
     </Dialog>
   );
-
-  // Helper: get feedback for the current question index
-  function get feedbackForCurrentIndex(): string | null {
-    // During analyzing, show streaming content
-    if (coach.state === "analyzing" && coach.feedbackContent) return coach.feedbackContent;
-    // After analysis, show stored feedback
-    return coach.feedbacks[currentIndex] || null;
-  }
 };
-
-// Fix: We need to compute feedbackForCurrent properly
-// Let me restructure the component to avoid the helper issue
 
 export default InterviewCoach;
