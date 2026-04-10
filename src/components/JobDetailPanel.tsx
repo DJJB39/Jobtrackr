@@ -20,6 +20,7 @@ import {
   Link as LinkIcon,
   FileUp,
   Mic,
+  CalendarCheck,
 } from "lucide-react";
 import InlineEdit from "./InlineEdit";
 import DetailOverviewTab from "./detail/DetailOverviewTab";
@@ -28,6 +29,7 @@ import DetailLinksTab from "./detail/DetailLinksTab";
 import DetailCVTab from "./detail/DetailCVTab";
 import type { JobApplication } from "@/types/job";
 import { APPLICATION_TYPES } from "@/types/job";
+import { differenceInDays, parseISO, startOfDay, isBefore } from "date-fns";
 import { useStages } from "@/hooks/useStages";
 import {
   Select,
@@ -45,9 +47,10 @@ interface JobDetailPanelProps {
   onSave: (job: JobApplication) => void;
   onOpenAI?: () => void;
   onOpenCoach?: () => void;
+  onOpenBootcamp?: () => void;
 }
 
-const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI, onOpenCoach }: JobDetailPanelProps) => {
+const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI, onOpenCoach, onOpenBootcamp }: JobDetailPanelProps) => {
   const { stages } = useStages();
   const [editedJob, setEditedJob] = useState<JobApplication | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -90,6 +93,17 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI, onOpenCoach
   if (!editedJob) return null;
 
   const column = stages.find((c) => c.id === editedJob.columnId);
+
+  // Check if job has an upcoming interview within 3 days
+  const hasUpcomingInterview = (() => {
+    const today = startOfDay(new Date());
+    return (editedJob.events ?? []).some((e) => {
+      try {
+        const eventDate = parseISO(e.date);
+        return !isBefore(eventDate, today) && differenceInDays(eventDate, today) <= 3;
+      } catch { return false; }
+    });
+  })();
 
   const update = <K extends keyof JobApplication>(key: K, value: JobApplication[K]) => {
     const updated = { ...editedJob, [key]: value };
@@ -192,6 +206,16 @@ const JobDetailPanel = ({ job, open, onOpenChange, onSave, onOpenAI, onOpenCoach
 
             {/* AI + Coach buttons */}
             <div className="flex items-center gap-1.5 shrink-0 ml-3">
+              {hasUpcomingInterview && onOpenBootcamp && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onOpenBootcamp}
+                  className="gap-1.5 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 transition-all"
+                >
+                  <CalendarCheck className="h-3.5 w-3.5" /> Bootcamp
+                </Button>
+              )}
               {onOpenCoach && (
                 <Button
                   variant="outline"
