@@ -236,6 +236,51 @@ const DAY_BEFORE_BOOTCAMP_TOOL = {
   },
 };
 
+const CV_TAILOR_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "cv_tailor_result",
+    description: "Return structured CV tailoring result with original vs tailored sections and change explanations",
+    parameters: {
+      type: "object",
+      properties: {
+        tailored_sections: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              section_name: { type: "string", description: "Section name e.g. 'Summary', 'Experience - Company X', 'Skills'" },
+              original: { type: "string", description: "Original text from the CV" },
+              tailored: { type: "string", description: "Reworded version optimized for this JD" },
+              change_explanation: { type: "string", description: "Why this change was made — which JD requirement it targets" },
+              risk_note: { type: "string", description: "Any honesty risk flag, e.g. 'This emphasizes leadership more than your original — make sure it still feels accurate'" },
+            },
+            required: ["section_name", "original", "tailored", "change_explanation", "risk_note"],
+            additionalProperties: false,
+          },
+          description: "3-8 sections that were meaningfully changed",
+        },
+        keywords_matched: {
+          type: "array",
+          items: { type: "string" },
+          description: "JD keywords that were successfully woven into the tailored CV",
+        },
+        keywords_missing: {
+          type: "array",
+          items: { type: "string" },
+          description: "JD keywords that could NOT be honestly incorporated — the candidate lacks this experience",
+        },
+        overall_match_before: { type: "number", description: "Estimated match score 0-100 before tailoring" },
+        overall_match_after: { type: "number", description: "Estimated match score 0-100 after tailoring" },
+        honesty_warning: { type: "string", description: "Overall honesty assessment — flag if any changes stretch the truth" },
+        summary_markdown: { type: "string", description: "Markdown summary of all changes made and why" },
+      },
+      required: ["tailored_sections", "keywords_matched", "keywords_missing", "overall_match_before", "overall_match_after", "honesty_warning", "summary_markdown"],
+      additionalProperties: false,
+    },
+  },
+};
+
 function validateModel(model: string | undefined): string {
   if (!model || !ALLOWED_MODELS.includes(model)) return DEFAULT_MODEL;
   return model;
