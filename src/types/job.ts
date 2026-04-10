@@ -1,4 +1,5 @@
-export type ColumnId =
+/** Default stage IDs. Custom stages may use any string. */
+export type DefaultColumnId =
   | "found"
   | "applied"
   | "phone"
@@ -7,6 +8,9 @@ export type ColumnId =
   | "offer"
   | "accepted"
   | "rejected";
+
+/** ColumnId accepts default stages AND custom user-created stage IDs. */
+export type ColumnId = DefaultColumnId | (string & {});
 
 export interface Contact {
   id: string;
