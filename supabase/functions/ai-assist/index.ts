@@ -466,9 +466,6 @@ Only map columns you're confident about. Skip irrelevant columns like internal I
     } else {
       systemPrompt = SYSTEM_PROMPTS[mode];
     }
-    } else {
-      systemPrompt = SYSTEM_PROMPTS[mode];
-    }
 
     if (!systemPrompt) {
       return new Response(JSON.stringify({ error: "Invalid mode" }), {
