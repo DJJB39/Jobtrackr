@@ -5,7 +5,7 @@ import Dashboard from "@/components/Dashboard";
 import ListView from "@/components/ListView";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
-import { Briefcase, LayoutDashboard, Columns3, Download, CalendarDays, X, List, Search, FileUp, Upload } from "lucide-react";
+import { Briefcase, LayoutDashboard, Columns3, Download, CalendarDays, X, List, Search, FileUp, Upload, Camera } from "lucide-react";
 import ShareStats from "@/components/ShareStats";
 import CalendarView from "@/components/CalendarView";
 import CVView from "@/components/CVView";
@@ -14,6 +14,7 @@ import AIAssistPanel from "@/components/AIAssistPanel";
 import InterviewCoach from "@/components/InterviewCoach";
 import DayBeforeBootcamp from "@/components/DayBeforeBootcamp";
 import CVTailorModal from "@/components/CVTailorModal";
+import ScreenshotCaptureModal from "@/components/ScreenshotCaptureModal";
 import type { BootcampData } from "@/hooks/useBootcamp";
 import CSVImportModal from "@/components/CSVImportModal";
 import CommandPalette from "@/components/CommandPalette";
@@ -53,6 +54,7 @@ const AppPage = () => {
   const [bootcampOpen, setBootcampOpen] = useState(false);
   const [tailorOpen, setTailorOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [screenshotOpen, setScreenshotOpen] = useState(false);
   const { toast } = useToast();
 
   // Fetch jobs when user is available
