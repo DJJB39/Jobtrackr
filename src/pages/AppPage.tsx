@@ -13,6 +13,7 @@ import JobDetailPanel from "@/components/JobDetailPanel";
 import AIAssistPanel from "@/components/AIAssistPanel";
 import InterviewCoach from "@/components/InterviewCoach";
 import DayBeforeBootcamp from "@/components/DayBeforeBootcamp";
+import CVTailorModal from "@/components/CVTailorModal";
 import type { BootcampData } from "@/hooks/useBootcamp";
 import CSVImportModal from "@/components/CSVImportModal";
 import CommandPalette from "@/components/CommandPalette";
@@ -50,6 +51,7 @@ const AppPage = () => {
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
   const [bootcampOpen, setBootcampOpen] = useState(false);
+  const [tailorOpen, setTailorOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const { toast } = useToast();
 
@@ -395,6 +397,7 @@ const AppPage = () => {
         onOpenAI={() => setAiPanelOpen(true)}
         onOpenCoach={() => setCoachOpen(true)}
         onOpenBootcamp={() => setBootcampOpen(true)}
+        onOpenTailor={() => setTailorOpen(true)}
       />
 
       {selectedJob && (
@@ -412,6 +415,18 @@ const AppPage = () => {
           onOpenChange={setBootcampOpen}
           onStartRoast={(bootcampData: BootcampData) => {
             setBootcampOpen(false);
+            setCoachOpen(true);
+          }}
+        />
+      )}
+
+      {selectedJob && (
+        <CVTailorModal
+          job={selectedJob}
+          open={tailorOpen}
+          onOpenChange={setTailorOpen}
+          onStartRoast={() => {
+            setTailorOpen(false);
             setCoachOpen(true);
           }}
         />
