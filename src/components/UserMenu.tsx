@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { LogOut, Sun, Moon, Bell, Mail, BellRing, MessageSquarePlus, Columns3 } from "lucide-react";
+import { LogOut, Sun, Moon, Bell, Mail, BellRing, MessageSquarePlus, Columns3, Sparkles } from "lucide-react";
 import { FEEDBACK_FORM_URL } from "@/lib/constants";
 import {
   Tooltip,
@@ -22,6 +22,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import StageManager from "./StageManager";
+import AISettings from "./AISettings";
+import { useAIPreferences } from "@/hooks/useAIPreferences";
 
 const UserMenu = () => {
   const { user, signOut } = useAuth();
@@ -30,6 +32,8 @@ const UserMenu = () => {
   const [weeklyDigest, setWeeklyDigest] = useState(false);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [stageManagerOpen, setStageManagerOpen] = useState(false);
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
+  const aiPrefs = useAIPreferences();
   const push = usePushNotifications();
 
   useEffect(() => {
@@ -173,6 +177,10 @@ const UserMenu = () => {
           <Columns3 className="mr-2 h-4 w-4" />
           Manage Stages
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setAiSettingsOpen(true)}>
+          <Sparkles className="mr-2 h-4 w-4" />
+          AI Settings
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => window.open(FEEDBACK_FORM_URL, "_blank")}>
           <MessageSquarePlus className="mr-2 h-4 w-4" />
           Feedback
@@ -185,6 +193,7 @@ const UserMenu = () => {
       </DropdownMenuContent>
     </DropdownMenu>
     <StageManager open={stageManagerOpen} onOpenChange={setStageManagerOpen} />
+    <AISettings open={aiSettingsOpen} onOpenChange={setAiSettingsOpen} prefs={aiPrefs} />
     </>
   );
 };
