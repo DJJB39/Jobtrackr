@@ -23,7 +23,7 @@ import type { BootcampData } from "@/hooks/useBootcamp";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { DEFAULT_COLUMNS } from "@/lib/constants";
+
 
 const DemoPage = () => {
   const { jobs, setJobs, addJob: rawAddJob, updateJob: rawUpdateJob, deleteJob: rawDeleteJob } = useGuestMode();
@@ -88,7 +88,7 @@ const DemoPage = () => {
   }, []);
 
   const exportToCSV = useCallback(() => {
-    const stageMap = Object.fromEntries(DEFAULT_COLUMNS.map((c) => [c.id, c.title]));
+    const stageMap: Record<string, string> = { found: "Found", applied: "Applied", phone: "Phone Screen", interview1: "Interview 1", interview2: "Interview 2", offer: "Offer", rejected: "Rejected", withdrawn: "Withdrawn" };
     const headers = ["Company", "Role", "Stage", "Type", "Created", "Location", "Salary", "Notes", "Links"];
     const rows = jobs.map((j) => [
       j.company, j.role, stageMap[j.columnId] ?? j.columnId, j.applicationType, j.createdAt,
