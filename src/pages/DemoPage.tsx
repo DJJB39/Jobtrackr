@@ -153,6 +153,17 @@ const DemoPage = () => {
           <Dashboard key="dashboard" jobs={filteredJobs} onUpdateJob={updateJob} />
         ) : view === "cv" ? (
           <DemoCVView key="cv" jobs={jobs} />
+        ) : view === "ai" ? (
+          <AIStudioView
+            key="ai"
+            jobs={filteredJobs}
+            onOpenCoach={(job) => { setSelectedJob(job); setCoachOpen(true); }}
+            onOpenBootcamp={(job) => { setSelectedJob(job); setBootcampOpen(true); }}
+            onOpenTailor={(job) => { setSelectedJob(job); setTailorOpen(true); }}
+            onOpenAI={(job) => { setSelectedJob(job); setAiPanelOpen(true); }}
+            onOpenScreenshot={() => setScreenshotOpen(true)}
+            onSwitchToCV={() => setView("cv")}
+          />
         ) : (
           <CalendarView key="calendar" jobs={filteredJobs} onSelectJob={handleSelectJob} />
         )}
