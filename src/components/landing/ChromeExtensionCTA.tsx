@@ -1,18 +1,8 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { Chrome, ArrowRight, ExternalLink } from "lucide-react";
+import { Chrome, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 const ChromeExtensionCTA = () => {
-  const [open, setOpen] = useState(false);
-
   return (
     <motion.section
       initial={{ opacity: 0, y: 30 }}
@@ -31,11 +21,11 @@ const ChromeExtensionCTA = () => {
             <Chrome className="h-7 w-7 text-foreground" />
           </div>
           <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground mb-2">
-            Chrome Extension — Now in Beta
+            Chrome Extension — Coming Soon
           </h2>
           <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
             Save jobs directly from LinkedIn, Indeed, Reed, and Greenhouse with one click.
-            Auto-fill details and add to your board instantly — no tab switching.
+            Auto-fill details and add to your board instantly — no tab switching required.
           </p>
           <div className="flex flex-wrap justify-center gap-2 mb-6">
             {["LinkedIn", "Indeed", "Reed", "Greenhouse"].map((site) => (
@@ -45,37 +35,14 @@ const ChromeExtensionCTA = () => {
             ))}
           </div>
 
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="lg" className="text-base gap-2">
-                <Chrome className="h-4 w-4" />
-                Install Extension
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Install JobTrackr Extension</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 text-sm text-muted-foreground">
-                <ol className="space-y-3 list-decimal list-inside">
-                  <li>Download the <code className="text-xs bg-secondary px-1.5 py-0.5 rounded">chrome-extension</code> folder from the project repo</li>
-                  <li>Open <code className="text-xs bg-secondary px-1.5 py-0.5 rounded">chrome://extensions</code> in Chrome</li>
-                  <li>Enable <strong className="text-foreground">Developer mode</strong> (top-right toggle)</li>
-                  <li>Click <strong className="text-foreground">Load unpacked</strong> and select the folder</li>
-                  <li>Navigate to a job posting and click <strong className="text-foreground">Save to JobTrackr</strong></li>
-                </ol>
-                <div className="pt-2 border-t border-border">
-                  <p className="text-xs text-muted-foreground">
-                    The extension authenticates with your JobTrackr account. Click the extension icon to sign in.
-                  </p>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button variant="outline" size="lg" className="text-base gap-2" disabled>
+            <Chrome className="h-4 w-4" />
+            Coming to the Chrome Web Store
+            <ArrowRight className="h-4 w-4" />
+          </Button>
 
           <p className="text-[10px] text-muted-foreground mt-3 font-mono">
-            Beta — Load as unpacked extension
+            Want early access? Sign up and we'll notify you.
           </p>
         </div>
       </div>

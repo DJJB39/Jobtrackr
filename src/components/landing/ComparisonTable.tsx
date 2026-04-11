@@ -6,9 +6,11 @@ type CellValue = "yes" | "no" | "limited";
 const features: { label: string; jobtrackr: CellValue; huntr: CellValue; teal: CellValue; simplify: CellValue }[] = [
   { label: "Kanban Board", jobtrackr: "yes", huntr: "yes", teal: "yes", simplify: "limited" },
   { label: "URL Auto-Fill", jobtrackr: "yes", huntr: "limited", teal: "yes", simplify: "yes" },
-  { label: "AI Resume Tailor", jobtrackr: "yes", huntr: "no", teal: "limited", simplify: "no" },
-  { label: "CV Suitability Score", jobtrackr: "yes", huntr: "no", teal: "no", simplify: "no" },
-  { label: "Calendar & Events", jobtrackr: "yes", huntr: "yes", teal: "no", simplify: "no" },
+  { label: "Interview Coach with Scoring", jobtrackr: "yes", huntr: "no", teal: "no", simplify: "no" },
+  { label: "CV Roast / Suitability Score", jobtrackr: "yes", huntr: "no", teal: "no", simplify: "no" },
+  { label: "Screenshot Job Capture", jobtrackr: "yes", huntr: "no", teal: "no", simplify: "no" },
+  { label: "AI Resume Tailor", jobtrackr: "yes", huntr: "limited", teal: "limited", simplify: "no" },
+  { label: "Calendar & Events", jobtrackr: "yes", huntr: "yes", teal: "limited", simplify: "no" },
   { label: "Email Reminders", jobtrackr: "yes", huntr: "limited", teal: "no", simplify: "no" },
   { label: "Completely Free", jobtrackr: "yes", huntr: "no", teal: "no", simplify: "limited" },
   { label: "Privacy First", jobtrackr: "yes", huntr: "limited", teal: "limited", simplify: "limited" },
@@ -29,10 +31,10 @@ const ComparisonTable = () => (
     className="mx-auto max-w-4xl px-6 pb-28"
   >
     <h2 className="text-center text-2xl font-display font-bold text-foreground mb-2">
-      How We Compare
+      Why JobTrackr Wins
     </h2>
     <p className="text-center text-muted-foreground mb-10 text-sm">
-      See how JobTrackr stacks up against the competition.
+      Three features no other free tracker offers — and everything else you'd expect.
     </p>
 
     <div className="overflow-x-auto rounded-xl border border-border glass">
@@ -59,6 +61,9 @@ const ComparisonTable = () => (
         </tbody>
       </table>
     </div>
+    <p className="text-center text-[11px] text-muted-foreground mt-3 font-mono">
+      Comparison based on free tiers as of April 2026. <Minus className="inline h-3 w-3 -mt-0.5" /> = limited or paywalled.
+    </p>
   </motion.section>
 );
 
