@@ -26,12 +26,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Link as LinkIcon, Loader2, DollarSign, CalendarDays, Undo2 } from "lucide-react";
+import { Plus, Link as LinkIcon, Loader2, DollarSign, CalendarDays, Undo2, Camera } from "lucide-react";
 import { APPLICATION_TYPES, type ColumnId } from "@/types/job";
 import type { JobApplication } from "@/types/job";
 import { useStages } from "@/hooks/useStages";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import ScreenshotCaptureModal from "@/components/ScreenshotCaptureModal";
 
 interface AddJobDialogProps {
   onAdd: (
