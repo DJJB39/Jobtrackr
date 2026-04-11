@@ -63,6 +63,7 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
   const [fetchedSalary, setFetchedSalary] = useState("");
   const [fetchedCloseDate, setFetchedCloseDate] = useState("");
   const [autoFilled, setAutoFilled] = useState<Set<string>>(new Set());
+  const [screenshotOpen, setScreenshotOpen] = useState(false);
   const { toast } = useToast();
 
   const companyRef = useRef<HTMLInputElement>(null);
