@@ -66,9 +66,9 @@ describe("Landing Page", () => {
     expect(screen.getByText(/Pro/i)).toBeInTheDocument();
   });
 
-  it("renders Loom demo iframe", () => {
+  it("hides Loom demo iframe when URL is empty", () => {
     renderWithProviders(<Landing />);
     const iframe = document.querySelector('iframe[title="JobTrackr demo video"]');
-    expect(iframe).toBeInTheDocument();
+    expect(iframe).not.toBeInTheDocument();
   });
 });
