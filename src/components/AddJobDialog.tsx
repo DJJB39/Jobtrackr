@@ -385,6 +385,12 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ScreenshotCaptureModal
+        open={screenshotOpen}
+        onOpenChange={setScreenshotOpen}
+        onExtracted={handleScreenshotExtracted}
+      />
     </Dialog>
   );
 };
