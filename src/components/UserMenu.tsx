@@ -181,10 +181,12 @@ const UserMenu = () => {
           <Sparkles className="mr-2 h-4 w-4" />
           AI Settings
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => window.open(FEEDBACK_FORM_URL, "_blank")}>
-          <MessageSquarePlus className="mr-2 h-4 w-4" />
-          Feedback
-        </DropdownMenuItem>
+        {FEEDBACK_FORM_URL && (
+          <DropdownMenuItem onClick={() => window.open(FEEDBACK_FORM_URL, "_blank")}>
+            <MessageSquarePlus className="mr-2 h-4 w-4" />
+            Feedback
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
           <LogOut className="mr-2 h-4 w-4" />

@@ -26,11 +26,20 @@ export interface NextStep {
 }
 
 export const APPLICATION_TYPES = [
-  "Frontend",
-  "Backend",
-  "Full Stack",
+  "Engineering",
   "Design",
   "Product",
+  "Marketing",
+  "Sales",
+  "Finance",
+  "Operations",
+  "HR & People",
+  "Legal",
+  "Healthcare",
+  "Education",
+  "Creative",
+  "Data & Analytics",
+  "Consulting",
   "Other",
 ] as const;
 
