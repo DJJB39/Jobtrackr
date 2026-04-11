@@ -398,7 +398,7 @@ const ScreenshotCaptureModal = ({ open, onOpenChange, onJobSaved, onExtracted }:
                   className="gap-1.5 shadow-glow"
                 >
                   {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                  Save to Board
+                  {onExtracted ? "Use These Details" : "Save to Board"}
                 </Button>
               </div>
 
