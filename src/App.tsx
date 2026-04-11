@@ -16,6 +16,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const AppPage = lazy(() => import("./pages/AppPage"));
 const DemoPage = lazy(() => import("./pages/DemoPage"));
+const Privacy = lazy(() => import("./pages/Privacy"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
                   <Route path="/" element={<Landing />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/demo" element={<DemoPage />} />
+                  <Route path="/privacy" element={<Privacy />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route
                     path="/app"
