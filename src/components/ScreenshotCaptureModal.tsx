@@ -31,9 +31,11 @@ interface ScreenshotCaptureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onJobSaved?: (jobId: string) => void;
+  /** When provided, "Save to Board" becomes "Use These Details" and calls this instead of saving directly */
+  onExtracted?: (data: { company: string; job_title: string; location?: string; salary?: string; description?: string; employment_type?: string; sourceUrl?: string }) => void;
 }
 
-const ScreenshotCaptureModal = ({ open, onOpenChange, onJobSaved }: ScreenshotCaptureModalProps) => {
+const ScreenshotCaptureModal = ({ open, onOpenChange, onJobSaved, onExtracted }: ScreenshotCaptureModalProps) => {
   const { user } = useAuth();
   const { addJob } = useJobStore();
   const { toast } = useToast();
