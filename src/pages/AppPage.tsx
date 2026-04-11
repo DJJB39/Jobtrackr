@@ -164,7 +164,6 @@ const AppPage = () => {
         searchPulse={searchPulse}
         isMac={isMac}
         onImport={() => setImportOpen(true)}
-        onScreenshot={() => setScreenshotOpen(true)}
         onExport={exportToCSV}
         onAddJob={handleAddJob}
       />

@@ -145,10 +145,6 @@ const AppHeader = memo(({
                 <Upload className="h-4 w-4" />
                 <span>Import</span>
               </Button>
-              <Button variant="outline" size="sm" className="gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50" onClick={onScreenshot}>
-                <Camera className="h-4 w-4" />
-                <span>Screenshot</span>
-              </Button>
               <Button variant="outline" size="sm" className="gap-2 border-border/50 hover:border-border" onClick={onExport} disabled={jobs.length === 0}>
                 <Download className="h-4 w-4" />
                 <span>Export</span>
