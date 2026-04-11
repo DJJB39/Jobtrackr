@@ -5,6 +5,7 @@ import Dashboard from "@/components/Dashboard";
 import ListView from "@/components/ListView";
 import AddJobDialog from "@/components/AddJobDialog";
 import { Briefcase } from "lucide-react";
+import AIStudioView from "@/components/AIStudioView";
 import CalendarView from "@/components/CalendarView";
 import JobDetailPanel from "@/components/JobDetailPanel";
 import AIAssistPanel from "@/components/AIAssistPanel";
