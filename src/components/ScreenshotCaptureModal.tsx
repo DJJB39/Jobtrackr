@@ -31,9 +31,11 @@ interface ScreenshotCaptureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onJobSaved?: (jobId: string) => void;
+  /** When provided, "Save to Board" becomes "Use These Details" and calls this instead of saving directly */
+  onExtracted?: (data: { company: string; job_title: string; location?: string; salary?: string; description?: string; employment_type?: string; sourceUrl?: string }) => void;
 }
 
-const ScreenshotCaptureModal = ({ open, onOpenChange, onJobSaved }: ScreenshotCaptureModalProps) => {
+const ScreenshotCaptureModal = ({ open, onOpenChange, onJobSaved, onExtracted }: ScreenshotCaptureModalProps) => {
   const { user } = useAuth();
   const { addJob } = useJobStore();
   const { toast } = useToast();
@@ -85,8 +87,28 @@ const ScreenshotCaptureModal = ({ open, onOpenChange, onJobSaved }: ScreenshotCa
   }, [handleFile]);
 
   const handleSave = useCallback(async () => {
-    if (!user || !editedData.company || !editedData.job_title) {
+    if (!editedData.company || !editedData.job_title) {
       toast({ title: "Missing data", description: "Company and job title are required", variant: "destructive" });
+      return;
+    }
+
+    // Pre-fill mode: return extracted data to parent instead of saving
+    if (onExtracted) {
+      onExtracted({
+        company: editedData.company!,
+        job_title: editedData.job_title!,
+        location: editedData.location,
+        salary: editedData.salary,
+        description: editedData.description,
+        employment_type: editedData.employment_type,
+        sourceUrl: editedData.sourceUrl,
+      });
+      handleClose();
+      return;
+    }
+
+    if (!user) {
+      toast({ title: "Missing data", description: "You must be logged in", variant: "destructive" });
       return;
     }
 
@@ -110,7 +132,7 @@ const ScreenshotCaptureModal = ({ open, onOpenChange, onJobSaved }: ScreenshotCa
     } finally {
       setSaving(false);
     }
-  }, [user, editedData, addJob, toast, onJobSaved]);
+  }, [user, editedData, addJob, toast, onJobSaved, onExtracted]);
 
   const handleClose = useCallback(() => {
     setPreview(null);
@@ -376,7 +398,7 @@ const ScreenshotCaptureModal = ({ open, onOpenChange, onJobSaved }: ScreenshotCa
                   className="gap-1.5 shadow-glow"
                 >
                   {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                  Save to Board
+                  {onExtracted ? "Use These Details" : "Save to Board"}
                 </Button>
               </div>
 

@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
-import { Briefcase, Columns3, Download, CalendarDays, X, List, Search, FileUp, Upload, Camera, LayoutDashboard, ArrowLeft, Sparkles } from "lucide-react";
+import { Briefcase, Columns3, Download, CalendarDays, X, List, Search, FileUp, Upload, LayoutDashboard, ArrowLeft, Sparkles } from "lucide-react";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
 import ShareStats from "@/components/ShareStats";
@@ -30,7 +30,6 @@ interface AppHeaderProps {
   searchPulse: boolean;
   isMac: boolean;
   onImport: () => void;
-  onScreenshot: () => void;
   onExport: () => void;
   onAddJob: (company: string, role: string, columnId: ColumnId, applicationType?: string, extras?: {
     location?: string; description?: string; links?: string[]; salary?: string; closeDate?: string;
@@ -40,7 +39,7 @@ interface AppHeaderProps {
 
 const AppHeader = memo(({
   jobs, searchQuery, setSearchQuery, view, setView,
-  searchPulse, isMac, onImport, onScreenshot, onExport, onAddJob, isDemo,
+  searchPulse, isMac, onImport, onExport, onAddJob, isDemo,
 }: AppHeaderProps) => {
   return (
     <>
@@ -145,10 +144,6 @@ const AppHeader = memo(({
               <Button variant="outline" size="sm" className="gap-2 border-border/50 hover:border-border" onClick={onImport}>
                 <Upload className="h-4 w-4" />
                 <span>Import</span>
-              </Button>
-              <Button variant="outline" size="sm" className="gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50" onClick={onScreenshot}>
-                <Camera className="h-4 w-4" />
-                <span>Screenshot</span>
               </Button>
               <Button variant="outline" size="sm" className="gap-2 border-border/50 hover:border-border" onClick={onExport} disabled={jobs.length === 0}>
                 <Download className="h-4 w-4" />

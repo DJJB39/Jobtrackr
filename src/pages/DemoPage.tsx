@@ -120,7 +120,6 @@ const DemoPage = () => {
         searchPulse={searchPulse}
         isMac={isMac}
         onImport={() => setImportOpen(true)}
-        onScreenshot={() => setScreenshotOpen(true)}
         onExport={exportToCSV}
         onAddJob={addJob}
         isDemo

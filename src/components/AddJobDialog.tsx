@@ -26,12 +26,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Link as LinkIcon, Loader2, DollarSign, CalendarDays, Undo2 } from "lucide-react";
+import { Plus, Link as LinkIcon, Loader2, DollarSign, CalendarDays, Undo2, Camera } from "lucide-react";
 import { APPLICATION_TYPES, type ColumnId } from "@/types/job";
 import type { JobApplication } from "@/types/job";
 import { useStages } from "@/hooks/useStages";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import ScreenshotCaptureModal from "@/components/ScreenshotCaptureModal";
 
 interface AddJobDialogProps {
   onAdd: (
@@ -62,6 +63,7 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
   const [fetchedSalary, setFetchedSalary] = useState("");
   const [fetchedCloseDate, setFetchedCloseDate] = useState("");
   const [autoFilled, setAutoFilled] = useState<Set<string>>(new Set());
+  const [screenshotOpen, setScreenshotOpen] = useState(false);
   const { toast } = useToast();
 
   const companyRef = useRef<HTMLInputElement>(null);
@@ -134,6 +136,22 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
     setFetchedSalary("");
     setFetchedCloseDate("");
     setAutoFilled(new Set());
+  };
+
+  const handleScreenshotExtracted = (data: { company: string; job_title: string; location?: string; salary?: string; description?: string; employment_type?: string; sourceUrl?: string }) => {
+    const filled = new Set<string>();
+    if (data.company) { setCompany(data.company); filled.add("company"); }
+    if (data.job_title) { setRole(data.job_title); filled.add("role"); }
+    if (data.location) { setFetchedLocation(data.location); filled.add("location"); }
+    if (data.salary) { setFetchedSalary(data.salary); filled.add("salary"); }
+    if (data.description) { setFetchedDescription(data.description); filled.add("description"); }
+    if (data.employment_type) {
+      const matchedType = APPLICATION_TYPES.find(t => t.toLowerCase() === data.employment_type!.toLowerCase());
+      if (matchedType) setApplicationType(matchedType);
+    }
+    if (data.sourceUrl) { setJobUrl(data.sourceUrl); filled.add("url"); }
+    setAutoFilled(filled);
+    toast({ title: "Details extracted!", description: "Review and edit before adding" });
   };
 
   const clearAutoFill = (field: string) => {
@@ -219,11 +237,22 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
                 {fetching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Fetch"}
               </Button>
             </div>
-            {autoFilled.size > 0 && (
-              <Button type="button" variant="ghost" size="sm" onClick={undoAutoFill} className="h-7 gap-1.5 text-xs text-muted-foreground">
-                <Undo2 className="h-3 w-3" /> Undo Auto-Fill
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setScreenshotOpen(true)}
+                className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Camera className="h-3.5 w-3.5" /> Or snap a screenshot
               </Button>
-            )}
+              {autoFilled.size > 0 && (
+                <Button type="button" variant="ghost" size="sm" onClick={undoAutoFill} className="h-7 gap-1.5 text-xs text-muted-foreground">
+                  <Undo2 className="h-3 w-3" /> Undo Auto-Fill
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Company */}
@@ -356,6 +385,12 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ScreenshotCaptureModal
+        open={screenshotOpen}
+        onOpenChange={setScreenshotOpen}
+        onExtracted={handleScreenshotExtracted}
+      />
     </Dialog>
   );
 };
