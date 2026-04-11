@@ -350,14 +350,19 @@ const Landing = () => {
       <footer className="border-t border-border py-6 px-6">
         <div className="mx-auto max-w-6xl flex items-center justify-between text-xs text-muted-foreground">
           <span>© {new Date().getFullYear()} JobTrackr. Built with Lovable.</span>
-          {FEEDBACK_FORM_URL && (
-            <button
-              onClick={() => window.open(FEEDBACK_FORM_URL, "_blank")}
-              className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 text-xs"
-            >
-              Feedback
-            </button>
-          )}
+          <div className="flex items-center gap-4">
+            <Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 text-xs">
+              Privacy Policy
+            </Link>
+            {FEEDBACK_FORM_URL && (
+              <button
+                onClick={() => window.open(FEEDBACK_FORM_URL, "_blank")}
+                className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 text-xs"
+              >
+                Feedback
+              </button>
+            )}
+          </div>
         </div>
       </footer>
     </div>
