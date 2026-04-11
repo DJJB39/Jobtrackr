@@ -218,7 +218,7 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col p-0 gap-0">
+      <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>New Job Application</DialogTitle>
         </DialogHeader>
@@ -252,7 +252,7 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
         </div>
 
         {/* Scrollable form area */}
-        <ScrollArea className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">
             {/* URL input — shown for url intake */}
             {intakeMethod === "url" && (
@@ -405,7 +405,7 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
               </Button>
             </div>
           </form>
-        </ScrollArea>
+        </div>
       </DialogContent>
 
       <AlertDialog open={duplicateWarning} onOpenChange={setDuplicateWarning}>
