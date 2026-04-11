@@ -10,6 +10,7 @@ import {
   Clock,
   Users,
   Flame,
+  Sparkles,
 } from "lucide-react";
 import { differenceInDays, parseISO, startOfDay, isBefore, format } from "date-fns";
 import { useMemo, useState, useEffect } from "react";
@@ -304,6 +305,13 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
         {hasMoreLinks && (
           <span className="text-muted-foreground text-xs px-0.5">…</span>
         )}
+        <button
+          onClick={(e) => { e.stopPropagation(); onClick?.(job); }}
+          className="text-muted-foreground hover:text-primary p-0.5 transition-colors"
+          title="AI Tools"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+        </button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <button
