@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
-import { Briefcase, Columns3, Download, CalendarDays, X, List, Search, FileUp, Upload, Camera, LayoutDashboard, ArrowLeft } from "lucide-react";
+import { Briefcase, Columns3, Download, CalendarDays, X, List, Search, FileUp, Upload, Camera, LayoutDashboard, ArrowLeft, Sparkles } from "lucide-react";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
 import ShareStats from "@/components/ShareStats";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import type { JobApplication, ColumnId } from "@/types/job";
 
-export type View = "board" | "dashboard" | "calendar" | "list" | "cv";
+export type View = "board" | "dashboard" | "calendar" | "list" | "cv" | "ai";
 
 export const VIEW_ITEMS = [
   { key: "board" as View, icon: Columns3, label: "Board" },
@@ -18,6 +18,7 @@ export const VIEW_ITEMS = [
   { key: "dashboard" as View, icon: LayoutDashboard, label: "Insights" },
   { key: "calendar" as View, icon: CalendarDays, label: "Calendar" },
   { key: "cv" as View, icon: FileUp, label: "CV" },
+  { key: "ai" as View, icon: Sparkles, label: "AI Studio" },
 ];
 
 interface AppHeaderProps {
@@ -154,6 +155,17 @@ const AppHeader = memo(({
                 <span>Export</span>
               </Button>
             </div>
+            {!isDemo && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
+                onClick={() => setView("ai")}
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden sm:inline">AI Studio</span>
+              </Button>
+            )}
             <div data-tour="add-button">
               <AddJobDialog onAdd={onAddJob} jobs={jobs} />
             </div>

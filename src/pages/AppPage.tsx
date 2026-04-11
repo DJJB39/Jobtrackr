@@ -29,6 +29,8 @@ import { Button } from "@/components/ui/button";
 import { useStages } from "@/hooks/useStages";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import AIStudioView from "@/components/AIStudioView";
+import { Camera, Flame, Upload } from "lucide-react";
 
 const AppPage = () => {
   const { user } = useAuth();
@@ -187,12 +189,36 @@ const AppPage = () => {
             <motion.div className="absolute -inset-2 rounded-3xl border border-primary/20" animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0, 0.3] }} transition={{ duration: 2, repeat: Infinity }} />
           </div>
           <div className="text-center">
-            <h2 className="text-xl font-display text-foreground">Start your job hunt</h2>
-            <p className="text-sm text-muted-foreground mt-1.5 max-w-sm">Track every application, interview, and offer in one beautiful board.</p>
+            <h2 className="text-xl font-display text-foreground">Welcome to JobTrackr</h2>
+            <p className="text-sm text-muted-foreground mt-1.5 max-w-sm">Start by adding a job, or explore what AI can do for your career</p>
           </div>
           <Button onClick={() => setDialogOpen(true)} className="gap-2 shadow-glow"><Briefcase className="h-4 w-4" />Add Your First Application</Button>
+          <div className="flex gap-3 mt-2">
+            <button onClick={() => setScreenshotOpen(true)} className="flex flex-col items-center gap-1.5 rounded-xl border border-border glass p-3 w-28 hover:border-border/80 transition-all glow-hover">
+              <Camera className="h-5 w-5 text-purple-500" />
+              <span className="text-[11px] text-muted-foreground text-center leading-tight">Screenshot a job listing</span>
+            </button>
+            <button onClick={() => setView("cv")} className="flex flex-col items-center gap-1.5 rounded-xl border border-border glass p-3 w-28 hover:border-border/80 transition-all glow-hover">
+              <Flame className="h-5 w-5 text-amber-500" />
+              <span className="text-[11px] text-muted-foreground text-center leading-tight">Roast your CV first</span>
+            </button>
+            <button onClick={() => setImportOpen(true)} className="flex flex-col items-center gap-1.5 rounded-xl border border-border glass p-3 w-28 hover:border-border/80 transition-all glow-hover">
+              <Upload className="h-5 w-5 text-primary" />
+              <span className="text-[11px] text-muted-foreground text-center leading-tight">Import from CSV</span>
+            </button>
+          </div>
           <AddJobDialog onAdd={handleAddJob} open={dialogOpen} onOpenChange={setDialogOpen} jobs={jobs} />
         </motion.div>
+      ) : view === "ai" ? (
+        <AIStudioView
+          jobs={filteredJobs}
+          onOpenCoach={(job) => { setSelectedJob(job); setCoachOpen(true); }}
+          onOpenBootcamp={(job) => { setSelectedJob(job); setBootcampOpen(true); }}
+          onOpenTailor={(job) => { setSelectedJob(job); setTailorOpen(true); }}
+          onOpenAI={(job) => { setSelectedJob(job); setAiPanelOpen(true); }}
+          onOpenScreenshot={() => setScreenshotOpen(true)}
+          onSwitchToCV={() => setView("cv")}
+        />
       ) : view === "board" ? (
         <KanbanBoard jobs={searchQuery ? filteredJobs : jobs} setJobs={setJobs} onUpdateJob={handleUpdateJob} onDeleteJob={handleDeleteJob} onSwitchView={(v) => setView(v as View)} />
       ) : view === "list" ? (
