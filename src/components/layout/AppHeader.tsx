@@ -1,11 +1,13 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
-import { Briefcase, Columns3, Download, CalendarDays, X, List, Search, FileUp, Upload, Camera, LayoutDashboard } from "lucide-react";
+import { Briefcase, Columns3, Download, CalendarDays, X, List, Search, FileUp, Upload, Camera, LayoutDashboard, ArrowLeft } from "lucide-react";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
 import ShareStats from "@/components/ShareStats";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
 import type { JobApplication, ColumnId } from "@/types/job";
 
 export type View = "board" | "dashboard" | "calendar" | "list" | "cv";
@@ -32,6 +34,7 @@ interface AppHeaderProps {
   onAddJob: (company: string, role: string, columnId: ColumnId, applicationType?: string, extras?: {
     location?: string; description?: string; links?: string[]; salary?: string; closeDate?: string;
   }) => void;
+  isDemo?: boolean;
 }
 
 const AppHeader = memo(({
