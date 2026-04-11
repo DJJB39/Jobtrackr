@@ -87,8 +87,28 @@ const ScreenshotCaptureModal = ({ open, onOpenChange, onJobSaved, onExtracted }:
   }, [handleFile]);
 
   const handleSave = useCallback(async () => {
-    if (!user || !editedData.company || !editedData.job_title) {
+    if (!editedData.company || !editedData.job_title) {
       toast({ title: "Missing data", description: "Company and job title are required", variant: "destructive" });
+      return;
+    }
+
+    // Pre-fill mode: return extracted data to parent instead of saving
+    if (onExtracted) {
+      onExtracted({
+        company: editedData.company!,
+        job_title: editedData.job_title!,
+        location: editedData.location,
+        salary: editedData.salary,
+        description: editedData.description,
+        employment_type: editedData.employment_type,
+        sourceUrl: editedData.sourceUrl,
+      });
+      handleClose();
+      return;
+    }
+
+    if (!user) {
+      toast({ title: "Missing data", description: "You must be logged in", variant: "destructive" });
       return;
     }
 
@@ -112,7 +132,7 @@ const ScreenshotCaptureModal = ({ open, onOpenChange, onJobSaved, onExtracted }:
     } finally {
       setSaving(false);
     }
-  }, [user, editedData, addJob, toast, onJobSaved]);
+  }, [user, editedData, addJob, toast, onJobSaved, onExtracted]);
 
   const handleClose = useCallback(() => {
     setPreview(null);
