@@ -237,11 +237,22 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
                 {fetching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Fetch"}
               </Button>
             </div>
-            {autoFilled.size > 0 && (
-              <Button type="button" variant="ghost" size="sm" onClick={undoAutoFill} className="h-7 gap-1.5 text-xs text-muted-foreground">
-                <Undo2 className="h-3 w-3" /> Undo Auto-Fill
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setScreenshotOpen(true)}
+                className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Camera className="h-3.5 w-3.5" /> Or snap a screenshot
               </Button>
-            )}
+              {autoFilled.size > 0 && (
+                <Button type="button" variant="ghost" size="sm" onClick={undoAutoFill} className="h-7 gap-1.5 text-xs text-muted-foreground">
+                  <Undo2 className="h-3 w-3" /> Undo Auto-Fill
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Company */}
