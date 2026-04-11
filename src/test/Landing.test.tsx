@@ -34,9 +34,9 @@ vi.mock("@/assets/screenshot-dashboard.png", () => ({ default: "dashboard.png" }
 describe("Landing Page", () => {
   it("LP-01: renders hero headline", () => {
     renderWithProviders(<Landing />);
-    expect(screen.getByText(/Stop Losing Track of/i)).toBeInTheDocument();
+    expect(screen.getByText(/The Job Tracker That/i)).toBeInTheDocument();
     const h1 = document.querySelector("h1");
-    expect(h1?.textContent).toContain("Applications");
+    expect(h1?.textContent).toContain("Actually Prepares You");
   });
 
   it("LP-01: renders trust strip badge", () => {
@@ -51,9 +51,9 @@ describe("Landing Page", () => {
     expect(screen.getByText("Try Interactive Demo")).toBeInTheDocument();
   });
 
-  it("LP-02: renders 6 feature cards", () => {
+  it("LP-02: renders 8 feature cards", () => {
     renderWithProviders(<Landing />);
-    const titles = ["Kanban Board", "URL Auto-Fill", "Events & Reminders", "CV Upload", "AI Assist", "Private & Secure"];
+    const titles = ["Ruthless Interview Coach", "CV Roast & Suitability", "Screenshot Job Capture", "Kanban Board", "URL Auto-Fill", "Events & Reminders", "AI Assist", "Private & Encrypted"];
     titles.forEach((t) => {
       const matches = screen.getAllByText(t);
       expect(matches.length).toBeGreaterThanOrEqual(1);
@@ -63,6 +63,7 @@ describe("Landing Page", () => {
   it("LP-04: renders pricing section", () => {
     renderWithProviders(<Landing />);
     expect(screen.getByText(/Free Forever/i)).toBeInTheDocument();
+    expect(screen.getByText(/Pro/i)).toBeInTheDocument();
   });
 
   it("renders Loom demo iframe", () => {
