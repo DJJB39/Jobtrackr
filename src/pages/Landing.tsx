@@ -166,15 +166,17 @@ const Landing = () => {
             Paste a job link and auto-fill the details. Drag applications through stages. Set reminders so nothing
             slips. Private by default — only you see your data.
           </p>
-          <div className="mx-auto mt-8 max-w-lg rounded-xl border border-border glass overflow-hidden shadow-glow">
-            <iframe
-              src={`${LOOM_DEMO_URL}?autoplay=1&mute=1&hide_owner=true&hide_share=true&hide_title=true`}
-              className="w-full aspect-video"
-              allowFullScreen
-              allow="autoplay"
-              title="JobTrackr demo video"
-            />
-          </div>
+          {LOOM_DEMO_URL && (
+            <div className="mx-auto mt-8 max-w-lg rounded-xl border border-border glass overflow-hidden shadow-glow">
+              <iframe
+                src={`${LOOM_DEMO_URL}?autoplay=1&mute=1&hide_owner=true&hide_share=true&hide_title=true`}
+                className="w-full aspect-video"
+                allowFullScreen
+                allow="autoplay"
+                title="JobTrackr demo video"
+              />
+            </div>
+          )}
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" className="text-base px-8 shadow-glow" asChild>
               <Link to="/auth?tab=signup">
@@ -348,12 +350,14 @@ const Landing = () => {
       <footer className="border-t border-border py-6 px-6">
         <div className="mx-auto max-w-6xl flex items-center justify-between text-xs text-muted-foreground">
           <span>© {new Date().getFullYear()} JobTrackr. Built with Lovable.</span>
-          <button
-            onClick={() => window.open(FEEDBACK_FORM_URL, "_blank")}
-            className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 text-xs"
-          >
-            Feedback
-          </button>
+          {FEEDBACK_FORM_URL && (
+            <button
+              onClick={() => window.open(FEEDBACK_FORM_URL, "_blank")}
+              className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 text-xs"
+            >
+              Feedback
+            </button>
+          )}
         </div>
       </footer>
     </div>

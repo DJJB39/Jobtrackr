@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const APP_URL = "https://brs39.lovable.app";
+const APP_URL = Deno.env.get("APP_URL") || "https://brs39.lovable.app";
 
 async function hmacToken(userId: string, type: string, secret: string): Promise<string> {
   const encoder = new TextEncoder();
