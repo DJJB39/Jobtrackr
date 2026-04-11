@@ -132,5 +132,9 @@ export function useGuestMode() {
     setJobs((prev) => prev.filter((j) => j.id !== id));
   }, []);
 
-  return { jobs, setJobs, loading: false, addJob, updateJob, deleteJob };
+  const importJobs = useCallback((newJobs: JobApplication[]) => {
+    setJobs((prev) => [...newJobs, ...prev]);
+  }, []);
+
+  return { jobs, setJobs, loading: false, addJob, updateJob, deleteJob, importJobs };
 }
