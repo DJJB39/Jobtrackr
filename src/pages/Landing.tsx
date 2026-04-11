@@ -15,6 +15,8 @@ import {
   Sparkles,
   FileUp,
   Brain,
+  Flame,
+  Camera,
 } from "lucide-react";
 import screenshotKanban from "@/assets/screenshot-kanban.png";
 import screenshotDetail from "@/assets/screenshot-detail.png";
@@ -42,59 +44,69 @@ const stagger = {
 /* ── Data ── */
 const features = [
   {
+    icon: Flame,
+    title: "Ruthless Interview Coach",
+    desc: "AI-generated questions scored in real time. Get honest feedback before the real thing.",
+  },
+  {
+    icon: FileUp,
+    title: "CV Roast & Suitability",
+    desc: "Upload your CV, paste a job description, and get a brutally honest suitability score.",
+  },
+  {
+    icon: Camera,
+    title: "Screenshot Job Capture",
+    desc: "Snap a screenshot of any listing — we extract the details and add it to your board.",
+  },
+  {
     icon: Columns3,
     title: "Kanban Board",
-    desc: "Drag and drop applications across 8 stages. Filter by role, type, or stage.",
+    desc: "Drag and drop applications across customisable stages. Filter by role, type, or status.",
   },
   {
     icon: Link2,
     title: "URL Auto-Fill",
-    desc: "Paste a job posting link and auto-fill company, role, salary, and deadline.",
+    desc: "Paste a job posting link and auto-fill company, role, salary, and deadline instantly.",
   },
   {
     icon: CalendarDays,
     title: "Events & Reminders",
-    desc: "Schedule interviews, deadlines, and follow-ups. Export to Google Calendar.",
-  },
-  {
-    icon: FileUp,
-    title: "CV Upload",
-    desc: "Upload your CV and get an AI suitability score against any job description.",
+    desc: "Schedule interviews, deadlines, and follow-ups. Export to Google Calendar with one click.",
   },
   {
     icon: Brain,
     title: "AI Assist",
-    desc: "Generate cover letters, interview prep, and job summaries with one click.",
+    desc: "Generate cover letters, interview prep, and job summaries powered by AI — no extra cost.",
   },
   {
     icon: Shield,
-    title: "Private & Secure",
-    desc: "Your data is encrypted and accessible only to you. No sharing, no ads.",
+    title: "Private & Encrypted",
+    desc: "Your data is encrypted and accessible only to you. No tracking, no ads, no third-party access.",
   },
 ];
 
 const HOW_IT_WORKS = [
   {
     step: "1",
-    title: "Paste a Job URL",
-    desc: "Drop a link from any job board and we auto-fill company, role, salary, and deadline.",
+    title: "Add a Job in Seconds",
+    desc: "Paste a URL, snap a screenshot, or type it manually — we auto-fill the rest.",
   },
   {
     step: "2",
-    title: "Drag to Track",
-    desc: "Move applications across stages — from Found to Offer — with a simple drag and drop.",
+    title: "Track & Prepare",
+    desc: "Drag applications through stages. Run a mock interview or roast your CV before you apply.",
   },
   {
     step: "3",
-    title: "Stay on Top",
-    desc: "Schedule interviews, set follow-up reminders, and never miss a deadline again.",
+    title: "Stay Ahead",
+    desc: "Set reminders, export events, and review your stats — nothing falls through the cracks.",
   },
 ];
 
 const stats = [
   { value: "Unlimited", label: "Applications" },
-  { value: "100%", label: "Free Forever" },
-  { value: "Zero", label: "Ads, Ever" },
+  { value: "100%", label: "Free" },
+  { value: "AI", label: "Interview Coach" },
   { value: "Private", label: "By Default" },
 ];
 
@@ -157,14 +169,15 @@ const Landing = () => {
             Free to use · No credit card required
           </div>
           <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            Stop Losing Track of <span className="text-gradient">Applications</span>
+            The Job Tracker That <span className="text-gradient">Actually Prepares You</span>
           </h1>
           <p className="mt-4 text-xl font-medium text-primary sm:text-2xl font-display">
-            Your entire job search, one board.
+            AI interview coaching · CV roast · Screenshot capture · Kanban board
           </p>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-            Paste a job link and auto-fill the details. Drag applications through stages. Set reminders so nothing
-            slips. Private by default — only you see your data.
+            Most trackers just store links. JobTrackr coaches you through every stage — 
+            from a ruthless mock interview to a brutally honest CV score — so you show up ready. 
+            And it's 100 % free.
           </p>
           {LOOM_DEMO_URL && (
             <div className="mx-auto mt-8 max-w-lg rounded-xl border border-border glass overflow-hidden shadow-glow">
@@ -181,7 +194,7 @@ const Landing = () => {
             <Button size="lg" className="text-base px-8 shadow-glow" asChild>
               <Link to="/auth?tab=signup">
                 <Sparkles className="h-4 w-4 mr-1" />
-                Sign Up
+                Sign Up Free
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="text-base px-8 gap-2" asChild>
@@ -250,7 +263,7 @@ const Landing = () => {
         {/* ── How It Works ── */}
         <motion.section {...fadeUp} className="mx-auto max-w-5xl px-6 pb-28">
           <h2 className="text-center text-2xl font-display font-bold text-foreground mb-2">How It Works</h2>
-          <p className="text-center text-muted-foreground mb-10 text-sm">Three steps. Zero friction.</p>
+          <p className="text-center text-muted-foreground mb-10 text-sm">Add a job. Prepare. Stay ahead.</p>
           <div className="grid gap-6 sm:grid-cols-3">
             {HOW_IT_WORKS.map((item, i) => (
               <motion.div
@@ -274,9 +287,9 @@ const Landing = () => {
 
         {/* ── Features ── */}
         <motion.section {...fadeUp} className="mx-auto max-w-5xl px-6 pb-28">
-          <h2 className="text-center text-2xl font-display font-bold text-foreground mb-2">Everything You Need</h2>
-          <p className="text-center text-muted-foreground mb-10 text-sm">Built for job seekers who mean business.</p>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <h2 className="text-center text-2xl font-display font-bold text-foreground mb-2">Everything You Need to Land the Job</h2>
+          <p className="text-center text-muted-foreground mb-10 text-sm">Not just tracking — preparation, insight, and confidence.</p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {features.map((f, i) => (
               <motion.div
                 key={f.title}
@@ -329,8 +342,11 @@ const Landing = () => {
         {/* ── Final CTA ── */}
         <motion.section {...fadeUp} className="mx-auto max-w-3xl px-6 py-20 text-center">
           <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground">
-            Ready to take control of your job search?
+            Stop guessing. Start preparing.
           </h2>
+          <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
+            Join thousands of job seekers who track smarter, prep harder, and land faster — for free.
+          </p>
           <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" className="text-base px-10 shadow-glow" asChild>
               <Link to="/auth?tab=signup">Sign Up Free</Link>
@@ -342,14 +358,14 @@ const Landing = () => {
               </Link>
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-3">It's free. No credit card required.</p>
+          <p className="text-xs text-muted-foreground mt-3">No credit card. No catch. Just a better job search.</p>
         </motion.section>
       </main>
 
       {/* Footer */}
       <footer className="border-t border-border py-6 px-6">
         <div className="mx-auto max-w-6xl flex items-center justify-between text-xs text-muted-foreground">
-          <span>© {new Date().getFullYear()} JobTrackr. Built with Lovable.</span>
+          <span>© {new Date().getFullYear()} JobTrackr</span>
           <div className="flex items-center gap-4">
             <Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 text-xs">
               Privacy Policy

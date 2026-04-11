@@ -9,7 +9,15 @@ import {
 const faqs = [
   {
     q: "Is it really free?",
-    a: "Yes — 100% free with no hidden fees. Every feature, including AI assist, CV suitability, and email reminders, is available at no cost. We believe job seekers shouldn't have to pay to stay organized.",
+    a: "Yes — 100 % free with no hidden fees. Every feature, including AI interview coaching, CV roast, screenshot capture, and email reminders, is available at no cost. We believe job seekers shouldn't have to pay to stay organised.",
+  },
+  {
+    q: "How is the Interview Coach different from ChatGPT?",
+    a: "The Interview Coach generates role-specific questions based on the actual job description you're applying for, scores each answer in real time, and gives you an overall readiness rating. It's purpose-built for interview prep — not a generic chatbot.",
+  },
+  {
+    q: "What does the CV Roast actually do?",
+    a: "Upload your CV and paste a job description. Our AI compares them and returns a suitability score with specific, actionable feedback — what's missing, what's strong, and what to change before you hit apply.",
   },
   {
     q: "Is my data private?",
@@ -17,15 +25,11 @@ const faqs = [
   },
   {
     q: "Can I import from other tools?",
-    a: "Not yet, but it's on our roadmap. For now, you can quickly add applications by pasting a job URL and we'll auto-fill the details for you.",
-  },
-  {
-    q: "How does the AI work?",
-    a: "Our AI assistant can generate tailored cover letters, prep interview questions, and score your CV against job descriptions. It uses your uploaded CV and the job details to give you personalized insights.",
+    a: "You can import applications via CSV, paste a job URL for auto-fill, or use our screenshot capture to snap a listing from any site. Bulk import from other trackers is on our roadmap.",
   },
   {
     q: "What job boards are supported?",
-    a: "Our URL auto-fill works with most major job boards including LinkedIn, Indeed, Glassdoor, and company career pages. If a page has structured job data, we can usually extract it.",
+    a: "Our URL auto-fill works with most major boards including LinkedIn, Indeed, Glassdoor, Reed, Greenhouse, and company career pages. The screenshot capture feature works with any site.",
   },
 ];
 
