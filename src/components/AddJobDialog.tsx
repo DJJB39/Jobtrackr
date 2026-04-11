@@ -138,6 +138,22 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
     setAutoFilled(new Set());
   };
 
+  const handleScreenshotExtracted = (data: { company: string; job_title: string; location?: string; salary?: string; description?: string; employment_type?: string; sourceUrl?: string }) => {
+    const filled = new Set<string>();
+    if (data.company) { setCompany(data.company); filled.add("company"); }
+    if (data.job_title) { setRole(data.job_title); filled.add("role"); }
+    if (data.location) { setFetchedLocation(data.location); filled.add("location"); }
+    if (data.salary) { setFetchedSalary(data.salary); filled.add("salary"); }
+    if (data.description) { setFetchedDescription(data.description); filled.add("description"); }
+    if (data.employment_type) {
+      const matchedType = APPLICATION_TYPES.find(t => t.toLowerCase() === data.employment_type!.toLowerCase());
+      if (matchedType) setApplicationType(matchedType);
+    }
+    if (data.sourceUrl) { setJobUrl(data.sourceUrl); filled.add("url"); }
+    setAutoFilled(filled);
+    toast({ title: "Details extracted!", description: "Review and edit before adding" });
+  };
+
   const clearAutoFill = (field: string) => {
     setAutoFilled((prev) => { const s = new Set(prev); s.delete(field); return s; });
   };
