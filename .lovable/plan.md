@@ -1,81 +1,61 @@
 
+Direct answer: in the screenshot you shared, the screenshot-to-fill feature is nowhere visible. You are looking at the lower half of the Add Job dialog, and the screenshot entry point is off-screen.
 
-# Add AI Studio View and Surface AI Features
+What the code actually says:
+- `src/components/AddJobDialog.tsx` does include the feature as a small ghost button: `Camera + "Or snap a screenshot"` directly under the Job Posting URL field.
+- That button opens `ScreenshotCaptureModal` in pre-fill mode via `onExtracted`, which is the right behavior technically.
+- But `AddJobDialog` is using a centered dialog with no mobile-specific height/scroll treatment, so on a 440px mobile viewport with the keyboard up, the top of the form gets pushed out of view. In practice, the feature exists in code but is not accessible in the actual mobile journey.
 
-## Overview
-Create an "AI Studio" view as a new tab in the app, redesign the empty state with quick-start cards, add an AI sparkle button to Kanban card hover actions, and add a persistent AI Studio button in the header.
+Correction to my earlier conclusion:
+- I treated “present in code” as “available in UX”.
+- Your screenshot proves that was wrong.
 
-## Changes
+Why this is failing product-wise:
+- Screenshot capture is an intake method, not just an AI extra.
+- It was implemented as a secondary text button below the URL field instead of as a first-class add-job option.
+- That means the app currently prioritizes secondary discovery surfaces (AI Studio / empty state) over the main “I want to add a job now” flow.
 
-### 1. Update View type and VIEW_ITEMS in AppHeader
-**File: `src/components/layout/AppHeader.tsx`**
-- Expand `View` type to include `"ai"`
-- Add `{ key: "ai", icon: Sparkles, label: "AI Studio" }` to `VIEW_ITEMS`
-- Import `Sparkles` from lucide-react
-- Add an "AI Studio" button next to the Add Job button (before `data-tour="add-button"` div), visible in non-demo mode
+Feature placement review:
+- Rational:
+  - URL fetch inside Add Job
+  - CV Roast in CV view + AI Studio
+  - Coach / Tailor / Cover Letter / Bootcamp in Job Detail + AI Studio
+  - CSV Import in header / empty state as a bulk-import flow
+- Not rational:
+  - Screenshot Capture being technically inside Add Job but visually buried/off-screen on mobile
+  - A core acquisition path should never rely on the user scrolling a cramped modal to find it
 
-### 2. Create AIStudioView component
-**File: `src/components/AIStudioView.tsx`** (new)
-- Full-width padded container matching Dashboard style
-- Heading "AI Studio" + subtext "Your career toolkit — powered by AI"
-- 6-card grid (2 cols mobile, 3 desktop) using existing glassmorphism classes (`rounded-xl border border-border glass p-6 glow-hover`)
-- Cards: Interview Coach (Mic/red-500), CV Roast (Flame/amber-500), CV Tailor (FileText/emerald-500), Cover Letter (Sparkles/primary), Interview Bootcamp (CalendarCheck/blue-500), Screenshot Capture (Camera/purple-500)
-- Cards 1, 3, 4, 5 include a job selector `<Select>` dropdown listing jobs as "Company — Role"
-- Card actions: open respective modals via callback props, CV Roast navigates to CV view, Screenshot opens modal directly
-- Below grid: usage indicator with Progress bar from `useAIPreferences` matching AISettings style
+Implementation plan:
+1. Fix Add Job mobile layout first
+- Update `src/components/AddJobDialog.tsx` so the dialog is mobile-safe: add max-height and internal scrolling.
+- Ensure the top of the form remains reachable when the keyboard is open.
 
-Props interface:
-```typescript
-interface AIStudioViewProps {
-  jobs: JobApplication[];
-  onOpenCoach: (job: JobApplication) => void;
-  onOpenBootcamp: (job: JobApplication) => void;
-  onOpenTailor: (job: JobApplication) => void;
-  onOpenAI: (job: JobApplication) => void;
-  onOpenScreenshot: () => void;
-  onSwitchToCV: () => void;
-}
-```
+2. Promote screenshot capture to a first-class intake option
+- Move the screenshot entry point into the visible top section of Add Job.
+- Make it visually equal to URL/manual entry instead of a tiny ghost action.
+- Keep it above the fold on mobile.
 
-### 3. Wire AI Studio view in AppPage
-**File: `src/pages/AppPage.tsx`**
-- Import `AIStudioView` and `Sparkles`
-- Add `view === "ai"` branch in the view rendering section with the specified props
-- The `else` fallback (CalendarView) needs adjusting since "ai" is now a possible view
+3. Keep the current pre-fill behavior
+- Preserve `ScreenshotCaptureModal` → `onExtracted` flow.
+- Continue pre-filling company, role, location, salary, description, URL, and matched application type.
+- Tighten the copy so it clearly says this fills the form rather than saving immediately.
 
-### 4. Redesign empty state in AppPage
-**File: `src/pages/AppPage.tsx`**
-- Change heading to "Welcome to JobTrackr"
-- Change subtext to "Start by adding a job, or explore what AI can do for your career"
-- Below the main CTA button, add 3 compact glass cards in a flex row:
-  - Camera + "Screenshot a job listing" → `setScreenshotOpen(true)`
-  - Flame + "Roast your CV first" → `setView("cv")`
-  - Upload + "Import from CSV" → `setImportOpen(true)`
+4. Rationalize feature surfaces
+- Keep Screenshot Capture in AI Studio and empty state as secondary discovery.
+- Treat Add Job as the primary surface for this feature.
+- Do not move CSV import into Add Job; that remains a separate bulk-import journey.
 
-### 5. Add AI sparkle to JobCard hover
-**File: `src/components/JobCard.tsx`**
-- Import `Sparkles` from lucide-react
-- Add a Sparkles button in the hover actions bar (before the delete AlertDialog)
-- onClick calls `onClick?.(job)` to open the detail panel (same as clicking the card)
-- Tooltip text: "AI Tools" (use `title` attribute to keep it simple without adding Tooltip dependency)
+5. Add regression protection
+- Add/extend tests for:
+  - Add Job dialog rendering on mobile
+  - screenshot CTA visibility in the dialog
+  - screenshot extraction pre-filling the form
 
-### 6. Add persistent AI Studio button in header
-**File: `src/components/layout/AppHeader.tsx`**
-- Before the `data-tour="add-button"` div, add:
-```tsx
-<Button variant="outline" size="sm" className="gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50" onClick={() => setView("ai")}>
-  <Sparkles className="h-4 w-4" />
-  <span className="hidden sm:inline">AI Studio</span>
-</Button>
-```
-- Only show in non-demo mode (or show in both — user didn't specify hiding it in demo)
+Files to update:
+- `src/components/AddJobDialog.tsx`
+- `src/components/ScreenshotCaptureModal.tsx` (only for copy/interaction polish if needed)
+- `src/test/AddJobDialog.test.tsx` or existing screenshot modal tests
 
-## Files Changed
-
-| File | Action |
-|------|--------|
-| `src/components/layout/AppHeader.tsx` | Edit — add "ai" to View type, VIEW_ITEMS, Sparkles import, AI Studio button |
-| `src/components/AIStudioView.tsx` | Create — 6-card AI tool grid with job selectors and usage indicator |
-| `src/pages/AppPage.tsx` | Edit — wire AI Studio view, redesign empty state with quick-start cards |
-| `src/components/JobCard.tsx` | Edit — add Sparkles button to hover actions |
-
+Expected outcome:
+- The screenshot feature will stop being “technically present but practically hidden”.
+- Users adding a job will see screenshot capture immediately, where they expect it.
