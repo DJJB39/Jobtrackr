@@ -26,6 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Link as LinkIcon, Loader2, DollarSign, CalendarDays, Undo2, Camera } from "lucide-react";
 import { APPLICATION_TYPES, type ColumnId } from "@/types/job";
 import type { JobApplication } from "@/types/job";
@@ -47,6 +48,8 @@ interface AddJobDialogProps {
   jobs?: JobApplication[];
 }
 
+type IntakeMethod = "url" | "screenshot" | "manual";
+
 const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenChange, jobs = [] }: AddJobDialogProps) => {
   const { stages } = useStages();
   const [internalOpen, setInternalOpen] = useState(false);
@@ -64,6 +67,7 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
   const [fetchedCloseDate, setFetchedCloseDate] = useState("");
   const [autoFilled, setAutoFilled] = useState<Set<string>>(new Set());
   const [screenshotOpen, setScreenshotOpen] = useState(false);
+  const [intakeMethod, setIntakeMethod] = useState<IntakeMethod>("url");
   const { toast } = useToast();
 
   const companyRef = useRef<HTMLInputElement>(null);
@@ -181,6 +185,7 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
     setFetchedCloseDate("");
     setAutoFilled(new Set());
     lastFetchedUrl.current = "";
+    setIntakeMethod("url");
     setOpen(false);
   };
 
@@ -197,6 +202,12 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
     doSubmit();
   };
 
+  const intakeMethods: { id: IntakeMethod; label: string; icon: React.ReactNode }[] = [
+    { id: "url", label: "Paste URL", icon: <LinkIcon className="h-4 w-4" /> },
+    { id: "screenshot", label: "Screenshot", icon: <Camera className="h-4 w-4" /> },
+    { id: "manual", label: "Manual", icon: <Plus className="h-4 w-4" /> },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {externalOpen === undefined && (
@@ -207,166 +218,194 @@ const AddJobDialog = ({ onAdd, open: externalOpen, onOpenChange: externalOnOpenC
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>New Job Application</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          {/* Job URL */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5">
-              <LinkIcon className="h-3.5 w-3.5" /> Job Posting URL
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="https://..."
-                value={jobUrl}
-                onChange={(e) => setJobUrl(e.target.value)}
-                onPaste={handleUrlPaste}
-                onBlur={handleUrlBlur}
-                className="flex-1"
-              />
-              <Button
+
+        {/* Intake method selector — always visible */}
+        <div className="px-6 pb-3">
+          <p className="text-xs text-muted-foreground mb-2">How do you want to add this job?</p>
+          <div className="grid grid-cols-3 gap-2">
+            {intakeMethods.map((m) => (
+              <button
+                key={m.id}
                 type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleFetch()}
-                disabled={fetching || !jobUrl.trim()}
-                className="shrink-0"
+                onClick={() => {
+                  if (m.id === "screenshot") {
+                    setScreenshotOpen(true);
+                  } else {
+                    setIntakeMethod(m.id);
+                  }
+                }}
+                className={`flex flex-col items-center gap-1.5 rounded-lg border p-3 text-xs font-medium transition-all ${
+                  intakeMethod === m.id && m.id !== "screenshot"
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border hover:border-primary/40 text-muted-foreground hover:text-foreground"
+                }`}
               >
-                {fetching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Fetch"}
-              </Button>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setScreenshotOpen(true)}
-                className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <Camera className="h-3.5 w-3.5" /> Or snap a screenshot
-              </Button>
-              {autoFilled.size > 0 && (
+                {m.icon}
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Scrollable form area */}
+        <ScrollArea className="flex-1 min-h-0">
+          <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">
+            {/* URL input — shown for url intake */}
+            {intakeMethod === "url" && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <LinkIcon className="h-3.5 w-3.5" /> Job Posting URL
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="https://..."
+                    value={jobUrl}
+                    onChange={(e) => setJobUrl(e.target.value)}
+                    onPaste={handleUrlPaste}
+                    onBlur={handleUrlBlur}
+                    className="flex-1"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleFetch()}
+                    disabled={fetching || !jobUrl.trim()}
+                    className="shrink-0"
+                  >
+                    {fetching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Fetch"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Undo auto-fill */}
+            {autoFilled.size > 0 && (
+              <div className="flex items-center gap-2">
                 <Button type="button" variant="ghost" size="sm" onClick={undoAutoFill} className="h-7 gap-1.5 text-xs text-muted-foreground">
                   <Undo2 className="h-3 w-3" /> Undo Auto-Fill
                 </Button>
-              )}
+              </div>
+            )}
+
+            {/* Company */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="company">Company</Label>
+                {autoFilled.has("company") && (
+                  <span className="text-[10px] text-muted-foreground">Auto-filled</span>
+                )}
+              </div>
+              <Input
+                id="company"
+                ref={companyRef}
+                placeholder="e.g. Google"
+                value={company}
+                onChange={(e) => { setCompany(e.target.value); clearAutoFill("company"); }}
+                autoFocus={intakeMethod === "manual"}
+              />
             </div>
-          </div>
 
-          {/* Company */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="company">Company</Label>
-              {autoFilled.has("company") && (
-                <span className="text-[10px] text-muted-foreground">Auto-filled</span>
-              )}
+            {/* Role */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="role">Role</Label>
+                {autoFilled.has("role") && (
+                  <span className="text-[10px] text-muted-foreground">Auto-filled</span>
+                )}
+              </div>
+              <Input
+                id="role"
+                ref={roleRef}
+                placeholder="e.g. Senior Frontend Engineer"
+                value={role}
+                onChange={(e) => { setRole(e.target.value); clearAutoFill("role"); }}
+              />
             </div>
-            <Input
-              id="company"
-              ref={companyRef}
-              placeholder="e.g. Google"
-              value={company}
-              onChange={(e) => { setCompany(e.target.value); clearAutoFill("company"); }}
-              autoFocus
-            />
-          </div>
 
-          {/* Role */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="role">Role</Label>
-              {autoFilled.has("role") && (
-                <span className="text-[10px] text-muted-foreground">Auto-filled</span>
-              )}
+            {/* Stage */}
+            <div className="space-y-2">
+              <Label>Stage</Label>
+              <Select value={columnId} onValueChange={(v) => setColumnId(v as ColumnId)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {stages.map((col) => (
+                    <SelectItem key={col.id} value={col.id}>
+                      {col.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Input
-              id="role"
-              ref={roleRef}
-              placeholder="e.g. Senior Frontend Engineer"
-              value={role}
-              onChange={(e) => { setRole(e.target.value); clearAutoFill("role"); }}
-            />
-          </div>
 
-          {/* Stage */}
-          <div className="space-y-2">
-            <Label>Stage</Label>
-            <Select value={columnId} onValueChange={(v) => setColumnId(v as ColumnId)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {stages.map((col) => (
-                  <SelectItem key={col.id} value={col.id}>
-                    {col.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Application Type */}
-          <div className="space-y-2">
-            <Label>Application Type</Label>
-            <Select value={applicationType} onValueChange={setApplicationType}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {APPLICATION_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Salary */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Label className="flex items-center gap-1.5">
-                <DollarSign className="h-3.5 w-3.5" /> Salary / Range
-              </Label>
-              {autoFilled.has("salary") && (
-                <span className="text-[10px] text-muted-foreground">Auto-filled</span>
-              )}
+            {/* Application Type */}
+            <div className="space-y-2">
+              <Label>Application Type</Label>
+              <Select value={applicationType} onValueChange={setApplicationType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {APPLICATION_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Input
-              placeholder="e.g. $120k-$150k"
-              value={fetchedSalary}
-              onChange={(e) => { setFetchedSalary(e.target.value); clearAutoFill("salary"); }}
-            />
-          </div>
 
-          {/* Application Deadline */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Label className="flex items-center gap-1.5">
-                <CalendarDays className="h-3.5 w-3.5" /> Application Deadline
-              </Label>
-              {autoFilled.has("closeDate") && (
-                <span className="text-[10px] text-muted-foreground">Auto-filled</span>
-              )}
+            {/* Salary */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label className="flex items-center gap-1.5">
+                  <DollarSign className="h-3.5 w-3.5" /> Salary / Range
+                </Label>
+                {autoFilled.has("salary") && (
+                  <span className="text-[10px] text-muted-foreground">Auto-filled</span>
+                )}
+              </div>
+              <Input
+                placeholder="e.g. $120k-$150k"
+                value={fetchedSalary}
+                onChange={(e) => { setFetchedSalary(e.target.value); clearAutoFill("salary"); }}
+              />
             </div>
-            <Input
-              type="date"
-              value={fetchedCloseDate}
-              onChange={(e) => { setFetchedCloseDate(e.target.value); clearAutoFill("closeDate"); }}
-            />
-          </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!company.trim() || !role.trim()}>
-              Add
-            </Button>
-          </div>
-        </form>
+            {/* Application Deadline */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label className="flex items-center gap-1.5">
+                  <CalendarDays className="h-3.5 w-3.5" /> Application Deadline
+                </Label>
+                {autoFilled.has("closeDate") && (
+                  <span className="text-[10px] text-muted-foreground">Auto-filled</span>
+                )}
+              </div>
+              <Input
+                type="date"
+                value={fetchedCloseDate}
+                onChange={(e) => { setFetchedCloseDate(e.target.value); clearAutoFill("closeDate"); }}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!company.trim() || !role.trim()}>
+                Add
+              </Button>
+            </div>
+          </form>
+        </ScrollArea>
       </DialogContent>
 
       <AlertDialog open={duplicateWarning} onOpenChange={setDuplicateWarning}>
