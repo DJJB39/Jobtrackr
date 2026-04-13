@@ -139,7 +139,7 @@ const Landing = () => {
       <header className="glass sticky top-0 z-50">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-glow">
+            <div className="hidden sm:flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-glow">
               <Briefcase className="h-4 w-4 text-primary-foreground" />
             </div>
             <span className="text-lg font-display tracking-tight text-foreground">JobTrackr</span>
