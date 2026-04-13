@@ -60,14 +60,14 @@ const AppHeader = memo(({
                 <Link to="/"><ArrowLeft className="h-4 w-4" /></Link>
               </Button>
             )}
-            <div className="relative">
+            <div className="relative hidden sm:block">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-glow">
                 <Briefcase className="h-5 w-5 text-primary-foreground" />
               </div>
             </div>
             <div>
               <h1 className="text-lg font-display tracking-tight text-foreground">JobTrackr</h1>
-              <p className="text-[10px] text-muted-foreground font-mono tracking-wider uppercase">
+              <p className="text-[10px] text-muted-foreground font-mono tracking-wider uppercase hidden sm:block">
                 {jobs.length} application{jobs.length !== 1 ? "s" : ""} tracked
               </p>
             </div>
@@ -154,7 +154,7 @@ const AppHeader = memo(({
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
+                className="hidden sm:flex gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
                 onClick={() => setView("ai")}
               >
                 <Sparkles className="h-4 w-4" />
