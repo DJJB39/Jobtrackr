@@ -158,6 +158,7 @@ const splitTitle = (title: string): { role: string; company: string | null; loca
 };
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
