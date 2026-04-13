@@ -104,10 +104,10 @@ const HOW_IT_WORKS = [
 ];
 
 const stats = [
-  { value: "Unlimited", label: "Applications" },
-  { value: "100%", label: "Free" },
-  { value: "AI", label: "Interview Coach" },
-  { value: "Private", label: "By Default" },
+  { value: "5", label: "AI Models" },
+  { value: "4", label: "Roast Levels" },
+  { value: "£0", label: "For Everything" },
+  { value: "Your Data", label: "Stays Yours" },
 ];
 
 /* ── Component ── */

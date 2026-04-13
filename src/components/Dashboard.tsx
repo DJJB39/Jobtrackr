@@ -94,7 +94,7 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
         return jIdx >= i && j.columnId !== "rejected";
       }).length;
       return { name: stage.label, value: atOrBeyond, fill: stage.color };
-    });
+    }).filter((d) => d.value > 0);
   }, [jobs]);
 
   // Stale applications: same stage 14+ days, no recent events
@@ -204,64 +204,34 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
           </Card>
 
           {/* Area chart */}
-          <Card className="glass-card">
-            <CardHeader className="pb-2">
-              <h3 className="text-sm font-semibold text-foreground">Applications By Week</h3>
-            </CardHeader>
-            <CardContent>
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={weeklyData} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
-                    <defs>
-                      <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(36, 95%, 54%)" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="hsl(36, 95%, 54%)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="week" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Area type="monotone" dataKey="count" stroke="hsl(36, 95%, 54%)" fillOpacity={1} fill="url(#colorCount)" strokeWidth={2} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Bottom row: pie + interactive bar */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {weeklyData.length > 1 && (
             <Card className="glass-card">
               <CardHeader className="pb-2">
-                <h3 className="text-sm font-semibold text-foreground">Stages</h3>
+                <h3 className="text-sm font-semibold text-foreground">Applications By Week</h3>
               </CardHeader>
               <CardContent>
-                <div className="h-56">
+                <div className="h-48">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={stats.breakdown.filter((s) => s.count > 0)}
-                        dataKey="count"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        paddingAngle={2}
-                      >
-                        {stats.breakdown.filter((s) => s.count > 0).map((entry) => (
-                          <Cell key={entry.id} fill={STATUS_COLORS[entry.id]} />
-                        ))}
-                      </Pie>
+                    <AreaChart data={weeklyData} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
+                      <defs>
+                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(36, 95%, 54%)" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="hsl(36, 95%, 54%)" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="week" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={tooltipStyle} />
-                      <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                    </PieChart>
+                      <Area type="monotone" dataKey="count" stroke="hsl(36, 95%, 54%)" fillOpacity={1} fill="url(#colorCount)" strokeWidth={2} />
+                    </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
+          )}
 
-            {/* Interactive bar chart */}
-            <Card className="glass-card">
+          {/* Interactive bar chart — full width */}
+          <Card className="glass-card">
               <CardHeader className="pb-2">
                 <h3 className="text-sm font-semibold text-foreground">By Stage</h3>
                 {onFilterByStage && <p className="text-[10px] text-muted-foreground">Click a bar to filter board</p>}
@@ -293,7 +263,6 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
                 </div>
               </CardContent>
             </Card>
-          </div>
 
           {/* Stale & Ghost alerts row */}
           {(staleJobs.length > 0 || ghostJobs.length > 0) && (
@@ -403,12 +372,14 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
             </CardContent>
           </Card>
 
-          {/* Achievements */}
-          <Card className="mt-4 glass-card">
-            <CardContent className="pt-5">
-              <Achievements jobs={jobs} />
-            </CardContent>
-          </Card>
+          {/* Achievements — only for power users */}
+          {jobs.length >= 10 && (
+            <Card className="mt-4 glass-card">
+              <CardContent className="pt-5">
+                <Achievements jobs={jobs} />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 

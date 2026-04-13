@@ -126,7 +126,7 @@ const AppHeader = memo(({
 
             {/* Mobile view switcher */}
             <div className="flex sm:hidden items-center rounded-xl border border-border/50 bg-secondary/30 p-0.5 mr-1">
-              {VIEW_ITEMS.map(({ key, icon: Icon }) => (
+              {VIEW_ITEMS.filter(({ key }) => key !== "list").map(({ key, icon: Icon }) => (
                 <button
                   key={key}
                   onClick={() => setView(key)}
@@ -161,10 +161,10 @@ const AppHeader = memo(({
                 <span className="hidden sm:inline">AI Studio</span>
               </Button>
             )}
-            <div data-tour="add-button">
+            <div data-tour="add-button" className="hidden sm:block">
               <AddJobDialog onAdd={onAddJob} jobs={jobs} />
             </div>
-            {!isDemo && <UserMenu />}
+            <span className="hidden sm:block">{!isDemo && <UserMenu />}</span>
           </div>
         </div>
 
@@ -177,17 +177,13 @@ const AppHeader = memo(({
             onChange={(e) => setSearchQuery(e.target.value)}
             className="h-9 pl-8 pr-14 text-sm bg-secondary/50 border-border/50"
           />
-          {searchQuery ? (
+          {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               <X className="h-3.5 w-3.5" />
             </button>
-          ) : (
-            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border/50 pointer-events-none">
-              {isMac ? "⌘K" : "Ctrl+K"}
-            </kbd>
           )}
         </div>
       </header>
