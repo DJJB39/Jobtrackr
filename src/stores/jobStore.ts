@@ -99,17 +99,29 @@ export const useJobStore = create<JobStore>((set, get) => {
     searchQuery: "",
 
     fetchJobs: async (userId: string) => {
-      const { data, error } = await supabase
-        .from("job_applications")
-        .select("*")
-        .order("created_at", { ascending: true });
+      let allJobs: Record<string, unknown>[] = [];
+      let from = 0;
+      const PAGE_SIZE = 1000;
 
-      if (error) {
-        console.error("Error loading jobs:", error.message);
-      } else if (data) {
-        set({ jobs: data.map((r) => rowToJob(r as Record<string, unknown>)) });
+      while (true) {
+        const { data, error } = await supabase
+          .from("job_applications")
+          .select("*")
+          .order("created_at", { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (error) {
+          console.error("Error loading jobs:", error.message);
+          break;
+        }
+        if (data) {
+          allJobs = allJobs.concat(data as Record<string, unknown>[]);
+        }
+        if (!data || data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
       }
-      set({ loading: false });
+
+      set({ jobs: allJobs.map((r) => rowToJob(r)), loading: false });
     },
 
     addJob: async (userId, company, role, columnId, applicationType = "Other", extras) => {
