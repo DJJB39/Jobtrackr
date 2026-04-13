@@ -30,7 +30,7 @@ import { useStages } from "@/hooks/useStages";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import AIStudioView from "@/components/AIStudioView";
-import { Camera, Flame, Upload } from "lucide-react";
+import { Camera, Flame, Upload, Plus } from "lucide-react";
 
 const AppPage = () => {
   const { user } = useAuth();
@@ -229,6 +229,18 @@ const AppPage = () => {
       ) : (
         <CalendarView jobs={filteredJobs} onSelectJob={handleSelectJob} />
       )}
+
+      {/* Mobile FAB */}
+      {jobs.length > 0 && (
+        <div className="sm:hidden fixed bottom-6 right-6 z-20">
+          <Button size="lg" className="h-14 w-14 rounded-full shadow-lg shadow-primary/30 p-0" onClick={() => setDialogOpen(true)}>
+            <Plus className="h-6 w-6" />
+          </Button>
+        </div>
+      )}
+
+      {/* Mobile FAB dialog */}
+      <AddJobDialog onAdd={handleAddJob} open={dialogOpen} onOpenChange={setDialogOpen} jobs={jobs} className="sm:hidden" />
 
       {/* Panels & Modals */}
       <JobDetailPanel job={selectedJob} open={panelOpen} onOpenChange={setPanelOpen} onSave={handleUpdateJob} onOpenAI={() => setAiPanelOpen(true)} onOpenCoach={() => setCoachOpen(true)} onOpenBootcamp={() => setBootcampOpen(true)} onOpenTailor={() => setTailorOpen(true)} />

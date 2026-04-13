@@ -259,11 +259,13 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
 
       {/* Progress bar */}
       {columnId && columnId !== "rejected" && (
-        <div className="h-1 rounded-full bg-primary/10 overflow-hidden mt-2.5">
-          <div
-            className="h-full rounded-full bg-primary/40 transition-all duration-500"
-            style={{ width: `${stageProgress}%` }}
-          />
+        <div className="hidden sm:block">
+          <div className="h-1 rounded-full bg-primary/10 overflow-hidden mt-2.5">
+            <div
+              className="h-full rounded-full bg-primary/40 transition-all duration-500"
+              style={{ width: `${stageProgress}%` }}
+            />
+          </div>
         </div>
       )}
 
@@ -271,7 +273,7 @@ const JobCard = ({ job, onDelete, onClick, onSchedule, columnId, selected, onTog
       {cvScore === null && hasStoredCV && onNavigateToCV && (
         <div
           onClick={(e) => { e.stopPropagation(); onNavigateToCV(); }}
-          className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 cursor-pointer hover:bg-amber-500/15 transition-all text-amber-500"
+          className="hidden sm:flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 cursor-pointer hover:bg-amber-500/15 transition-all text-amber-500"
           style={{ opacity: cardIndex !== undefined && cardIndex > 5 ? 0.5 : 1 }}
         >
           <Flame className="h-3 w-3 shrink-0" />

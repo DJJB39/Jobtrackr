@@ -209,7 +209,7 @@ const KanbanBoard = ({ jobs, setJobs, onUpdateJob, onDeleteJob, onSwitchView }: 
   return (
     <>
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2 px-4 sm:px-6 pt-4 pb-0">
+      <div className={`flex flex-wrap items-center gap-2 px-4 sm:px-6 pt-4 pb-0 ${jobs.length < 5 ? "hidden sm:flex" : ""}`}>
         <Filter className="h-4 w-4 text-muted-foreground hidden sm:block" />
 
         {!isMobile && (
