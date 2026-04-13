@@ -121,12 +121,7 @@ export const useJobStore = create<JobStore>((set, get) => {
         from += PAGE_SIZE;
       }
 
-      if (error) {
-        console.error("Error loading jobs:", error.message);
-      } else if (data) {
-        set({ jobs: data.map((r) => rowToJob(r as Record<string, unknown>)) });
-      }
-      set({ loading: false });
+      set({ jobs: allJobs.map((r) => rowToJob(r)), loading: false });
     },
 
     addJob: async (userId, company, role, columnId, applicationType = "Other", extras) => {
