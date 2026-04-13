@@ -240,7 +240,7 @@ const AppPage = () => {
       )}
 
       {/* Mobile FAB dialog */}
-      <AddJobDialog onAdd={handleAddJob} open={dialogOpen} onOpenChange={setDialogOpen} jobs={jobs} className="sm:hidden" />
+      <AddJobDialog onAdd={handleAddJob} open={dialogOpen} onOpenChange={setDialogOpen} jobs={jobs} />
 
       {/* Panels & Modals */}
       <JobDetailPanel job={selectedJob} open={panelOpen} onOpenChange={setPanelOpen} onSave={handleUpdateJob} onOpenAI={() => setAiPanelOpen(true)} onOpenCoach={() => setCoachOpen(true)} onOpenBootcamp={() => setBootcampOpen(true)} onOpenTailor={() => setTailorOpen(true)} />
