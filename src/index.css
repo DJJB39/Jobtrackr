@@ -4,6 +4,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
 
 @layer base {
   :root {
@@ -237,3 +238,109 @@
     background-clip: text;
   }
 }
+
+/* ============================================================
+   Cornerman editorial landing page — scoped styles
+   Applied only inside .cornerman wrapper so the rest of the
+   app (Satoshi + glassmorphism) stays untouched.
+   ============================================================ */
+.cornerman {
+  --cm-bg: #0a0908;
+  --cm-bg-elev: #14110d;
+  --cm-line: #211d18;
+  --cm-line-strong: #3a342c;
+  --cm-text: #f5f1ea;
+  --cm-text-dim: #8a8278;
+  --cm-amber: #f5a524;
+  --cm-amber-soft: rgba(245, 165, 36, 0.12);
+
+  background: var(--cm-bg);
+  color: var(--cm-text);
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.cornerman .cm-serif {
+  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-feature-settings: 'ss01' 1, 'kern' 1;
+  letter-spacing: -0.022em;
+}
+
+.cornerman .cm-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.cornerman .cm-text-dim { color: var(--cm-text-dim); }
+.cornerman .cm-text-amber { color: var(--cm-amber); }
+.cornerman .cm-bg-elev { background: var(--cm-bg-elev); }
+.cornerman .cm-border { border-color: var(--cm-line); }
+.cornerman .cm-border-strong { border-color: var(--cm-line-strong); }
+
+/* Subtle grain so the bg doesn't feel flat */
+.cornerman .cm-grain::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  z-index: 1;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+.cornerman .cm-halo {
+  background: radial-gradient(55% 50% at 50% 0%, rgba(245, 165, 36, 0.18) 0%, rgba(245, 165, 36, 0.04) 35%, transparent 70%);
+}
+
+.cornerman .cm-meta-rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cm-line), transparent);
+}
+
+/* CTAs */
+.cornerman .cm-cta-primary {
+  background: var(--cm-amber);
+  color: #1a1107;
+  font-weight: 500;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.cornerman .cm-cta-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 50px -12px rgba(245, 165, 36, 0.55);
+}
+.cornerman .cm-cta-ghost {
+  border: 1px solid var(--cm-line);
+  transition: border-color 0.2s ease, background 0.2s ease;
+  color: var(--cm-text);
+}
+.cornerman .cm-cta-ghost:hover {
+  border-color: var(--cm-line-strong);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cornerman .cm-roast-card {
+  background: var(--cm-bg-elev);
+  border: 1px solid var(--cm-line);
+}
+
+.cornerman .cm-blink { animation: cm-blink 1.4s ease-in-out infinite; }
+@keyframes cm-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.25; }
+}
+
+.cornerman .cm-reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: cm-reveal 0.75s cubic-bezier(0.2, 0.6, 0.2, 1) forwards;
+}
+@keyframes cm-reveal {
+  to { opacity: 1; transform: translateY(0); }
+}
+.cornerman .cm-d1 { animation-delay: 0.05s; }
+.cornerman .cm-d2 { animation-delay: 0.15s; }
+.cornerman .cm-d3 { animation-delay: 0.25s; }
+.cornerman .cm-d4 { animation-delay: 0.35s; }
+.cornerman .cm-d5 { animation-delay: 0.45s; }
+.cornerman .cm-d6 { animation-delay: 0.60s; }
+.cornerman .cm-d7 { animation-delay: 0.75s; }
