@@ -71,7 +71,7 @@ export const useUserCV = () => {
     if (!user) return null;
     const { data, error } = await supabase
       .from("user_cvs")
-      .upsert({ user_id: user.id, ...patch }, { onConflict: "user_id" })
+      .upsert({ user_id: user.id, ...patch } as never, { onConflict: "user_id" })
       .select()
       .maybeSingle();
     if (error) {
