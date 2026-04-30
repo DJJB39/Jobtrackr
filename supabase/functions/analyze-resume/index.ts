@@ -1,7 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const APP_URL = Deno.env.get("APP_URL") || "https://brs39.lovable.app";
 const ALLOWED_ORIGINS = [
+  APP_URL,
   "https://brs39.lovable.app",
   "https://id-preview--03b5424d-9b42-4895-9126-0bbdd9be20a7.lovable.app",
 ];
