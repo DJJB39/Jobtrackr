@@ -1,116 +1,18 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
-import {
-  Briefcase,
-  Columns3,
-  Link2,
-  CheckCircle2,
-  CalendarDays,
-  Shield,
-  Play,
-  ArrowRight,
-  Sparkles,
-  FileUp,
-  Brain,
-  Flame,
-  Camera,
-} from "lucide-react";
-import screenshotKanban from "@/assets/screenshot-kanban.png";
-import screenshotDetail from "@/assets/screenshot-detail.png";
-import screenshotDashboard from "@/assets/screenshot-dashboard.png";
-import ComparisonTable from "@/components/landing/ComparisonTable";
-import PricingSection from "@/components/landing/PricingSection";
-import FAQSection from "@/components/landing/FAQSection";
-import ChromeExtensionCTA from "@/components/landing/ChromeExtensionCTA";
-import { FEEDBACK_FORM_URL, LOOM_DEMO_URL } from "@/lib/constants";
+import { FEEDBACK_FORM_URL } from "@/lib/constants";
 
-/* ── Helpers ── */
-const fadeUp = {
-  initial: { opacity: 0, y: 24 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.15 as const },
-  transition: { duration: 0.5 },
-};
-
-const stagger = {
-  initial: { opacity: 0, y: 20 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
-};
-
-/* ── Data ── */
-const features = [
-  {
-    icon: Flame,
-    title: "Ruthless Interview Coach",
-    desc: "AI-generated questions scored in real time. Get honest feedback before the real thing.",
-  },
-  {
-    icon: FileUp,
-    title: "CV Roast & Suitability",
-    desc: "Upload your CV, paste a job description, and get a brutally honest suitability score.",
-  },
-  {
-    icon: Camera,
-    title: "Screenshot Job Capture",
-    desc: "Snap a screenshot of any listing — we extract the details and add it to your board.",
-  },
-  {
-    icon: Columns3,
-    title: "Kanban Board",
-    desc: "Drag and drop applications across customisable stages. Filter by role, type, or status.",
-  },
-  {
-    icon: Link2,
-    title: "URL Auto-Fill",
-    desc: "Paste a job posting link and auto-fill company, role, salary, and deadline instantly.",
-  },
-  {
-    icon: CalendarDays,
-    title: "Events & Reminders",
-    desc: "Schedule interviews, deadlines, and follow-ups. Export to Google Calendar with one click.",
-  },
-  {
-    icon: Brain,
-    title: "AI Assist",
-    desc: "Generate cover letters, interview prep, and job summaries powered by AI — no extra cost.",
-  },
-  {
-    icon: Shield,
-    title: "Private & Encrypted",
-    desc: "Your data is encrypted and accessible only to you. No tracking, no ads, no third-party access.",
-  },
-];
-
-const HOW_IT_WORKS = [
-  {
-    step: "1",
-    title: "Add a Job in Seconds",
-    desc: "Paste a URL, snap a screenshot, or type it manually — we auto-fill the rest.",
-  },
-  {
-    step: "2",
-    title: "Track & Prepare",
-    desc: "Drag applications through stages. Run a mock interview or roast your CV before you apply.",
-  },
-  {
-    step: "3",
-    title: "Stay Ahead",
-    desc: "Set reminders, export events, and review your stats — nothing falls through the cracks.",
-  },
-];
-
-const stats = [
-  { value: "5", label: "AI Models" },
-  { value: "4", label: "Roast Levels" },
-  { value: "£0", label: "For Everything" },
-  { value: "Your Data", label: "Stays Yours" },
-];
-
-/* ── Component ── */
+/**
+ * Cornerman — editorial landing page.
+ *
+ * Routes are unchanged: /auth (log in), /auth?tab=signup (sign up),
+ * /demo (interactive demo), /privacy. Logged-in users are redirected
+ * to /app exactly like before.
+ *
+ * All visual styles are scoped to the `.cornerman` wrapper in index.css
+ * so the rest of the app keeps its existing Satoshi + glassmorphism look.
+ */
 const Landing = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -122,258 +24,219 @@ const Landing = () => {
   }, [user, loading, navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">
-      {/* Background grid pattern */}
-      <div
-        className="fixed inset-0 pointer-events-none opacity-[0.03]"
-        style={{
-          backgroundImage: `linear-gradient(hsl(var(--foreground) / 0.15) 1px, transparent 1px),
-                          linear-gradient(90deg, hsl(var(--foreground) / 0.15) 1px, transparent 1px)`,
-          backgroundSize: "60px 60px",
-        }}
-      />
-      {/* Top glow */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full bg-primary/8 blur-[120px] pointer-events-none" />
+    <div className="cornerman cm-grain min-h-screen flex flex-col relative overflow-hidden">
+      {/* Halo behind the hero */}
+      <div className="cm-halo pointer-events-none absolute top-0 left-0 right-0 h-[600px] z-0" />
 
-      {/* Nav */}
-      <header className="glass sticky top-0 z-50">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="hidden sm:flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-glow">
-              <Briefcase className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-display tracking-tight text-foreground">JobTrackr</span>
+      {/* ── Nav ── */}
+      <header className="relative z-20">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
+          <div className="flex items-baseline gap-2">
+            <span className="cm-serif text-xl font-medium">Cornerman</span>
+            <span className="cm-mono cm-text-dim text-[10px] uppercase tracking-[0.18em]">/ AI</span>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/demo" className="gap-1.5">
-                <Play className="h-3.5 w-3.5" />
-                Try Demo
-              </Link>
-            </Button>
-            <Button variant="ghost" asChild>
-              <Link to="/auth">Log In</Link>
-            </Button>
-            <Button asChild>
-              <Link to="/auth?tab=signup">Sign Up Free</Link>
-            </Button>
-          </div>
+          <nav className="flex items-center gap-1 sm:gap-2 text-sm">
+            <Link
+              to="/demo"
+              className="px-3 py-1.5 cm-text-dim hover:text-[color:var(--cm-text)] transition-colors"
+            >
+              Demo
+            </Link>
+            <Link
+              to="/auth"
+              className="px-3 py-1.5 cm-text-dim hover:text-[color:var(--cm-text)] transition-colors"
+            >
+              Log in
+            </Link>
+            <Link
+              to="/auth?tab=signup"
+              className="cm-cta-ghost ml-1 rounded-full px-4 py-1.5 text-sm"
+            >
+              Sign up
+            </Link>
+          </nav>
         </div>
       </header>
 
-      <main className="flex-1 relative z-10">
-        {/* ── Hero ── */}
-        <motion.section {...fadeUp} className="mx-auto max-w-4xl px-6 pt-24 pb-16 text-center sm:pt-32">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border glass px-4 py-1.5 text-xs font-medium text-muted-foreground">
-            <CheckCircle2 className="h-3.5 w-3.5 text-status-accepted" />
-            Free to use · No credit card required
+      <main className="relative z-10 flex-1">
+        {/* ── 01 / Briefing — Hero ── */}
+        <section className="mx-auto max-w-3xl px-6 pt-16 pb-24 sm:pt-24">
+          <div className="cm-reveal cm-d1 mb-6 flex items-center gap-3">
+            <span className="cm-mono cm-text-amber text-[10px] uppercase tracking-[0.22em]">
+              01 / Briefing
+            </span>
+            <span className="cm-meta-rule flex-1" />
           </div>
-          <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            The Job Tracker That <span className="text-gradient">Actually Prepares You</span>
+
+          <h1 className="cm-serif cm-reveal cm-d2 text-[40px] sm:text-[56px] lg:text-[72px] leading-[1.02] font-light">
+            Walk in having already
+            <br />
+            <span className="italic">done the interview.</span>
           </h1>
-          <p className="mt-4 text-xl font-medium text-primary sm:text-2xl font-display">
-            AI interview coaching · CV roast · Screenshot capture · Kanban board
+
+          <p className="cm-reveal cm-d3 mt-8 max-w-xl text-[17px] leading-[1.65] cm-text-dim">
+            Cornerman puts you through a ruthless AI mock interview and a brutally
+            honest CV roast — so when the real one comes, it feels like a formality.
+            Every application tracked underneath, automatically.
           </p>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-            Most trackers just store links. JobTrackr coaches you through every stage — 
-            from a ruthless mock interview to a brutally honest CV score — so you show up ready. 
-            And it's 100 % free.
+
+          <div className="cm-reveal cm-d4 mt-10 flex flex-wrap items-center gap-3">
+            <Link
+              to="/demo"
+              className="cm-cta-primary inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm"
+            >
+              <span className="cm-blink h-1.5 w-1.5 rounded-full bg-[color:#1a1107]" />
+              Try the interactive demo
+            </Link>
+            <Link
+              to="/auth?tab=signup"
+              className="cm-cta-ghost inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm"
+            >
+              Sign up free
+              <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+
+          <p className="cm-reveal cm-d5 cm-mono cm-text-dim mt-6 text-[11px] uppercase tracking-[0.18em]">
+            No card · Skip the demo if you want
           </p>
-          {LOOM_DEMO_URL && (
-            <div className="mx-auto mt-8 max-w-lg rounded-xl border border-border glass overflow-hidden shadow-glow">
-              <iframe
-                src={`${LOOM_DEMO_URL}?autoplay=1&mute=1&hide_owner=true&hide_share=true&hide_title=true`}
-                className="w-full aspect-video"
-                allowFullScreen
-                allow="autoplay"
-                title="JobTrackr demo video"
-              />
-            </div>
-          )}
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button size="lg" className="text-base px-8 shadow-glow" asChild>
-              <Link to="/auth?tab=signup">
-                <Sparkles className="h-4 w-4 mr-1" />
-                Sign Up Free
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" className="text-base px-8 gap-2" asChild>
-              <Link to="/demo">
-                <Play className="h-4 w-4" />
-                Try Interactive Demo
-              </Link>
-            </Button>
-          </div>
-        </motion.section>
+        </section>
 
-        {/* ── Stats ── */}
-        <motion.section {...fadeUp} transition={{ duration: 0.5, delay: 0.1 }} className="mx-auto max-w-3xl px-6 pb-20">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {stats.map((s) => (
-              <div key={s.label} className="text-center">
-                <div className="text-2xl sm:text-3xl font-display font-bold text-gradient">{s.value}</div>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">{s.label}</p>
+        {/* ── 02 / Sample output — CV roast card ── */}
+        <section className="mx-auto max-w-3xl px-6 pb-28">
+          <div className="cm-reveal cm-d6 mb-6 flex items-center gap-3">
+            <span className="cm-mono cm-text-dim text-[10px] uppercase tracking-[0.22em]">02</span>
+            <span className="cm-meta-rule flex-1" />
+            <span className="cm-mono cm-text-dim text-[10px] uppercase tracking-[0.22em]">
+              Sample output · CV roast
+            </span>
+          </div>
+
+          <article className="cm-roast-card cm-reveal cm-d7 rounded-2xl p-6 sm:p-8">
+            {/* Header */}
+            <header className="flex items-start justify-between gap-6">
+              <div className="flex items-start gap-4">
+                <div className="cm-serif flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--cm-amber-soft)] cm-text-amber text-lg">
+                  C
+                </div>
+                <div>
+                  <p className="cm-mono cm-text-dim text-[10px] uppercase tracking-[0.18em]">
+                    Cornerman · CV Roast
+                  </p>
+                  <p className="text-sm mt-1">
+                    Frontend Engineer <span className="cm-text-dim">· Linear</span>
+                  </p>
+                </div>
               </div>
-            ))}
-          </div>
-        </motion.section>
 
-        {/* ── Hero Screenshot ── */}
-        <motion.section
-          {...fadeUp}
-          transition={{ duration: 0.6, delay: 0.15 }}
-          className="mx-auto max-w-5xl px-6 pb-28"
-        >
-          <div className="rounded-xl border border-border glass overflow-hidden shadow-glow-lg">
-            <div className="bg-secondary/50 h-8 flex items-center gap-1.5 px-4 border-b border-border">
-              <div className="h-2.5 w-2.5 rounded-full bg-destructive/50" />
-              <div className="h-2.5 w-2.5 rounded-full bg-primary/50" />
-              <div className="h-2.5 w-2.5 rounded-full bg-status-accepted/50" />
-              <span className="ml-3 text-[10px] font-mono text-muted-foreground">jobtrackr.app</span>
-            </div>
-            <img
-              src={screenshotKanban}
-              alt="JobTrackr Kanban board showing job applications organized by stage"
-              className="w-full"
-              loading="lazy"
-            />
-          </div>
-
-          {/* Smaller previews */}
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            {[
-              { src: screenshotDetail, alt: "Application detail panel with notes and events" },
-              { src: screenshotDashboard, alt: "Dashboard with application statistics and charts" },
-            ].map((s) => (
-              <div
-                key={s.alt}
-                className="rounded-lg border border-border glass overflow-hidden transition-transform hover:scale-[1.02]"
-              >
-                <div className="bg-secondary/50 h-6 flex items-center gap-1.5 px-3 border-b border-border">
-                  <div className="h-2 w-2 rounded-full bg-destructive/40" />
-                  <div className="h-2 w-2 rounded-full bg-primary/40" />
-                  <div className="h-2 w-2 rounded-full bg-status-accepted/40" />
-                </div>
-                <img src={s.src} alt={s.alt} className="w-full" loading="lazy" />
+              <div className="text-right shrink-0">
+                <p className="cm-mono cm-text-dim text-[10px] uppercase tracking-[0.18em]">Score</p>
+                <p className="cm-serif text-[40px] leading-none mt-1">
+                  6.2
+                  <span className="cm-text-dim text-base"> / 10</span>
+                </p>
               </div>
-            ))}
-          </div>
-        </motion.section>
+            </header>
 
-        {/* ── How It Works ── */}
-        <motion.section {...fadeUp} className="mx-auto max-w-5xl px-6 pb-28">
-          <h2 className="text-center text-2xl font-display font-bold text-foreground mb-2">How It Works</h2>
-          <p className="text-center text-muted-foreground mb-10 text-sm">Add a job. Prepare. Stay ahead.</p>
-          <div className="grid gap-6 sm:grid-cols-3">
-            {HOW_IT_WORKS.map((item, i) => (
-              <motion.div
-                key={item.step}
-                {...stagger}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
-                className="relative rounded-xl border border-border glass p-6 text-center glow-hover"
-              >
-                <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-lg font-display font-bold text-primary-foreground shadow-glow">
-                  {item.step}
-                </div>
-                <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
-                {i < HOW_IT_WORKS.length - 1 && (
-                  <ArrowRight className="hidden sm:block absolute -right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 z-10" />
-                )}
-              </motion.div>
-            ))}
-          </div>
-        </motion.section>
+            {/* Notes */}
+            <div className="mt-8 space-y-5">
+              {[
+                'Your "led a team of 4" line is doing nothing here. Linear hires people who shipped specific things, not people who managed others. Lead with the ship.',
+                "Three bullets reference React. They want to know what you built, at what scale, with what measurable outcome. None of yours have all three.",
+                'Cut "passionate about clean code." Everyone says it. Linear will assume it. Use the line for something only you can claim.',
+              ].map((note, i) => (
+                <p key={i} className="flex gap-3 text-[15px] leading-[1.6]">
+                  <span className="cm-text-amber shrink-0 select-none">›</span>
+                  <span>{note}</span>
+                </p>
+              ))}
+            </div>
 
-        {/* ── Features ── */}
-        <motion.section {...fadeUp} className="mx-auto max-w-5xl px-6 pb-28">
-          <h2 className="text-center text-2xl font-display font-bold text-foreground mb-2">Everything You Need to Land the Job</h2>
-          <p className="text-center text-muted-foreground mb-10 text-sm">Not just tracking — preparation, insight, and confidence.</p>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {features.map((f, i) => (
-              <motion.div
-                key={f.title}
-                {...stagger}
-                transition={{ duration: 0.4, delay: i * 0.06 }}
-                className="rounded-xl border border-border glass p-6 glow-hover"
-              >
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                  <f.icon className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-sm font-semibold text-foreground">{f.title}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{f.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* ── Demo CTA ── */}
-        <motion.section {...fadeUp} className="mx-auto max-w-3xl px-6 pb-28 text-center">
-          <div className="rounded-2xl border border-border glass p-10 relative overflow-hidden">
-            <div className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-            <div className="relative z-10">
-              <Play className="h-10 w-10 text-primary mx-auto mb-4" />
-              <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground mb-2">See it in action</h2>
-              <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">
-                Try the full interactive demo with sample data — no signup required.
+            {/* Footer */}
+            <footer className="mt-8 flex items-center justify-between border-t cm-border pt-5">
+              <p className="cm-mono cm-text-dim text-[11px] uppercase tracking-[0.18em]">
+                12 more notes · 4 line edits · 2 reframes
               </p>
-              <Button size="lg" variant="outline" className="text-base px-8 gap-2" asChild>
-                <Link to="/demo">
-                  <Play className="h-4 w-4" />
-                  Launch Demo
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* ── Comparison ── */}
-        <ComparisonTable />
-
-        {/* ── Pricing ── */}
-        <PricingSection />
-
-        {/* ── FAQ ── */}
-        <FAQSection />
-
-        {/* ── Chrome Extension ── */}
-        <ChromeExtensionCTA />
-
-        {/* ── Final CTA ── */}
-        <motion.section {...fadeUp} className="mx-auto max-w-3xl px-6 py-20 text-center">
-          <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground">
-            Stop guessing. Start preparing.
-          </h2>
-          <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
-            Join thousands of job seekers who track smarter, prep harder, and land faster — for free.
-          </p>
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button size="lg" className="text-base px-10 shadow-glow" asChild>
-              <Link to="/auth?tab=signup">Sign Up Free</Link>
-            </Button>
-            <Button size="lg" variant="ghost" className="text-base gap-2" asChild>
-              <Link to="/demo">
-                <Play className="h-4 w-4" />
-                Or try the demo first
+              <Link to="/auth?tab=signup" className="text-sm cm-text-amber hover:underline">
+                Open full roast →
               </Link>
-            </Button>
+            </footer>
+          </article>
+        </section>
+
+        {/* ── Three pillars — Spar / Roast / Track ── */}
+        <section className="mx-auto max-w-5xl px-6 pb-32">
+          <div className="grid gap-12 sm:gap-10 sm:grid-cols-3">
+            {[
+              {
+                label: "/ Spar",
+                title: "Ruthless mock interviews",
+                desc: "Live AI interviewer trained on the role, the company, and the cracks in your CV. It pushes. You answer. You watch the replay.",
+              },
+              {
+                label: "/ Roast",
+                title: "Brutally honest CV scoring",
+                desc: "Line-by-line critique with a score, the cuts, and the rewrites. The kind of feedback hiring managers think but never send.",
+              },
+              {
+                label: "/ Track",
+                title: "Quietly tracked",
+                desc: "Every application captured, sorted, and surfaced when it matters. Kanban's there if you want it. It just isn't the point.",
+              },
+            ].map((pillar) => (
+              <div key={pillar.label}>
+                <p className="cm-mono cm-text-amber text-[10px] uppercase tracking-[0.22em] mb-4">
+                  {pillar.label}
+                </p>
+                <h3 className="cm-serif text-[22px] leading-[1.2] mb-3">{pillar.title}</h3>
+                <p className="text-[15px] leading-[1.65] cm-text-dim">{pillar.desc}</p>
+              </div>
+            ))}
           </div>
-          <p className="text-xs text-muted-foreground mt-3">No credit card. No catch. Just a better job search.</p>
-        </motion.section>
+        </section>
+
+        {/* ── Closing CTA strip ── */}
+        <section className="mx-auto max-w-3xl px-6 pb-28 text-center">
+          <span className="cm-meta-rule mx-auto mb-10 block w-full max-w-xs" />
+          <h2 className="cm-serif text-[28px] sm:text-[36px] leading-[1.15] font-light">
+            Stop guessing.
+            <br />
+            <span className="italic cm-text-amber">Start preparing.</span>
+          </h2>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/auth?tab=signup"
+              className="cm-cta-primary inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm"
+            >
+              Sign up free
+            </Link>
+            <Link
+              to="/demo"
+              className="cm-cta-ghost inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm"
+            >
+              Or try the demo first
+            </Link>
+          </div>
+        </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-6 px-6">
-        <div className="mx-auto max-w-6xl flex items-center justify-between text-xs text-muted-foreground">
-          <span>© {new Date().getFullYear()} JobTrackr</span>
-          <div className="flex items-center gap-4">
-            <Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 text-xs">
-              Privacy Policy
+      {/* ── Footer ── */}
+      <footer className="relative z-10 border-t cm-border">
+        <div className="mx-auto max-w-5xl px-6 py-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="cm-mono cm-text-dim text-[11px] uppercase tracking-[0.18em]">
+            © Cornerman · {new Date().getFullYear()}
+          </div>
+          <p className="cm-text-dim text-sm cm-serif italic">
+            Built for the day the recruiter calls back.
+          </p>
+          <div className="flex items-center gap-5 text-[11px] cm-mono uppercase tracking-[0.18em]">
+            <Link to="/privacy" className="cm-text-dim hover:text-[color:var(--cm-text)] transition-colors">
+              Privacy
             </Link>
             {FEEDBACK_FORM_URL && (
               <button
                 onClick={() => window.open(FEEDBACK_FORM_URL, "_blank")}
-                className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 text-xs"
+                className="cm-text-dim hover:text-[color:var(--cm-text)] transition-colors"
               >
                 Feedback
               </button>
