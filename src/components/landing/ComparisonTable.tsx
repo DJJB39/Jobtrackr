@@ -1,25 +1,33 @@
 import { motion } from "framer-motion";
-import { Check, X, Minus } from "lucide-react";
 
 type CellValue = "yes" | "no" | "limited";
 
 const features: { label: string; jobtrackr: CellValue; huntr: CellValue; teal: CellValue; simplify: CellValue }[] = [
-  { label: "Kanban Board", jobtrackr: "yes", huntr: "yes", teal: "yes", simplify: "limited" },
-  { label: "URL Auto-Fill", jobtrackr: "yes", huntr: "limited", teal: "yes", simplify: "yes" },
-  { label: "Interview Coach with Scoring", jobtrackr: "yes", huntr: "no", teal: "no", simplify: "no" },
-  { label: "CV Roast / Suitability Score", jobtrackr: "yes", huntr: "no", teal: "no", simplify: "no" },
-  { label: "Screenshot Job Capture", jobtrackr: "yes", huntr: "no", teal: "no", simplify: "no" },
-  { label: "AI Resume Tailor", jobtrackr: "yes", huntr: "limited", teal: "limited", simplify: "no" },
-  { label: "Calendar & Events", jobtrackr: "yes", huntr: "yes", teal: "limited", simplify: "no" },
-  { label: "Email Reminders", jobtrackr: "yes", huntr: "limited", teal: "no", simplify: "no" },
-  { label: "Completely Free", jobtrackr: "yes", huntr: "no", teal: "no", simplify: "limited" },
-  { label: "Privacy First", jobtrackr: "yes", huntr: "limited", teal: "limited", simplify: "limited" },
+  { label: "Kanban with custom stages", jobtrackr: "yes", huntr: "yes", teal: "yes", simplify: "limited" },
+  { label: "URL auto-fill", jobtrackr: "yes", huntr: "limited", teal: "yes", simplify: "yes" },
+  { label: "Screenshot job capture", jobtrackr: "yes", huntr: "no", teal: "no", simplify: "no" },
+  { label: "Ruthless Interview Coach with scoring", jobtrackr: "yes", huntr: "no", teal: "no", simplify: "no" },
+  { label: "Ruthless CV Roast (4 levels)", jobtrackr: "yes", huntr: "no", teal: "no", simplify: "no" },
+  { label: "AI CV Tailor (per job)", jobtrackr: "yes", huntr: "limited", teal: "limited", simplify: "no" },
+  { label: "Day Before Bootcamp", jobtrackr: "yes", huntr: "no", teal: "no", simplify: "no" },
+  { label: "Calendar & reminders", jobtrackr: "yes", huntr: "yes", teal: "limited", simplify: "no" },
+  { label: "Weekly pipeline digest", jobtrackr: "yes", huntr: "limited", teal: "no", simplify: "no" },
+  { label: "CSV import / export", jobtrackr: "yes", huntr: "yes", teal: "limited", simplify: "no" },
+  { label: "Generous free tier", jobtrackr: "yes", huntr: "no", teal: "limited", simplify: "limited" },
+  { label: "Privacy first (encrypted)", jobtrackr: "yes", huntr: "limited", teal: "limited", simplify: "limited" },
 ];
 
-const CellIcon = ({ value }: { value: CellValue }) => {
-  if (value === "yes") return <Check className="h-4 w-4 text-status-accepted mx-auto" />;
-  if (value === "no") return <X className="h-4 w-4 text-destructive/60 mx-auto" />;
-  return <Minus className="h-4 w-4 text-muted-foreground mx-auto" />;
+const CellLabel = ({ value, highlight = false }: { value: CellValue; highlight?: boolean }) => {
+  const text = value === "yes" ? "Yes" : value === "no" ? "No" : "Limited";
+  const cls =
+    value === "yes"
+      ? highlight
+        ? "text-primary font-semibold"
+        : "text-status-accepted font-medium"
+      : value === "no"
+        ? "text-destructive/70"
+        : "text-muted-foreground";
+  return <span className={`text-xs ${cls}`}>{text}</span>;
 };
 
 const ComparisonTable = () => (
@@ -34,7 +42,7 @@ const ComparisonTable = () => (
       Why JobTrackr Wins
     </h2>
     <p className="text-center text-muted-foreground mb-10 text-sm">
-      Three features no other free tracker offers — and everything else you'd expect.
+      The only tracker with a Ruthless Coach, CV Roast, and screenshot capture — plus everything else you'd expect.
     </p>
 
     <div className="overflow-x-auto rounded-xl border border-border glass">
@@ -52,17 +60,17 @@ const ComparisonTable = () => (
           {features.map((f, i) => (
             <tr key={f.label} className={i < features.length - 1 ? "border-b border-border/50" : ""}>
               <td className="p-4 text-foreground font-medium">{f.label}</td>
-              <td className="p-4"><CellIcon value={f.jobtrackr} /></td>
-              <td className="p-4"><CellIcon value={f.huntr} /></td>
-              <td className="p-4"><CellIcon value={f.teal} /></td>
-              <td className="p-4"><CellIcon value={f.simplify} /></td>
+              <td className="p-4 text-center"><CellLabel value={f.jobtrackr} highlight /></td>
+              <td className="p-4 text-center"><CellLabel value={f.huntr} /></td>
+              <td className="p-4 text-center"><CellLabel value={f.teal} /></td>
+              <td className="p-4 text-center"><CellLabel value={f.simplify} /></td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
     <p className="text-center text-[11px] text-muted-foreground mt-3 font-mono">
-      Comparison based on free tiers as of April 2026. <Minus className="inline h-3 w-3 -mt-0.5" /> = limited or paywalled.
+      Feature comparison accurate as of April 2026. Some features require Pro.
     </p>
   </motion.section>
 );
