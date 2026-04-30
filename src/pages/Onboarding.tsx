@@ -118,26 +118,11 @@ const Onboarding = () => {
               label={cv?.cleaned_text ? "Re-assessed" : "Original"}
               onComplete={async (score, assessment) => {
                 await saveAssessment(score, assessment, cv?.cleaned_text ? "cleaned" : "original");
+                if (cv?.cleaned_text) setStep("done");
               }}
               onCleanupRequest={cv?.cleaned_text ? undefined : () => setStep("cleanup")}
               ctaLabel={cv?.cleaned_text ? undefined : "Clean & Strengthen my CV"}
             />
-          )}
-
-          {step === "assess" && cv?.cleaned_text && cv.cleaned_score !== null && cv.cleaned_score !== undefined && (
-            <div className="mt-8">
-              <OnboardingDone
-                originalScore={cv.original_score ?? 0}
-                newScore={cv.cleaned_score}
-                onReassess={() => { /* user can re-pick intensity in the same step above */ }}
-                onFinish={async () => {
-                  setFinishing(true);
-                  await completeOnboarding();
-                  navigate("/app", { replace: true });
-                }}
-                finishing={finishing}
-              />
-            </div>
           )}
 
           {step === "cleanup" && cv?.original_text && (
