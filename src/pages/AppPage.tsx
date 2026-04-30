@@ -37,6 +37,10 @@ import { Camera, Flame, Upload, Plus } from "lucide-react";
 
 const AppPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { cv } = useUserCV();
+  const [cvBannerDismissed, setCvBannerDismissed] = useState(() => sessionStorage.getItem("cv-banner-dismissed") === "1");
+  const showCvBanner = !!user && !cv?.onboarding_completed && !cvBannerDismissed;
   const { stages } = useStages();
   const { jobs, loading, searchQuery, setSearchQuery, fetchJobs, addJob, updateJob, deleteJob, setJobs } = useJobStore();
   const [view, setView] = useState<View>("board");
