@@ -315,6 +315,58 @@ const CV_TAILOR_TOOL = {
   },
 };
 
+const CV_ASSESSMENT_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "cv_assessment_result",
+    description: "Return structured ruthless CV assessment with score and actionable feedback",
+    parameters: {
+      type: "object",
+      properties: {
+        score: { type: "number", description: "Overall CV score 0-100" },
+        feedback_md: { type: "string", description: "Full markdown critique. Must end with '## Immediate Action Checklist' of 3-6 verb-led fixes." },
+        strengths: { type: "array", items: { type: "string" }, description: "Up to 3 genuine strengths (can be empty)" },
+        gaps: { type: "array", items: { type: "string" }, description: "3-6 critical gaps or weaknesses" },
+        quick_wins: { type: "array", items: { type: "string" }, description: "3-6 quick fixes the user can do in under 15 minutes each" },
+      },
+      required: ["score", "feedback_md", "strengths", "gaps", "quick_wins"],
+      additionalProperties: false,
+    },
+  },
+};
+
+const CV_CLEANUP_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "cv_cleanup_result",
+    description: "Return a strengthened CV that only rephrases existing content with section-by-section diff",
+    parameters: {
+      type: "object",
+      properties: {
+        cleaned_text: { type: "string", description: "The full strengthened CV as plain text, preserving original structure" },
+        sections: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: ["summary", "bullet", "skill"] },
+              label: { type: "string", description: "Short label e.g. 'Summary', 'Senior Engineer @ Acme — bullet 2', 'Skills'" },
+              before: { type: "string" },
+              after: { type: "string" },
+              reason: { type: "string" },
+            },
+            required: ["type", "label", "before", "after", "reason"],
+            additionalProperties: false,
+          },
+        },
+        risk_notes: { type: "array", items: { type: "string" }, description: "Any rephrasings that flirt with embellishment — flag honestly" },
+      },
+      required: ["cleaned_text", "sections", "risk_notes"],
+      additionalProperties: false,
+    },
+  },
+};
+
 function validateModel(model: string | undefined): string {
   if (!model || !ALLOWED_MODELS.includes(model)) return DEFAULT_MODEL;
   return model;
