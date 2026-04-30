@@ -22,10 +22,10 @@ const Auth = () => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) navigate("/app", { replace: true });
+      if (session) navigate("/onboarding", { replace: true });
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/app", { replace: true });
+      if (session) navigate("/onboarding", { replace: true });
     });
     return () => subscription.unsubscribe();
   }, [navigate]);

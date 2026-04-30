@@ -28,12 +28,19 @@ import { useLoginReminders } from "@/hooks/useLoginReminders";
 import { Button } from "@/components/ui/button";
 import { useStages } from "@/hooks/useStages";
 import { format } from "date-fns";
+import { useUserCV } from "@/hooks/useUserCV";
+import { useNavigate } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AIStudioView from "@/components/AIStudioView";
 import { Camera, Flame, Upload, Plus } from "lucide-react";
 
 const AppPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { cv } = useUserCV();
+  const [cvBannerDismissed, setCvBannerDismissed] = useState(() => sessionStorage.getItem("cv-banner-dismissed") === "1");
+  const showCvBanner = !!user && !cv?.onboarding_completed && !cvBannerDismissed;
   const { stages } = useStages();
   const { jobs, loading, searchQuery, setSearchQuery, fetchJobs, addJob, updateJob, deleteJob, setJobs } = useJobStore();
   const [view, setView] = useState<View>("board");
@@ -167,6 +174,20 @@ const AppPage = () => {
         onExport={exportToCSV}
         onAddJob={handleAddJob}
       />
+
+      {/* Soft CV onboarding banner for legacy users */}
+      <AnimatePresence>
+        {showCvBanner && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="flex items-center gap-3 bg-primary/10 border-b border-primary/20 px-6 py-2.5">
+              <Sparkles className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-sm text-foreground">Unlock instant AI scoring — finish your 2-min CV setup.</span>
+              <Button size="sm" variant="default" onClick={() => navigate("/onboarding")} className="ml-auto h-7">Start</Button>
+              <Button variant="ghost" size="sm" onClick={() => { sessionStorage.setItem("cv-banner-dismissed", "1"); setCvBannerDismissed(true); }} className="h-7"><X className="h-3.5 w-3.5" /></Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Onboarding banner */}
       <AnimatePresence>

@@ -134,6 +134,9 @@ export type Database = {
       }
       job_applications: {
         Row: {
+          ai_score: number | null
+          ai_score_at: string | null
+          ai_score_reasons: Json | null
           application_type: string
           ats_score: number | null
           close_date: string | null
@@ -156,6 +159,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_score?: number | null
+          ai_score_at?: string | null
+          ai_score_reasons?: Json | null
           application_type?: string
           ats_score?: number | null
           close_date?: string | null
@@ -178,6 +184,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_score?: number | null
+          ai_score_at?: string | null
+          ai_score_reasons?: Json | null
           application_type?: string
           ats_score?: number | null
           close_date?: string | null
@@ -245,6 +254,45 @@ export type Database = {
           product_id?: string
           status?: string
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_cvs: {
+        Row: {
+          assessment_jsonb: Json | null
+          cleaned_score: number | null
+          cleaned_text: string | null
+          cleanup_diff_jsonb: Json | null
+          created_at: string
+          onboarding_completed: boolean
+          original_score: number | null
+          original_text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assessment_jsonb?: Json | null
+          cleaned_score?: number | null
+          cleaned_text?: string | null
+          cleanup_diff_jsonb?: Json | null
+          created_at?: string
+          onboarding_completed?: boolean
+          original_score?: number | null
+          original_text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assessment_jsonb?: Json | null
+          cleaned_score?: number | null
+          cleaned_text?: string | null
+          cleanup_diff_jsonb?: Json | null
+          created_at?: string
+          onboarding_completed?: boolean
+          original_score?: number | null
+          original_text?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
