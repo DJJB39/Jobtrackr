@@ -39,7 +39,7 @@ const FeaturesSection = () => (
       </span>
       <span className="cm-meta-rule flex-1" />
       <span className="cm-mono cm-text-dim text-[10px] uppercase tracking-[0.22em]">
-        Eight tools
+        Six tools
       </span>
     </div>
 
