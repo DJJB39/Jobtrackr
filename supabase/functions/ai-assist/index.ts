@@ -729,6 +729,115 @@ You MUST use the cv_tailor_result tool.`;
       });
     }
 
+    // --- CV Assessment (non-streaming, tool call) ---
+    if (mode === "cv_assessment") {
+      if (!cvText || cvText.trim().length < 50) {
+        return new Response(JSON.stringify({ error: "CV text is too short to assess" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const level = (intensity && RUTHLESS_PROMPTS[intensity]) ? intensity : "hard";
+      const baseTone = RUTHLESS_PROMPTS[level];
+      const assessmentSystemPrompt = `${baseTone}
+
+IMPORTANT: You MUST use the cv_assessment_result tool. The 'feedback_md' field MUST contain the full markdown critique following the structure above (# Score: X/10, ## Strengths, ## Fatal Flaws, ## How to Fix It) AND end with '## Immediate Action Checklist' of 3-6 verb-led fixes. The 'score' field is a 0-100 integer (multiply your X/10 by 10).`;
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: assessmentSystemPrompt },
+            { role: "user", content: `--- CV to Assess ---\n${cvText.slice(0, 6000)}` },
+          ],
+          tools: [CV_ASSESSMENT_TOOL],
+          tool_choice: { type: "function", function: { name: "cv_assessment_result" } },
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (response.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const t = await response.text();
+        console.error("AI gateway error (cv_assessment):", response.status, t);
+        return new Response(JSON.stringify({ error: "CV assessment failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const data = await response.json();
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall) {
+        return new Response(JSON.stringify({ error: "AI did not return structured assessment" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const result = JSON.parse(toolCall.function.arguments);
+      return new Response(JSON.stringify({ ...result, intensity: level, model }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- CV Cleanup (non-streaming, tool call, strict honesty) ---
+    if (mode === "cv_cleanup") {
+      const sourceText = originalText || cvText;
+      if (!sourceText || sourceText.trim().length < 50) {
+        return new Response(JSON.stringify({ error: "CV text is too short to clean" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const cleanupSystemPrompt = `You are an expert CV editor with STRICT honesty guardrails. Your job is to strengthen the candidate's existing CV by sharpening the language WITHOUT inventing anything new.
+
+CRITICAL RULES:
+1. NEVER invent achievements, metrics, skills, dates, companies, or job titles.
+2. NEVER add numbers, percentages, or outcomes that are not in the original.
+3. ONLY rephrase: replace passive voice with strong verbs, remove cliches, tighten wordy bullets, surface impact that is already implied by the facts.
+4. Preserve every fact, date, employer, and number exactly.
+5. If a sentence has nothing to improve, leave it unchanged and do NOT include it in the sections array.
+6. Flag in risk_notes ANY rephrasing that could plausibly be read as a stretch.
+
+For each meaningful change return a section entry (type=summary | bullet | skill) with the original (before) and your strengthened version (after) plus a one-line reason.
+
+Return the FULL strengthened CV as cleaned_text, preserving the original section order and structure.
+
+You MUST use the cv_cleanup_result tool.`;
+
+      const cleanupUserContent = [
+        `--- Original CV ---\n${sourceText.slice(0, 8000)}`,
+        assessment?.gaps?.length ? `\n--- Known weaknesses to address (only by sharpening existing content) ---\n${assessment.gaps.slice(0, 6).map((g: string) => `- ${g}`).join("\n")}` : "",
+      ].filter(Boolean).join("\n");
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: cleanupSystemPrompt },
+            { role: "user", content: cleanupUserContent },
+          ],
+          tools: [CV_CLEANUP_TOOL],
+          tool_choice: { type: "function", function: { name: "cv_cleanup_result" } },
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (response.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const t = await response.text();
+        console.error("AI gateway error (cv_cleanup):", response.status, t);
+        return new Response(JSON.stringify({ error: "CV cleanup failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const data = await response.json();
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall) {
+        return new Response(JSON.stringify({ error: "AI did not return structured cleanup" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const result = JSON.parse(toolCall.function.arguments);
+      return new Response(JSON.stringify({ ...result, model }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // --- Build prompt ---
     let systemPrompt: string | undefined;
     if (mode === "ruthless_review") {
