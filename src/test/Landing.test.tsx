@@ -3,72 +3,56 @@ import { screen } from "@testing-library/react";
 import { renderWithProviders } from "./test-utils";
 import Landing from "@/pages/Landing";
 
-// Mock useAuth
+// Mock useAuth — keep user signed-out so the redirect to /app doesn't fire
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({ user: null, session: null, loading: false, signOut: vi.fn() }),
   AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-// Mock framer-motion to render plain divs
-vi.mock("framer-motion", () => ({
-  motion: {
-    div: ({ children, ...props }: any) => <div {...filterDomProps(props)}>{children}</div>,
-    section: ({ children, ...props }: any) => <section {...filterDomProps(props)}>{children}</section>,
-  },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
-}));
-
-function filterDomProps(props: Record<string, any>) {
-  const valid: Record<string, any> = {};
-  for (const [k, v] of Object.entries(props)) {
-    if (["className", "style", "id", "onClick", "role", "title"].includes(k)) valid[k] = v;
-  }
-  return valid;
-}
-
-// Mock image imports
-vi.mock("@/assets/screenshot-kanban.png", () => ({ default: "kanban.png" }));
-vi.mock("@/assets/screenshot-detail.png", () => ({ default: "detail.png" }));
-vi.mock("@/assets/screenshot-dashboard.png", () => ({ default: "dashboard.png" }));
-
-describe("Landing Page", () => {
-  it("LP-01: renders hero headline", () => {
+describe("Landing Page (Cornerman editorial)", () => {
+  it("renders the editorial hero headline", () => {
     renderWithProviders(<Landing />);
-    expect(screen.getByText(/The Job Tracker That/i)).toBeInTheDocument();
-    const h1 = document.querySelector("h1");
-    expect(h1?.textContent).toContain("Actually Prepares You");
+    expect(screen.getByText(/Walk in having already/i)).toBeInTheDocument();
+    expect(screen.getByText(/done the interview\./i)).toBeInTheDocument();
   });
 
-  it("LP-01: renders trust strip badge", () => {
+  it("renders the briefing eyebrow label", () => {
     renderWithProviders(<Landing />);
-    expect(screen.getByText(/Free to use/i)).toBeInTheDocument();
+    expect(screen.getByText(/01 \/ Briefing/i)).toBeInTheDocument();
   });
 
-  it("LP-01: renders CTA buttons", () => {
+  it("renders both primary CTAs (demo + sign up)", () => {
     renderWithProviders(<Landing />);
-    const signUpButtons = screen.getAllByText("Sign Up Free");
-    expect(signUpButtons.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Try Interactive Demo")).toBeInTheDocument();
+    expect(screen.getByText(/Try the interactive demo/i)).toBeInTheDocument();
+    const signUpLinks = screen.getAllByText(/Sign up free/i);
+    expect(signUpLinks.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("LP-02: renders 8 feature cards", () => {
+  it("renders the sample CV roast card with score", () => {
     renderWithProviders(<Landing />);
-    const titles = ["Ruthless Interview Coach", "CV Roast & Suitability", "Screenshot Job Capture", "Kanban Board", "URL Auto-Fill", "Events & Reminders", "AI Assist", "Private & Encrypted"];
-    titles.forEach((t) => {
-      const matches = screen.getAllByText(t);
-      expect(matches.length).toBeGreaterThanOrEqual(1);
-    });
+    expect(screen.getByText(/Cornerman · CV Roast/i)).toBeInTheDocument();
+    expect(screen.getByText(/Frontend Engineer/i)).toBeInTheDocument();
+    expect(screen.getByText("6.2")).toBeInTheDocument();
   });
 
-  it("LP-04: renders pricing section", () => {
+  it("renders the three pillars (Spar, Roast, Track)", () => {
     renderWithProviders(<Landing />);
-    expect(screen.getByText(/Free Forever/i)).toBeInTheDocument();
-    expect(screen.getByText(/Pro/i)).toBeInTheDocument();
+    expect(screen.getByText("/ Spar")).toBeInTheDocument();
+    expect(screen.getByText("/ Roast")).toBeInTheDocument();
+    expect(screen.getByText("/ Track")).toBeInTheDocument();
+    expect(screen.getByText(/Ruthless mock interviews/i)).toBeInTheDocument();
+    expect(screen.getByText(/Brutally honest CV scoring/i)).toBeInTheDocument();
+    expect(screen.getByText(/Quietly tracked/i)).toBeInTheDocument();
   });
 
-  it("hides Loom demo iframe when URL is empty", () => {
+  it("renders the closing 'Stop guessing' CTA", () => {
     renderWithProviders(<Landing />);
-    const iframe = document.querySelector('iframe[title="JobTrackr demo video"]');
-    expect(iframe).not.toBeInTheDocument();
+    expect(screen.getByText(/Stop guessing\./i)).toBeInTheDocument();
+    expect(screen.getByText(/Start preparing\./i)).toBeInTheDocument();
+  });
+
+  it("renders the Cornerman footer line", () => {
+    renderWithProviders(<Landing />);
+    expect(screen.getByText(/Built for the day the recruiter calls back/i)).toBeInTheDocument();
   });
 });
