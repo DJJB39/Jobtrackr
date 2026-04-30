@@ -2,6 +2,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { FEEDBACK_FORM_URL } from "@/lib/constants";
+import FeaturesSection from "@/components/landing/FeaturesSection";
+import ComparisonTable from "@/components/landing/ComparisonTable";
+import PricingSection from "@/components/landing/PricingSection";
+import FAQSection from "@/components/landing/FAQSection";
+import ChromeExtensionCTA from "@/components/landing/ChromeExtensionCTA";
 
 /**
  * Cornerman — editorial landing page.
@@ -194,6 +199,21 @@ const Landing = () => {
             ))}
           </div>
         </section>
+
+        {/* ── 02b / Arsenal — full feature grid ── */}
+        <FeaturesSection />
+
+        {/* ── 03 / Field — comparison ── */}
+        <ComparisonTable />
+
+        {/* ── 04 / Pricing ── */}
+        <PricingSection />
+
+        {/* ── 05 / Tape — FAQ ── */}
+        <FAQSection />
+
+        {/* ── Chrome extension ── */}
+        <ChromeExtensionCTA />
 
         {/* ── Closing CTA strip ── */}
         <section className="mx-auto max-w-3xl px-6 pb-28 text-center">

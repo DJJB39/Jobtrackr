@@ -1,70 +1,91 @@
-import { motion } from "framer-motion";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { useState } from "react";
 
 const faqs = [
   {
-    q: "Is it really free?",
-    a: "Yes — 100 % free with no hidden fees. Every feature, including AI interview coaching, CV roast, screenshot capture, and email reminders, is available at no cost. We believe job seekers shouldn't have to pay to stay organised.",
+    q: "Is the Ruthless Coach really brutal?",
+    a: "It can be. There are four intensity levels — from Helpful to Nuclear. Pick your poison. It will not lie to make you feel good, but it will tell you exactly what to fix and why.",
   },
   {
     q: "How is the Interview Coach different from ChatGPT?",
-    a: "The Interview Coach generates role-specific questions based on the actual job description you're applying for, scores each answer in real time, and gives you an overall readiness rating. It's purpose-built for interview prep — not a generic chatbot.",
+    a: "It studies the actual job description and your CV, generates role-specific questions, scores each answer in real time on a STAR rubric, and gives you an overall readiness rating. It's purpose-built for interview prep — not a generic chatbot.",
   },
   {
     q: "What does the CV Roast actually do?",
-    a: "Upload your CV and paste a job description. Our AI compares them and returns a suitability score with specific, actionable feedback — what's missing, what's strong, and what to change before you hit apply.",
+    a: "Upload a CV, paste a job description. The roast returns a 0-10 score plus line-by-line cuts, reframes, and rewrites. It will never invent skills you don't have — only sharpen what's already there.",
   },
   {
     q: "Is my data private?",
-    a: "Absolutely. Your data is encrypted and accessible only to you. We never share, sell, or display your information to anyone — no ads, no tracking, no third-party access.",
+    a: "Yes. Your data is encrypted and accessible only to you. No ads, no tracking, no third-party access. We never read your applications or CVs.",
   },
   {
     q: "Can I import from other tools?",
-    a: "You can import applications via CSV, paste a job URL for auto-fill, or use our screenshot capture to snap a listing from any site. Bulk import from other trackers is on our roadmap.",
+    a: "Import via CSV, paste a job URL for auto-fill, or screenshot any listing. Huntr and Teal export formats are auto-mapped.",
   },
   {
     q: "What job boards are supported?",
-    a: "Our URL auto-fill works with most major boards including LinkedIn, Indeed, Glassdoor, Reed, Greenhouse, and company career pages. The screenshot capture feature works with any site.",
+    a: "URL auto-fill works with LinkedIn, Indeed, Glassdoor, Reed, Greenhouse, and most company career pages. Screenshot capture works on any site.",
   },
 ];
 
-const FAQSection = () => (
-  <motion.section
-    initial={{ opacity: 0, y: 30 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, amount: 0.2 }}
-    transition={{ duration: 0.5 }}
-    className="mx-auto max-w-2xl px-6 pb-28"
-  >
-    <h2 className="text-center text-2xl font-display font-bold text-foreground mb-2">
-      Frequently Asked Questions
-    </h2>
-    <p className="text-center text-muted-foreground mb-10 text-sm">
-      Everything you need to know about JobTrackr.
-    </p>
+const FAQSection = () => {
+  const [open, setOpen] = useState<number | null>(0);
 
-    <Accordion type="single" collapsible className="space-y-2">
-      {faqs.map((faq, i) => (
-        <AccordionItem
-          key={i}
-          value={`faq-${i}`}
-          className="rounded-xl border border-border glass px-5 data-[state=open]:shadow-glow/20"
-        >
-          <AccordionTrigger className="text-left text-sm font-medium text-foreground hover:no-underline">
-            {faq.q}
-          </AccordionTrigger>
-          <AccordionContent className="text-sm text-muted-foreground leading-relaxed">
-            {faq.a}
-          </AccordionContent>
-        </AccordionItem>
-      ))}
-    </Accordion>
-  </motion.section>
-);
+  return (
+    <section className="mx-auto max-w-3xl px-6 pb-28">
+      <div className="mb-10 flex items-center gap-3">
+        <span className="cm-mono cm-text-amber text-[10px] uppercase tracking-[0.22em]">
+          05 / Tape
+        </span>
+        <span className="cm-meta-rule flex-1" />
+        <span className="cm-mono cm-text-dim text-[10px] uppercase tracking-[0.22em]">
+          Questions
+        </span>
+      </div>
+
+      <h2 className="cm-serif text-[28px] sm:text-[36px] leading-[1.1] font-light mb-10">
+        Things people ask
+        <br />
+        <span className="italic cm-text-amber">before they sign up.</span>
+      </h2>
+
+      <div className="border-t cm-border">
+        {faqs.map((faq, i) => {
+          const isOpen = open === i;
+          return (
+            <div key={i} className="border-b cm-border">
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : i)}
+                className="w-full flex items-center justify-between gap-6 py-5 text-left group"
+                aria-expanded={isOpen}
+              >
+                <span className="cm-serif text-[18px] sm:text-[20px] leading-snug pr-4 group-hover:cm-text-amber transition-colors">
+                  {faq.q}
+                </span>
+                <span
+                  className={`cm-text-amber cm-mono text-lg shrink-0 transition-transform duration-200 ${
+                    isOpen ? "rotate-45" : ""
+                  }`}
+                  aria-hidden="true"
+                >
+                  +
+                </span>
+              </button>
+              <div
+                className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+                  isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <p className="text-[15px] leading-[1.7] cm-text-dim pb-6 max-w-2xl">{faq.a}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
 
 export default FAQSection;
