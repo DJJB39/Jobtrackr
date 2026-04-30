@@ -39,7 +39,8 @@ const Onboarding = () => {
     if (loading) return;
     if (!cv?.original_text) setStep("upload");
     else if (!cv.assessment_jsonb) setStep("assess");
-    else if (!cv.cleaned_text) setStep("assess"); // assessment done, awaiting cleanup CTA
+    else if (!cv.cleaned_text) setStep("assess"); // awaiting cleanup CTA
+    else if (cv.cleaned_score == null) setStep("assess"); // awaiting re-assessment
     else setStep("done");
   }, [loading, cv?.original_text, cv?.assessment_jsonb, cv?.cleaned_text]);
 
