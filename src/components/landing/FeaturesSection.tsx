@@ -15,29 +15,19 @@ const features = [
     desc: "Snap a listing — anywhere. The vision model extracts company, role, salary, and deadline straight onto your board.",
   },
   {
-    label: "/ Board",
-    title: "Kanban that gets out of the way",
-    desc: "Drag and drop across customisable stages. Filter by role, salary, or status. Quietly there when you need it.",
-  },
-  {
-    label: "/ Auto-fill",
-    title: "URL auto-fill",
-    desc: "Paste a posting link — get company, role, salary, and deadline pre-filled. Works on most major boards.",
-  },
-  {
-    label: "/ Calendar",
-    title: "Events & reminders",
-    desc: "Schedule interviews, deadlines, and follow-ups. Export to Google Calendar with one click.",
-  },
-  {
     label: "/ Tailor",
     title: "AI CV Tailor",
     desc: "Per-job rewrites with a side-by-side diff. Strict honesty rules — sharpens your CV, never invents skills.",
   },
   {
-    label: "/ Private",
-    title: "Encrypted by default",
-    desc: "Your data is encrypted and only accessible to you. No tracking, no ads, no third-party access. Ever.",
+    label: "/ Letter",
+    title: "Cover letters that don't grovel",
+    desc: "Pulls from your CV and the job description to draft a letter in your voice. Direct. Specific. Never sycophantic.",
+  },
+  {
+    label: "/ Board",
+    title: "Kanban that gets out of the way",
+    desc: "Drag and drop across customisable stages. Filter by role, salary, or status. Quietly there when you need it.",
   },
 ];
 
@@ -62,7 +52,7 @@ const FeaturesSection = () => (
       Preparation, insight, and confidence — wrapped in tools that stay out of the way.
     </p>
 
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {features.map((f) => (
         <div key={f.title} className="cm-roast-card cm-card-hover rounded-2xl p-6">
           <p className="cm-mono cm-text-amber text-[10px] uppercase tracking-[0.22em] mb-4">
