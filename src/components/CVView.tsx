@@ -186,6 +186,12 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-display font-semibold text-foreground">Master CV</h2>
+            <a
+              href="/onboarding?force=1"
+              className="ml-auto text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+            >
+              Re-run onboarding
+            </a>
           </div>
           <p className="text-sm text-muted-foreground">
             Upload your CV once and review it against any job in your pipeline.
