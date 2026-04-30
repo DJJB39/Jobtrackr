@@ -21,7 +21,7 @@ const ChromeExtensionCTA = () => {
             <Chrome className="h-7 w-7 text-foreground" />
           </div>
           <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground mb-2">
-            Chrome Extension — Coming Soon
+            Chrome Extension
           </h2>
           <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
             Save jobs directly from LinkedIn, Indeed, Reed, and Greenhouse with one click.
@@ -37,12 +37,12 @@ const ChromeExtensionCTA = () => {
 
           <Button variant="outline" size="lg" className="text-base gap-2" disabled>
             <Chrome className="h-4 w-4" />
-            Coming to the Chrome Web Store
+            Chrome extension available — install via repo
             <ArrowRight className="h-4 w-4" />
           </Button>
 
           <p className="text-[10px] text-muted-foreground mt-3 font-mono">
-            Want early access? Sign up and we'll notify you.
+            Source included in /chrome-extension. Load unpacked in Chrome → chrome://extensions.
           </p>
         </div>
       </div>
