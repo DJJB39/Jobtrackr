@@ -175,6 +175,20 @@ const AppPage = () => {
         onAddJob={handleAddJob}
       />
 
+      {/* Soft CV onboarding banner for legacy users */}
+      <AnimatePresence>
+        {showCvBanner && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="flex items-center gap-3 bg-primary/10 border-b border-primary/20 px-6 py-2.5">
+              <Sparkles className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-sm text-foreground">Unlock instant AI scoring — finish your 2-min CV setup.</span>
+              <Button size="sm" variant="default" onClick={() => navigate("/onboarding")} className="ml-auto h-7">Start</Button>
+              <Button variant="ghost" size="sm" onClick={() => { sessionStorage.setItem("cv-banner-dismissed", "1"); setCvBannerDismissed(true); }} className="h-7"><X className="h-3.5 w-3.5" /></Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Onboarding banner */}
       <AnimatePresence>
         {showBanner && (
