@@ -348,7 +348,7 @@ serve(async (req) => {
       });
     }
 
-    const { mode, job, cvText, intensity, model: requestedModel, question, answer, sessionData, csvData, userLocation, bootcampContext, imageBase64, sourceUrl } = await req.json();
+    const { mode, job, cvText, intensity, model: requestedModel, question, answer, sessionData, csvData, userLocation, bootcampContext, imageBase64, sourceUrl, originalText, assessment } = await req.json();
     const model = validateModel(requestedModel);
 
     // --- Usage limit check ---
