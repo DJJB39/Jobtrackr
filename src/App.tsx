@@ -18,7 +18,9 @@ const AppPage = lazy(() => import("./pages/AppPage"));
 const DemoPage = lazy(() => import("./pages/DemoPage"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Pricing = lazy(() => import("./pages/Pricing"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+import RequireOnboarding from "@/components/RequireOnboarding";
 
 const queryClient = new QueryClient();
 
@@ -51,10 +53,20 @@ const App = () => (
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route
+                    path="/onboarding"
+                    element={
+                      <ProtectedRoute>
+                        <Onboarding />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="/app"
                     element={
                       <ProtectedRoute>
-                        <AppPage />
+                        <RequireOnboarding>
+                          <AppPage />
+                        </RequireOnboarding>
                       </ProtectedRoute>
                     }
                   />
