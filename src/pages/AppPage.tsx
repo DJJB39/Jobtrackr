@@ -209,7 +209,7 @@ const AppPage = () => {
             <motion.div className="absolute -inset-2 rounded-3xl border border-primary/20" animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0, 0.3] }} transition={{ duration: 2, repeat: Infinity }} />
           </div>
           <div className="text-center">
-            <h2 className="text-xl font-display text-foreground">Welcome to JobTrackr</h2>
+            <h2 className="text-xl font-display text-foreground">Welcome to Cornerman</h2>
             <p className="text-sm text-muted-foreground mt-1.5 max-w-sm">Start by adding a job, or explore what AI can do for your career</p>
           </div>
           <Button onClick={() => setDialogOpen(true)} className="gap-2 shadow-glow"><Briefcase className="h-4 w-4" />Add Your First Application</Button>

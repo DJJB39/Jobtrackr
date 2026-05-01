@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Satoshi', 'Inter', 'system-ui', 'sans-serif'],
-        display: ['Satoshi', 'system-ui', 'sans-serif'],
+        sans: ['IBM Plex Sans', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['Fraunces', 'Times New Roman', 'serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {

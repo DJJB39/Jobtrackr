@@ -79,7 +79,7 @@ const Auth = () => {
             {mode === "login" ? "Welcome back" : mode === "signup" ? "Create your account" : "Reset password"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "login" ? "Sign in to your JobTrackr account" : mode === "signup" ? "Start tracking your job applications" : "Enter your email to receive a reset link"}
+            {mode === "login" ? "Sign in to your Cornerman account" : mode === "signup" ? "Start tracking your job applications" : "Enter your email to receive a reset link"}
           </p>
         </div>
 
