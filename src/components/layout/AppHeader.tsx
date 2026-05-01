@@ -44,12 +44,20 @@ const AppHeader = memo(({
   return (
     <>
       {isDemo && (
-        <div className="flex items-center gap-3 bg-primary/10 border-b border-primary/20 px-6 py-2">
-          <Badge variant="outline" className="text-xs border-primary/40 text-primary">Demo Mode</Badge>
-          <span className="text-xs text-muted-foreground">Explore freely — nothing is saved.</span>
-          <Button variant="default" size="sm" className="ml-auto h-7 text-xs gap-1.5" asChild>
-            <Link to="/auth?tab=signup">Sign Up to Save Your Data</Link>
-          </Button>
+        <div className="flex items-center gap-2.5 border-b border-border/60 bg-card/40 px-6 py-1.5">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            Demo · nothing saved
+          </span>
+          <Link
+            to="/auth?tab=signup"
+            className="ml-auto font-mono text-[10px] uppercase tracking-[0.18em] text-primary hover:text-primary/80 transition-colors"
+          >
+            Sign up →
+          </Link>
         </div>
       )}
       <header className="border-b border-border/50 px-4 sm:px-6 py-3 glass sticky top-0 z-30">
@@ -66,7 +74,7 @@ const AppHeader = memo(({
               </div>
             </div>
             <div>
-              <h1 className="text-lg font-display tracking-tight text-foreground">JobTrackr</h1>
+              <h1 className="text-lg font-display tracking-tight text-foreground">Cornerman</h1>
               <p className="text-[10px] text-muted-foreground font-mono tracking-wider uppercase hidden sm:block">
                 {jobs.length} application{jobs.length !== 1 ? "s" : ""} tracked
               </p>

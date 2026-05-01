@@ -263,7 +263,7 @@ const CSVImportModal = ({ open, onOpenChange, onImportComplete, onOpenCoach }: C
                       <TableRow className="bg-secondary/30">
                         <TableHead className="text-xs">Your Column</TableHead>
                         <TableHead className="text-xs w-8 text-center">→</TableHead>
-                        <TableHead className="text-xs">JobTrackr Field</TableHead>
+                        <TableHead className="text-xs">Cornerman Field</TableHead>
                         <TableHead className="text-xs">Preview</TableHead>
                       </TableRow>
                     </TableHeader>

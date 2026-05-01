@@ -10,7 +10,7 @@ const Privacy = () => (
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-glow">
             <Briefcase className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="text-lg font-display tracking-tight text-foreground">JobTrackr</span>
+          <span className="text-lg font-display tracking-tight text-foreground">Cornerman</span>
         </Link>
         <Button variant="ghost" size="sm" asChild>
           <Link to="/" className="gap-1.5">
@@ -30,7 +30,7 @@ const Privacy = () => (
 
       <h2>2. How We Use Your Data</h2>
       <ul>
-        <li>To provide, maintain, and improve the JobTrackr service.</li>
+        <li>To provide, maintain, and improve the Cornerman service.</li>
         <li>To send transactional emails such as password resets and optional weekly digests (which you can disable at any time).</li>
         <li>To generate AI-powered suggestions when you explicitly use those features.</li>
       </ul>
@@ -42,7 +42,7 @@ const Privacy = () => (
       <p>We use essential cookies for authentication and session management. We do not use advertising or tracking cookies.</p>
 
       <h2>5. Third-Party Services</h2>
-      <p>We use the following third-party services to operate JobTrackr:</p>
+      <p>We use the following third-party services to operate Cornerman:</p>
       <ul>
         <li><strong>Authentication & Database</strong> — cloud-hosted infrastructure with encryption at rest.</li>
         <li><strong>AI Features</strong> — prompts are sent to AI model providers when you choose to use AI assist, interview coach, or CV analysis. No data is sent without your action.</li>

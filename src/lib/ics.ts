@@ -25,7 +25,7 @@ export const generateICS = (event: {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//JobTrackr//EN",
+    "PRODID:-//Cornerman//EN",
     "BEGIN:VEVENT",
     `UID:${uid}`,
     `DTSTART:${start}`,

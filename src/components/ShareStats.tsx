@@ -33,7 +33,7 @@ const ShareStats = ({ jobs }: { jobs: JobApplication[] }) => {
 
   const shareText = useMemo(() => {
     const lines = [
-      `📊 My Job Search Stats (via JobTrackr)`,
+      `📊 My Job Search Stats (via Cornerman)`,
       ``,
       `📋 Total Applications: ${summary.total}`,
       `🔥 Active in Pipeline: ${summary.active}`,

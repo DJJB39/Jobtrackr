@@ -28,7 +28,8 @@ import { format } from "date-fns";
 
 const DemoPage = () => {
   const { jobs, setJobs, addJob: rawAddJob, updateJob: rawUpdateJob, deleteJob: rawDeleteJob } = useGuestMode();
-  const [view, setView] = useState<View>("board");
+  // Demo lands users inside the AI experience (Studio hub) — not the kanban tracker.
+  const [view, setView] = useState<View>("ai");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -137,7 +138,7 @@ const DemoPage = () => {
             </div>
             <div className="text-center">
               <h2 className="text-xl font-display text-foreground">Start exploring</h2>
-              <p className="text-sm text-muted-foreground mt-1.5 max-w-sm">Add a job to see how JobTrackr works.</p>
+              <p className="text-sm text-muted-foreground mt-1.5 max-w-sm">Add a job to see how Cornerman works.</p>
             </div>
             <Button onClick={() => setDialogOpen(true)} className="gap-2 shadow-glow">
               <Briefcase className="h-4 w-4" />Add Your First Application
