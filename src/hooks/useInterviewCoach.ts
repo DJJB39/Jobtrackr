@@ -42,6 +42,11 @@ const hasSpeechRecognition =
   typeof window !== "undefined" &&
   ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
 
+const hasSpeechSynthesis =
+  typeof window !== "undefined" &&
+  "speechSynthesis" in window &&
+  typeof (window as any).SpeechSynthesisUtterance !== "undefined";
+
 export const useInterviewCoach = (
   preferredModel?: string,
   onUsageIncrement?: () => void
@@ -442,6 +447,7 @@ export const useInterviewCoach = (
     setCurrentAnswer,
     lastModel,
     hasSpeechRecognition,
+    hasSpeechSynthesis,
     startSession,
     startBootcampRoast: (selectedJob: JobApplication, bootcampData: { company_snapshot: { why_join: string; recent_news: string; product_context: string }; questions: Array<{ question: string; type: string; context_note: string }> }) => {
       // Inject bootcamp context for enhanced ruthless feedback, then start session with bootcamp questions pre-loaded
