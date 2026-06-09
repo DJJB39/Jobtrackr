@@ -8,7 +8,13 @@ import {
 import { TrendingUp, Activity, Layers, CalendarDays, Zap, AlertTriangle, Ghost } from "lucide-react";
 import Achievements from "./Achievements";
 import { parseISO, format, isBefore, startOfDay, subWeeks, startOfWeek, endOfWeek, differenceInDays } from "date-fns";
-import { getStaleJobs as cornerStale, getGhostJobs as cornerGhosts, getUpcomingEvents as cornerUpcoming } from "@/lib/cornerLogic";
+import {
+  getStaleJobs as cornerStale,
+  getGhostJobs as cornerGhosts,
+  getUpcomingEvents as cornerUpcoming,
+  STALE_THRESHOLD_DAYS,
+  GHOST_THRESHOLD_DAYS,
+} from "@/lib/cornerLogic";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import JobDetailPanel from "./JobDetailPanel";
