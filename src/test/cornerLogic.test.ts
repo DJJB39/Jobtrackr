@@ -118,7 +118,7 @@ describe("cornerLogic", () => {
         id: "old-outcome",
         columnId: "applied",
         createdAt: daysAgo(30),
-        events: [event({ id: "e-old", date: daysAgo(20), outcome: "passed" })],
+        events: [event({ id: "e-old", date: daysAgo(20), outcome: "passed", createdAt: daysAgo(20) })],
       });
       const ghosts = getGhostJobs([job], TODAY);
       expect(ghosts).toHaveLength(1);
