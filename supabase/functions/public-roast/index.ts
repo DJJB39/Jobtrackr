@@ -82,10 +82,12 @@ serve(async (req) => {
     }
     const truncated = cvText.slice(0, MAX_CV_CHARS);
 
+    const xff = req.headers.get("x-forwarded-for") || "";
+    const xffLast = xff ? xff.split(",").map((s) => s.trim()).filter(Boolean).pop() : "";
     const ip =
-      (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
       req.headers.get("cf-connecting-ip") ||
       req.headers.get("x-real-ip") ||
+      xffLast ||
       "unknown";
     const ipHash = await hashIp(ip);
     const today = new Date().toISOString().slice(0, 10);
@@ -95,13 +97,31 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    // Per-IP limit
+    // Reserve a slot first to avoid race conditions on concurrent requests.
+    const { data: reserved, error: reserveErr } = await service
+      .from("public_roast_log")
+      .insert({ ip_hash: ipHash, roast_date: today, score: null })
+      .select("id")
+      .single();
+    if (reserveErr || !reserved) {
+      console.error("reserve insert failed", reserveErr);
+      return new Response(JSON.stringify({ error: "Unexpected error" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const reservedId = reserved.id;
+    const releaseSlot = async () => {
+      await service.from("public_roast_log").delete().eq("id", reservedId);
+    };
+
+    // Per-IP limit (count now includes the just-inserted row)
     const { count: ipCount } = await service
       .from("public_roast_log")
       .select("*", { count: "exact", head: true })
       .eq("ip_hash", ipHash)
       .eq("roast_date", today);
-    if ((ipCount ?? 0) >= PER_IP_DAILY_LIMIT) {
+    if ((ipCount ?? 0) > PER_IP_DAILY_LIMIT) {
+      await releaseSlot();
       return new Response(JSON.stringify({ error: "Daily limit reached. Sign up for unlimited roasts." }), {
         status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -112,7 +132,8 @@ serve(async (req) => {
       .from("public_roast_log")
       .select("*", { count: "exact", head: true })
       .eq("roast_date", today);
-    if ((globalCount ?? 0) >= GLOBAL_DAILY_CAP) {
+    if ((globalCount ?? 0) > GLOBAL_DAILY_CAP) {
+      await releaseSlot();
       return new Response(JSON.stringify({ error: "Free roasts are maxed out for today. Sign up to roast anytime." }), {
         status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -120,6 +141,7 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
+      await releaseSlot();
       return new Response(JSON.stringify({ error: "AI gateway not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -142,6 +164,7 @@ serve(async (req) => {
     if (!aiRes.ok) {
       const t = await aiRes.text();
       console.error("AI gateway error", aiRes.status, t);
+      await releaseSlot();
       if (aiRes.status === 429) return new Response(JSON.stringify({ error: "AI rate-limited. Try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       if (aiRes.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       return new Response(JSON.stringify({ error: "Roast failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -150,17 +173,17 @@ serve(async (req) => {
     const data = await aiRes.json();
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
+      await releaseSlot();
       return new Response(JSON.stringify({ error: "AI did not return structured roast" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const result = JSON.parse(toolCall.function.arguments);
 
-    await service.from("public_roast_log").insert({
-      ip_hash: ipHash,
-      roast_date: today,
-      score: typeof result.score === "number" ? Math.round(result.score) : null,
-    });
+    await service
+      .from("public_roast_log")
+      .update({ score: typeof result.score === "number" ? Math.round(result.score) : null })
+      .eq("id", reservedId);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
