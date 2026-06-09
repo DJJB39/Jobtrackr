@@ -12,9 +12,10 @@ export interface TourStep {
 
 export const TOUR_STEPS: TourStep[] = [
   {
-    target: "kanban-column",
-    title: "Your Pipeline",
-    description: "Pipeline holds Kanban, List, and Calendar — toggle between them at the top.",
+    target: "primary-order",
+    title: "Your corner",
+    description: "This is your daily briefing — what to do next, upcoming events, and your fight record.",
+    switchToView: "today",
   },
   {
     target: "add-button",
@@ -22,19 +23,21 @@ export const TOUR_STEPS: TourStep[] = [
     description: "Add a new application — paste a job URL to auto-fill details.",
   },
   {
+    target: "kanban-column",
+    title: "Your Pipeline",
+    description: "Pipeline holds Kanban, List, and Calendar — toggle between them at the top.",
+    switchToView: "pipeline",
+  },
+  {
     target: "job-card",
     title: "Job Details",
     description: "Click any card for full details, notes, events, and AI tools.",
+    switchToView: "pipeline",
   },
   {
     target: "view-switcher",
     title: "Three Surfaces",
     description: "Today is your coach. Pipeline tracks jobs. You holds CV, progression, and history.",
-  },
-  {
-    target: "search-input",
-    title: "Quick Search",
-    description: "Search all your applications instantly. Try ⌘K too.",
   },
   {
     target: "ai-studio-button",
