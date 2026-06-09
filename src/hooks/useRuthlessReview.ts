@@ -73,6 +73,8 @@ export const useRuthlessReview = (
       (msg) => {
         if (msg.includes("LIMIT_REACHED")) {
           toast({ title: "Monthly AI limit reached", description: "Upgrade to Pro for unlimited generations.", variant: "destructive" });
+        } else if (msg === "NETWORK_ERROR") {
+          toast({ title: "Couldn't reach the coach", description: "Check your connection and try again", variant: "destructive" });
         } else {
           toast({ title: "Review unavailable", description: msg, variant: "destructive" });
         }
