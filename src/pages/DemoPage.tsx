@@ -18,6 +18,8 @@ import CommandPalette from "@/components/CommandPalette";
 import DemoCVView from "@/components/DemoCVView";
 import AppHeader from "@/components/layout/AppHeader";
 import type { View } from "@/components/layout/AppHeader";
+import TodayView from "@/components/TodayView";
+import type { CornerAction } from "@/lib/cornerLogic";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import type { JobApplication, ColumnId } from "@/types/job";
 import type { BootcampData } from "@/hooks/useBootcamp";
@@ -28,8 +30,8 @@ import { format } from "date-fns";
 
 const DemoPage = () => {
   const { jobs, setJobs, addJob: rawAddJob, updateJob: rawUpdateJob, deleteJob: rawDeleteJob } = useGuestMode();
-  // Demo lands users inside the AI experience (Studio hub) — not the kanban tracker.
-  const [view, setView] = useState<View>("ai");
+  // Demo lands users on Today — the coach view.
+  const [view, setView] = useState<View>("today");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -64,6 +66,23 @@ const DemoPage = () => {
     setSelectedJob(job);
     setPanelOpen(true);
   }, []);
+
+  const handleCornerAction = useCallback((action: CornerAction) => {
+    const job = action.jobId ? jobs.find((j) => j.id === action.jobId) ?? null : null;
+    if (job) setSelectedJob(job);
+    switch (action.tool) {
+      case "bootcamp": if (job) setBootcampOpen(true); break;
+      case "coach": if (job) setCoachOpen(true); break;
+      case "tailor": if (job) setTailorOpen(true); break;
+      case "cover_letter": if (job) setAiPanelOpen(true); break;
+      case "log_outcome":
+      case "open_job": if (job) setPanelOpen(true); break;
+      case "move_rejected": if (job) updateJob({ ...job, columnId: "rejected" }); break;
+      case "roast": setView("cv"); break;
+      case "add_job": setDialogOpen(true); break;
+      case "view": if (action.targetView) setView(action.targetView as View); break;
+    }
+  }, [jobs, updateJob]);
 
   const filteredJobs = useMemo(() => {
     if (!searchQuery) return jobs;
@@ -145,6 +164,8 @@ const DemoPage = () => {
             </Button>
             <AddJobDialog onAdd={addJob} open={dialogOpen} onOpenChange={setDialogOpen} jobs={jobs} />
           </motion.div>
+        ) : view === "today" ? (
+          <TodayView key="today" jobs={filteredJobs} cv={null} onAction={handleCornerAction} />
         ) : view === "board" ? (
           <KanbanBoard key="board" jobs={searchQuery ? filteredJobs : jobs} setJobs={setJobs} onUpdateJob={updateJob} onDeleteJob={deleteJob} onSwitchView={(v) => setView(v as View)} />
         ) : view === "list" ? (
