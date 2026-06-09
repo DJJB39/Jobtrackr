@@ -262,7 +262,7 @@ export function getCornerOrders(
       id: `quiet-${job.id}`,
       priority: 4,
       headline: "They've gone quiet. Chase it or cut it.",
-      detail: `${job.company} — ${job.role} · applied ${differenceInDays(t0, new Date(job.createdAt))}d ago`,
+      detail: `${job.company} — ${job.role} · quiet ${differenceInDays(t0, lastActivityDate(job))}d`,
       primary: { label: "Draft follow-up", tool: "cover_letter", jobId: job.id },
       secondary: { label: "Move to rejected", tool: "move_rejected", jobId: job.id },
     });
@@ -275,7 +275,7 @@ export function getCornerOrders(
       id: `stale-${job.id}`,
       priority: 5,
       headline: "Dead weight on the board. Apply or drop it.",
-      detail: `${job.company} — ${job.role} · sitting ${differenceInDays(t0, new Date(job.createdAt))}d`,
+      detail: `${job.company} — ${job.role} · sitting ${differenceInDays(t0, lastActivityDate(job))}d`,
       primary: { label: "Open job", tool: "open_job", jobId: job.id },
       secondary: { label: "Drop it", tool: "move_rejected", jobId: job.id },
     });
