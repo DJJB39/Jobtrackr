@@ -104,6 +104,7 @@ const TodayView = ({ jobs, cv, onAction }: TodayViewProps) => {
 
 const PrimaryOrderCard = ({ order, onAction }: { order: CornerOrder; onAction: (a: CornerAction) => void }) => (
   <motion.div
+    data-tour="primary-order"
     initial={{ opacity: 0, y: 8 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.35 }}

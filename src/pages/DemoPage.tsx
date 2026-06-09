@@ -142,6 +142,13 @@ const DemoPage = () => {
 
   const isMac = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
 
+  // Switch views during onboarding tour when a step targets another surface
+  useEffect(() => {
+    if (tour.active && TOUR_STEPS[tour.step]?.switchToView && TOUR_STEPS[tour.step].switchToView !== view) {
+      setView(TOUR_STEPS[tour.step].switchToView!);
+    }
+  }, [tour.active, tour.step, view]);
+
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-[hsl(var(--gradient-start))] via-background to-[hsl(var(--gradient-end))] mesh-gradient relative">
       <AppHeader
@@ -224,7 +231,7 @@ const DemoPage = () => {
       <AIStudioOverlay
         open={aiStudioOpen}
         onOpenChange={setAiStudioOpen}
-        jobs={filteredJobs}
+        jobs={jobs}
         onOpenCoach={(job) => { setSelectedJob(job); setCoachOpen(true); }}
         onOpenBootcamp={(job) => { setSelectedJob(job); setBootcampOpen(true); }}
         onOpenTailor={(job) => { setSelectedJob(job); setTailorOpen(true); }}

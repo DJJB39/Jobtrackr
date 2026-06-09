@@ -39,9 +39,14 @@ const OnboardingTour = ({ active, step, currentStep, totalSteps, onAdvance, onSk
   useEffect(() => {
     if (!active) return;
     updateRect();
+    // Retry after view switches so the target element has time to mount
+    const t1 = setTimeout(updateRect, 200);
+    const t2 = setTimeout(updateRect, 500);
     window.addEventListener("resize", updateRect);
     window.addEventListener("scroll", updateRect, true);
     return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
       window.removeEventListener("resize", updateRect);
       window.removeEventListener("scroll", updateRect, true);
     };
