@@ -17,7 +17,7 @@ const features = [
   {
     label: "/ Tailor",
     title: "AI CV Tailor",
-    desc: "Per-job rewrites with a side-by-side diff. Strict honesty rules — sharpens your CV, never invents skills.",
+    desc: "Per-job rewrites with a side-by-side diff. The Tailor never invents experience — it sharpens what's true.",
   },
   {
     label: "/ Letter",
