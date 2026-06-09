@@ -8,6 +8,8 @@ import CVCleanupStep from "@/components/onboarding/CVCleanupStep";
 import OnboardingDone from "@/components/onboarding/OnboardingDone";
 import { Briefcase, Loader2 } from "lucide-react";
 
+const PENDING_ROAST_KEY = "cornerman:pending-roast";
+
 type Step = "upload" | "assess" | "cleanup" | "done";
 const STEP_ORDER: Step[] = ["upload", "assess", "cleanup", "done"];
 const STEP_LABELS: Record<Step, string> = {
@@ -25,6 +27,40 @@ const Onboarding = () => {
   const { cv, loading, saveOriginal, saveAssessment, saveCleanup, completeOnboarding } = useUserCV();
   const [step, setStep] = useState<Step>("upload");
   const [finishing, setFinishing] = useState(false);
+
+  // Hydrate pending /roast result captured pre-signup
+  useEffect(() => {
+    if (loading || authLoading || !user) return;
+    if (cv?.original_text) return;
+    let raw: string | null = null;
+    try { raw = localStorage.getItem(PENDING_ROAST_KEY); } catch { /* ignore */ }
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      const cvText: string | undefined = parsed?.cvText;
+      const r = parsed?.result;
+      if (!cvText || typeof cvText !== "string" || cvText.trim().length < 100) return;
+      (async () => {
+        await saveOriginal(cvText);
+        if (r && typeof r.score === "number" && typeof r.feedback_md === "string") {
+          await saveAssessment(Math.round(r.score), {
+            intensity: "hard",
+            score: Math.round(r.score),
+            feedback_md: r.feedback_md,
+            strengths: Array.isArray(r.strengths) ? r.strengths : [],
+            gaps: Array.isArray(r.gaps) ? r.gaps : [],
+            quick_wins: Array.isArray(r.quick_wins) ? r.quick_wins : [],
+          }, "original");
+          setStep("assess");
+        } else {
+          setStep("assess");
+        }
+        try { localStorage.removeItem(PENDING_ROAST_KEY); } catch { /* ignore */ }
+      })();
+    } catch {
+      try { localStorage.removeItem(PENDING_ROAST_KEY); } catch { /* ignore */ }
+    }
+  }, [user, authLoading, loading, cv?.original_text, saveOriginal, saveAssessment]);
 
   // Skip-through if already completed (unless force=1)
   useEffect(() => {
