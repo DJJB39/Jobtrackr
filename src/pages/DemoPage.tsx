@@ -207,7 +207,19 @@ const DemoPage = () => {
             key="you"
             defaultTab={youTab}
             cvSlot={<DemoCVView jobs={jobs} />}
-            progressionSlot={<Dashboard jobs={filteredJobs} onUpdateJob={updateJob} />}
+            progressionSlot={
+              <Dashboard
+                jobs={filteredJobs}
+                onUpdateJob={updateJob}
+                cv={DEMO_USER_CV as UserCV}
+                sparOverride={[
+                  { date: new Date(Date.now() - 21 * 86400000).toISOString(), score: 52 },
+                  { date: new Date(Date.now() - 14 * 86400000).toISOString(), score: 58 },
+                  { date: new Date(Date.now() - 7 * 86400000).toISOString(), score: 64 },
+                  { date: new Date(Date.now() - 2 * 86400000).toISOString(), score: 71 },
+                ]}
+              />
+            }
             historySlot={<GlobalActivityTimeline jobs={jobs} onSelectJob={handleSelectJob} isDemo />}
           />
         )}
