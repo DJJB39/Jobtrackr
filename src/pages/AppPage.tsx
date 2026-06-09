@@ -267,7 +267,7 @@ const AppPage = () => {
           <AddJobDialog onAdd={handleAddJob} open={dialogOpen} onOpenChange={setDialogOpen} jobs={jobs} />
         </motion.div>
       ) : view === "today" ? (
-        <TodayView jobs={filteredJobs} cv={cv ?? null} onAction={handleCornerAction} />
+        <TodayView jobs={jobs} cv={cv ?? null} onAction={handleCornerAction} />
       ) : view === "ai" ? (
         <AIStudioView
           jobs={filteredJobs}
