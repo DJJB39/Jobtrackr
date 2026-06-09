@@ -23,7 +23,7 @@ import type { View } from "@/components/layout/AppHeader";
 import { useJobStore } from "@/stores/jobStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import { useOnboardingTour } from "@/hooks/useOnboardingTour";
+import { useOnboardingTour, TOUR_STEPS } from "@/hooks/useOnboardingTour";
 import type { JobApplication, ColumnId } from "@/types/job";
 import { useLoginReminders } from "@/hooks/useLoginReminders";
 import { Button } from "@/components/ui/button";
@@ -104,6 +104,13 @@ const AppPage = () => {
 
   const { showBanner, dismissBanner, tourReady } = useOnboarding({ jobCount: jobs.length, loading, addJob: handleAddJob });
   const tour = useOnboardingTour({ tourReady });
+
+  // Switch views during onboarding tour when a step targets another surface
+  useEffect(() => {
+    if (tour.active && TOUR_STEPS[tour.step]?.switchToView && TOUR_STEPS[tour.step].switchToView !== view) {
+      setView(TOUR_STEPS[tour.step].switchToView!);
+    }
+  }, [tour.active, tour.step, view]);
 
   const [searchPulse, setSearchPulse] = useState(false);
   useEffect(() => {
@@ -331,7 +338,7 @@ const AppPage = () => {
       <AIStudioOverlay
         open={aiStudioOpen}
         onOpenChange={setAiStudioOpen}
-        jobs={filteredJobs}
+        jobs={jobs}
         onOpenCoach={(job) => { setSelectedJob(job); setCoachOpen(true); }}
         onOpenBootcamp={(job) => { setSelectedJob(job); setBootcampOpen(true); }}
         onOpenTailor={(job) => { setSelectedJob(job); setTailorOpen(true); }}

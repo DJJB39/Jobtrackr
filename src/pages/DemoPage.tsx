@@ -19,7 +19,7 @@ import DemoCVView from "@/components/DemoCVView";
 import AppHeader from "@/components/layout/AppHeader";
 import type { View } from "@/components/layout/AppHeader";
 import TodayView from "@/components/TodayView";
-import type { CornerAction } from "@/lib/cornerLogic";
+import { useOnboardingTour, TOUR_STEPS } from "@/hooks/useOnboardingTour";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import type { JobApplication, ColumnId } from "@/types/job";
 import type { BootcampData } from "@/hooks/useBootcamp";
