@@ -210,6 +210,30 @@ export type Database = {
         }
         Relationships: []
       }
+      public_roast_log: {
+        Row: {
+          created_at: string
+          id: string
+          ip_hash: string
+          roast_date: string
+          score: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_hash: string
+          roast_date?: string
+          score?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_hash?: string
+          roast_date?: string
+          score?: number | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null

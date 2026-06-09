@@ -84,6 +84,9 @@ const Landing = () => {
             honest CV roast — so when the real one comes, it feels like a formality.
             Every application tracked underneath, automatically.
           </p>
+          <p className="cm-reveal cm-d3 mt-4 max-w-xl text-[14px] leading-[1.65] cm-text-dim italic">
+            The Tailor never invents experience. It sharpens what's true.
+          </p>
 
           <div className="cm-reveal cm-d4 mt-10 flex flex-wrap items-center gap-3">
             <Link
@@ -99,6 +102,13 @@ const Landing = () => {
             >
               Sign up free
               <span aria-hidden="true">→</span>
+            </Link>
+            <Link
+              to="/roast"
+              className="cm-cta-ghost inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm"
+            >
+              Get roasted free
+              <span aria-hidden="true">🔥</span>
             </Link>
           </div>
 
