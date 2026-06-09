@@ -7,6 +7,7 @@ export interface TourStep {
   target: string; // data-tour attribute value
   title: string;
   description: string;
+  switchToView?: "today" | "pipeline" | "you";
 }
 
 export const TOUR_STEPS: TourStep[] = [
