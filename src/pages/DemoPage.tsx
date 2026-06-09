@@ -15,11 +15,13 @@ import CVTailorModal from "@/components/CVTailorModal";
 import ScreenshotCaptureModal from "@/components/ScreenshotCaptureModal";
 import CSVImportModal from "@/components/CSVImportModal";
 import CommandPalette from "@/components/CommandPalette";
+import OnboardingTour from "@/components/OnboardingTour";
 import DemoCVView from "@/components/DemoCVView";
 import AppHeader from "@/components/layout/AppHeader";
 import type { View } from "@/components/layout/AppHeader";
 import TodayView from "@/components/TodayView";
 import type { CornerAction } from "@/lib/cornerLogic";
+import { useOnboardingTour, TOUR_STEPS } from "@/hooks/useOnboardingTour";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import type { JobApplication, ColumnId } from "@/types/job";
 import type { BootcampData } from "@/hooks/useBootcamp";
@@ -141,6 +143,15 @@ const DemoPage = () => {
 
   const isMac = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
 
+  const tour = useOnboardingTour({ tourReady: true });
+
+  // Switch views during onboarding tour when a step targets another surface
+  useEffect(() => {
+    if (tour.active && TOUR_STEPS[tour.step]?.switchToView && TOUR_STEPS[tour.step].switchToView !== view) {
+      setView(TOUR_STEPS[tour.step].switchToView!);
+    }
+  }, [tour.active, tour.step, view]);
+
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-[hsl(var(--gradient-start))] via-background to-[hsl(var(--gradient-end))] mesh-gradient relative">
       <AppHeader
@@ -223,13 +234,21 @@ const DemoPage = () => {
       <AIStudioOverlay
         open={aiStudioOpen}
         onOpenChange={setAiStudioOpen}
-        jobs={filteredJobs}
+        jobs={jobs}
         onOpenCoach={(job) => { setSelectedJob(job); setCoachOpen(true); }}
         onOpenBootcamp={(job) => { setSelectedJob(job); setBootcampOpen(true); }}
         onOpenTailor={(job) => { setSelectedJob(job); setTailorOpen(true); }}
         onOpenAI={(job) => { setSelectedJob(job); setAiPanelOpen(true); }}
         onOpenScreenshot={() => setScreenshotOpen(true)}
         onSwitchToCV={() => { setYouTab("cv"); setView("you"); }}
+      />
+      <OnboardingTour
+        active={tour.active}
+        step={tour.step}
+        currentStep={tour.currentStep}
+        totalSteps={tour.totalSteps}
+        onAdvance={tour.advance}
+        onSkip={tour.skip}
       />
     </div>
   );

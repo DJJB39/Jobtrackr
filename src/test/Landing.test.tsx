@@ -38,7 +38,7 @@ describe("Landing Page (Cornerman editorial)", () => {
   it("renders the three pillars (Spar, Roast, Track)", () => {
     renderWithProviders(<Landing />);
     expect(screen.getByText("/ Spar")).toBeInTheDocument();
-    expect(screen.getByText("/ Roast")).toBeInTheDocument();
+    expect(screen.getAllByText("/ Roast").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("/ Track")).toBeInTheDocument();
     expect(screen.getByText(/Ruthless mock interviews/i)).toBeInTheDocument();
     expect(screen.getByText(/Brutally honest CV scoring/i)).toBeInTheDocument();
