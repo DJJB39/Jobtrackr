@@ -1,19 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ALLOWED_ORIGINS = [
-  Deno.env.get("APP_URL") || "https://brs39.lovable.app",
-  "https://brs39.lovable.app",
-  "https://id-preview--03b5424d-9b42-4895-9126-0bbdd9be20a7.lovable.app",
-];
+// public-roast is unauthenticated, so CORS IS the boundary — keep it locked
+// to the published domain only. Preview origins are intentionally excluded.
+const PUBLISHED_ORIGIN = Deno.env.get("APP_URL") || "https://brs39.lovable.app";
 
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get("Origin") ?? "";
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+function getCorsHeaders(_req: Request) {
   return {
-    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Origin": PUBLISHED_ORIGIN,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
   };
 }
 

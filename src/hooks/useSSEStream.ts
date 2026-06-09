@@ -75,7 +75,9 @@ export const useSSEStream = () => {
         }
       } catch (e) {
         if ((e as Error).name !== "AbortError") {
-          onError?.("Failed to generate content");
+          // Fetch throws TypeError for network failures (DNS, CORS, offline).
+          const isNetwork = e instanceof TypeError;
+          onError?.(isNetwork ? "NETWORK_ERROR" : "Failed to generate content");
         }
       } finally {
         setLoading(false);

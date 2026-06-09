@@ -1,20 +1,22 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const APP_URL = Deno.env.get("APP_URL") || "https://brs39.lovable.app";
-const ALLOWED_ORIGINS = [
-  APP_URL,
-  "https://brs39.lovable.app",
-  "https://id-preview--03b5424d-9b42-4895-9126-0bbdd9be20a7.lovable.app",
-];
+const PUBLISHED_ORIGIN = Deno.env.get("APP_URL") || "https://brs39.lovable.app";
+// Allow the published origin plus any *.lovable.app preview origin.
+// JWT validation in the handler is the security boundary; CORS is defense-in-depth.
+const LOVABLE_ORIGIN_RE = /^https:\/\/[a-z0-9-]+\.lovable\.app$/i;
 
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get("Origin") ?? "";
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin =
+    origin === PUBLISHED_ORIGIN || LOVABLE_ORIGIN_RE.test(origin)
+      ? origin
+      : PUBLISHED_ORIGIN;
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers":
       "authorization, x-client-info, apikey, content-type",
+    "Vary": "Origin",
   };
 }
 
