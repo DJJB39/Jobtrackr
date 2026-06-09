@@ -15,6 +15,7 @@ import CVTailorModal from "@/components/CVTailorModal";
 import ScreenshotCaptureModal from "@/components/ScreenshotCaptureModal";
 import CSVImportModal from "@/components/CSVImportModal";
 import CommandPalette from "@/components/CommandPalette";
+import OnboardingTour from "@/components/OnboardingTour";
 import DemoCVView from "@/components/DemoCVView";
 import AppHeader from "@/components/layout/AppHeader";
 import type { View } from "@/components/layout/AppHeader";
