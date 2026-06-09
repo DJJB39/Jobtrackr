@@ -788,7 +788,20 @@ IMPORTANT: You MUST use the cv_assessment_result tool.
         return new Response(JSON.stringify({ error: "AI did not return structured assessment" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const result = JSON.parse(toolCall.function.arguments);
-      return new Response(JSON.stringify({ ...result, intensity: level, model }), {
+      // Normalize score to 0-100 regardless of what the model returned.
+      let normalizedScore = Number(result.score);
+      if (!Number.isFinite(normalizedScore)) normalizedScore = 0;
+      if (normalizedScore > 0 && normalizedScore <= 10) normalizedScore = Math.round(normalizedScore * 10);
+      normalizedScore = Math.max(0, Math.min(100, Math.round(normalizedScore)));
+      // Strip any score lines from feedback_md (defense in depth — client also strips).
+      const cleanedFeedback = typeof result.feedback_md === "string"
+        ? result.feedback_md
+            .replace(/^\s*#{1,6}\s*Score\s*[:：].*$/gim, "")
+            .replace(/^\s*\**\s*Score\s*[:：]\s*\d+\s*\/?\s*\d*\s*\**\s*$/gim, "")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim()
+        : result.feedback_md;
+      return new Response(JSON.stringify({ ...result, score: normalizedScore, feedback_md: cleanedFeedback, intensity: level, model }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
