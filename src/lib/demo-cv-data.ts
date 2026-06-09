@@ -215,3 +215,32 @@ export const DEMO_PROJECTED_SCORES: Record<string, number> = {
   "demo-5": 68,
   "demo-6": 55,
 };
+
+/** Roast score history for demo mode — populates Today view's Fight Record. */
+export const DEMO_ROAST_SCORE = 61;
+export const DEMO_ROAST_PREV_SCORE = 54;
+
+/**
+ * A lightweight UserCV-shaped object for the demo Today view, so the Fight
+ * Record shows a populated roast score and +7 delta. Shape matches UserCV
+ * but values are static demo data.
+ */
+export const DEMO_USER_CV = {
+  user_id: "demo-user",
+  original_text: DEMO_CV_TEXT,
+  cleaned_text: DEMO_CV_TEXT,
+  original_score: DEMO_ROAST_PREV_SCORE,
+  cleaned_score: DEMO_ROAST_SCORE,
+  assessment_jsonb: {
+    intensity: "hard" as const,
+    score: DEMO_ROAST_SCORE,
+    feedback_md: DEMO_ROASTS.hard,
+    strengths: [],
+    gaps: [],
+    quick_wins: [],
+  },
+  cleanup_diff_jsonb: null,
+  onboarding_completed: true,
+  created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
+  updated_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+};
