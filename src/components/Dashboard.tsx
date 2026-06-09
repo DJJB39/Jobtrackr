@@ -8,6 +8,13 @@ import {
 import { TrendingUp, Activity, Layers, CalendarDays, Zap, AlertTriangle, Ghost } from "lucide-react";
 import Achievements from "./Achievements";
 import { parseISO, format, isBefore, startOfDay, subWeeks, startOfWeek, endOfWeek, differenceInDays } from "date-fns";
+import {
+  getStaleJobs as cornerStale,
+  getGhostJobs as cornerGhosts,
+  getUpcomingEvents as cornerUpcoming,
+  STALE_THRESHOLD_DAYS,
+  GHOST_THRESHOLD_DAYS,
+} from "@/lib/cornerLogic";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import JobDetailPanel from "./JobDetailPanel";
@@ -62,9 +69,6 @@ const FUNNEL_STAGES: { id: ColumnId; label: string; color: string }[] = [
   { id: "accepted", label: "Accepted", color: "hsl(142, 72%, 35%)" },
 ];
 
-const STALE_THRESHOLD_DAYS = 14;
-const GHOST_THRESHOLD_DAYS = 7;
-
 const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
   const { stages } = useStages();
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
@@ -97,29 +101,9 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
     }).filter((d) => d.value > 0);
   }, [jobs]);
 
-  // Stale applications: same stage 14+ days, no recent events
-  const staleJobs = useMemo(() => {
-    const today = startOfDay(new Date());
-    return jobs.filter((j) => {
-      if (j.columnId === "accepted" || j.columnId === "rejected") return false;
-      const daysSinceUpdate = differenceInDays(today, new Date(j.createdAt));
-      return daysSinceUpdate >= STALE_THRESHOLD_DAYS;
-    }).slice(0, 5);
-  }, [jobs]);
-
-  // Ghost detection: Applied/Phone with no upcoming events for 7+ days
-  const ghostJobs = useMemo(() => {
-    const today = startOfDay(new Date());
-    return jobs.filter((j) => {
-      if (j.columnId !== "applied" && j.columnId !== "phone") return false;
-      const hasUpcoming = (j.events ?? []).some((e) => {
-        try { return !isBefore(parseISO(e.date), today); } catch { return false; }
-      });
-      if (hasUpcoming) return false;
-      const daysSinceCreated = differenceInDays(today, new Date(j.createdAt));
-      return daysSinceCreated >= GHOST_THRESHOLD_DAYS;
-    }).slice(0, 5);
-  }, [jobs]);
+  // Stale + ghost shared with the Today view (single source of truth).
+  const staleJobs = useMemo(() => cornerStale(jobs).slice(0, 5), [jobs]);
+  const ghostJobs = useMemo(() => cornerGhosts(jobs).slice(0, 5), [jobs]);
 
   const weeklyData = useMemo(() => {
     const weeks: { week: string; count: number }[] = [];
@@ -137,27 +121,7 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
   }, [jobs]);
 
   const upcomingItems = useMemo(() => {
-    const today = startOfDay(new Date());
-    const in14Days = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
-    const items: UpcomingItem[] = [];
-    for (const job of jobs) {
-      for (const evt of job.events ?? []) {
-        try {
-          const d = parseISO(evt.date);
-          if (!isBefore(d, today) && isBefore(d, in14Days)) {
-            items.push({ id: evt.id, title: evt.title, company: job.company, role: job.role, date: evt.date, time: evt.time, type: evt.type });
-          }
-        } catch { /* skip */ }
-      }
-      if (job.closeDate) {
-        try {
-          const d = parseISO(job.closeDate);
-          if (!isBefore(d, today) && isBefore(d, in14Days)) {
-            items.push({ id: `deadline-${job.id}`, title: `Deadline: ${job.company}`, company: job.company, role: job.role, date: job.closeDate, time: null, type: "deadline" });
-          }
-        } catch { /* skip */ }
-      }
-    }
+    const items: UpcomingItem[] = cornerUpcoming(jobs, 14);
     return items.sort((a, b) => a.date.localeCompare(b.date));
   }, [jobs]);
 

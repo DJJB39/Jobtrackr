@@ -1,55 +1,90 @@
-# Plan: End-to-End Cornerman Documentation
+# Phase 1 — Today screen (the coach)
 
-Produce a single comprehensive Markdown document, `docs/cornerman-overview.md`, that explains the entire site and codebase in depth. No app code will change — only a new docs file.
+Make Cornerman default to a coach view that issues one clear order, instead of dropping users on the Kanban tracker.
 
-## Exploration pass (read-only, before writing)
-I'll read these to ensure accuracy:
-- Routing/shell: `src/App.tsx`, `src/pages/*` (Landing, Auth, AppPage, DemoPage, Onboarding, Pricing, Privacy, ResetPassword, NotFound)
-- Layout & nav: `src/components/layout/AppHeader.tsx`, `UserMenu`, `NavLink`, `CommandPalette`
-- Core features: `KanbanBoard`, `KanbanColumn`, `JobCard`, `JobDetailPanel`, `Dashboard`, `CalendarView`, `ListView`, `CVView`, `AIStudioView`, `AIAssistPanel`, `InterviewCoach`, `CVTailorModal`, `ScreenshotCaptureModal`, `CSVImportModal`, `DayBeforeBootcamp`, `BulkActionBar`, `StageManager`, `Achievements`, `ActivityTimeline`, `ShareStats`
-- Onboarding flow: `src/components/onboarding/*`, `useOnboarding`, `useOnboardingTour`, `RequireOnboarding`
-- State & hooks: `src/stores/jobStore.ts`, `useAuth`, `useJobs`, `useUserCV`, `useStages`, `useSubscription`, `usePaddleCheckout`, `useAIGeneration`, `useAIPreferences`, `useRuthlessReview`, `useCVTailor`, `useInterviewCoach`, `useScreenshotCapture`, `useSSEStream`, `useBootcamp`, `useGuestMode`, `useLoginReminders`, `usePushNotifications`, `useCSVImport`
-- Types & libs: `src/types/job.ts`, `src/lib/*` (constants, salary, paddle, ics, demo-cv-data, utils), `src/integrations/lovable`
-- Backend: every `supabase/functions/*/index.ts`, plus migrations summary (list only — migrations are read-only)
-- Chrome extension: `chrome-extension/*`
-- Landing components: `src/components/landing/*`
-- Design system: `src/index.css`, `tailwind.config.ts`, `index.html`
-- Config: `package.json`, `vite.config.ts`, `vitest.config.ts`, `eslint.config.js`, `components.json`, `public/sw.js`, `public/robots.txt`
-- Tests: `src/test/*` (summarize coverage)
+## 1. Extract shared signal logic — `src/lib/cornerLogic.ts`
 
-## Document structure
+New module, pure functions, no React. Move/duplicate-free extraction from `Dashboard.tsx`:
 
-1. **Product overview** — what Cornerman is, target user, positioning ("ruthless AI coach").
-2. **Design system** — palette tokens, fonts (Fraunces / IBM Plex Sans / JetBrains Mono), grain texture, component classes.
-3. **Tech stack & build** — React 18, Vite, Tailwind, shadcn, Zustand, React Router, Lovable Cloud (Supabase), Lovable AI Gateway, Paddle.
-4. **Routing & app shell** — every route, guards (`ProtectedRoute`, `RequireOnboarding`), lazy loading, error boundary, theme provider.
-5. **Authentication** — `useAuth`, Auth page (email/password, magic link, Google, Apple), reset password flow, session handling.
-6. **Onboarding** — CV upload → assessment → cleanup → done; gating logic; legacy-user bypass.
-7. **In-app views** (AppPage) — view switcher: Kanban, List, Calendar, Dashboard, CV, AI Studio. For each: data flow, key interactions, mobile behaviors.
-8. **Job data model** — `JobApplication`, columns/stages (default + custom via `useStages`), events, contacts, links, activity log.
-9. **Job store (Zustand)** — paginated fetch, optimistic updates, soft-delete with undo, activity diffing.
-10. **Job ingestion** — Add Job dialog, URL scraping (`scrape-job-url`), screenshot capture (vision model), CSV import (Huntr/Teal), Chrome extension (`extension-save-job`).
-11. **AI Studio & generation** — model routing (`useAIPreferences`), `ai-assist` edge function, SSE streaming (`useSSEStream`), usage limits (10/mo free, 403 enforcement).
-12. **AI tools breakdown** — Ruthless CV Review (4 intensities), CV Tailor (diff, honesty guardrails), Cover Letter, Interview Coach (Ruthless/Helpful + speech), Day-Before Bootcamp, Career Boost.
-13. **Analytics & dashboards** — Dashboard cards, charts, funnel, achievements, stale/ghost detection, ShareStats.
-14. **Calendar & events** — month grid, schedule dialog, `.ics` export, outcome prompts.
-15. **Reminders & notifications** — `send-reminders`, `weekly-digest`, push (`send-push`, VAPID, service worker), login reminders, pg_cron schedules.
-16. **Payments** — Paddle integration (`usePaddleCheckout`, `paddle.ts`), `payments-webhook`, `get-paddle-price`, `useSubscription` sync, test-mode banner, £9/mo £69/yr.
-17. **Demo / guest mode** — `DemoPage` lands on AI Studio hub, `useGuestMode` local state, AI simulation, disabled persistence, thin grey demo strip.
-18. **Chrome extension** — manifest V3, popup, background, content script, authenticated save flow.
-19. **Backend (Lovable Cloud)** — table summary (jobs, events, activity log, user_cv, user_roles, user_stages, subscriptions, push subs, ai usage), RLS pattern, `has_role` security-definer, GRANTs.
-20. **Edge functions catalog** — purpose, auth, request/response shape for each function in `supabase/functions/`.
-21. **Landing page sections** — Hero, Features (6 tools), Comparison Table, Pricing, FAQ, Chrome CTA, Footer; SEO & JSON-LD.
-22. **SEO & metadata** — `index.html` tags, robots, sitemap considerations, JSON-LD.
-23. **Testing** — Vitest suites and what each covers.
-24. **File map** — annotated tree of `src/` and `supabase/functions/` grouped by domain.
-25. **Known constraints & memory rules** — pulled from project memory (timezone format, shadcn pointer events, AI honesty, free-tier 10-gen cap, etc.).
-26. **Glossary** — Spar, Roast, Tape, Coach, Cornerman terminology mapped to features.
+- `getStaleJobs(jobs, today)` — same-stage 14+ days, excludes accepted/rejected (existing `STALE_THRESHOLD_DAYS`).
+- `getGhostJobs(jobs, today)` — applied/phone with no upcoming events, 7+ days since created (existing `GHOST_THRESHOLD_DAYS`).
+- `getUpcomingEvents(jobs, days)` — 14-day window across events + closeDate.
+- `getPastUnloggedEvents(jobs, today)` — event date in past with `outcome == null`.
 
-## Deliverable
-- One new file: `docs/cornerman-overview.md` (long-form, sectioned, with code path references like `src/components/AIStudioView.tsx`).
-- No changes to source code, config, or migrations.
+Refactor `Dashboard.tsx` to import these (no behaviour change there).
 
-## Notes
-- This will be a long doc (estimated 2,000–4,000 lines). If you'd prefer it split into multiple files (e.g., `docs/architecture.md`, `docs/features.md`, `docs/backend.md`), say so and I'll restructure before building.
-- I'll cite real file paths and function names from the codebase, not invented ones.
+Then export the core API:
+
+```ts
+type CornerAction = { label: string; view?: View; jobId?: string; eventId?: string; tool?: "coach"|"bootcamp"|"tailor"|"cover_letter"|"roast"|"add_job"|"log_outcome"|"move_rejected" };
+type CornerOrder = { id: string; priority: number; headline: string; detail: string; primary: CornerAction; secondary?: CornerAction };
+function getCornerOrders(jobs, cv, roastHistory): CornerOrder[];
+```
+
+Rules evaluated in strict priority order (1 = highest). Each matched rule emits one order per matching job (top one promoted as #1, rest stacked):
+
+1. Interview within 48h → bootcamp.
+2. Interview within 7d → interview coach.
+3. Past event with no outcome → outcome prompt.
+4. Quiet application (applied 7+d ago, no events, columnId in applied/phone) → cover-letter follow-up OR move-to-rejected.
+5. Stale (14+ d untouched, pre-applied stages: found) → open job / drop.
+6. Roast stale (no roast 30+d, or `cv.updated_at > lastRoast.createdAt`) → ruthless review.
+7. < 3 active applications (not rejected/accepted) → AddJobDialog.
+8. Fallback "Corner's quiet" order.
+
+Roast history input: derive from existing `useRuthlessReview` storage / `user_cvs.last_roast_at` (read whatever is already persisted; if nothing exists, treat as "no roast" — no new tables).
+
+## 2. New component — `src/components/TodayView.tsx`
+
+Props: `{ jobs, cv, onAction(action: CornerAction) }`.
+
+Layout (uses existing `cm-*` classes, Fraunces/IBM Plex/JetBrains tokens):
+
+```text
+TODAY'S ORDERS              (mono, uppercase, tracked)
+Tuesday, June 9             (Fraunces)
+
++--------------------------- cm-roast-card -----------------+
+| Fight night is close.                  (Fraunces, large) |
+| Acme — Senior Engineer · interview in 36h                |
+| [ Open Bootcamp ]                       (amber primary)  |
++-----------------------------------------------------------+
+
+Orders 2-4 (stacked compact rows, ghost CTA each)         | FIGHT RECORD (mono)
+- Time to spar — Globex · in 5d            [Open Coach]   | ROAST       72  +4
+- How did it go? — Initech phone screen    [Log outcome]  | INTERVIEWS  3
+- They've gone quiet — Soylent             [Draft chase]  | RESPONSE    28%
+
+Upcoming (next 14 days)  ← reuse existing upcoming-events strip from Dashboard, extracted into a small subcomponent
+```
+
+Mobile: right rail collapses below; FIGHT RECORD becomes a 3-cell mono row; respect stripped header + bottom toast offset; use native `overflow-y-auto` wrapper (per project rule).
+
+Fight Record stats (all derived client-side, no new fetches):
+- Roast score + delta: latest vs prior from existing roast records.
+- Interviews booked this month: count of events with `type==='interview'` and date in current month.
+- Response rate: jobs reaching phone+ / jobs in applied+ (rounded %).
+
+Action handler maps `CornerAction` to existing `AppPage`/`DemoPage` handlers (open AddJobDialog, set selectedJob + open Coach/Bootcamp/Tailor, open AI panel in cover_letter follow-up mode, log-outcome dialog already used by CalendarView).
+
+## 3. Wire as default — `src/pages/AppPage.tsx` and `src/pages/DemoPage.tsx`
+
+- Add `"today"` to the `View` union in `src/components/layout/AppHeader.tsx` (first chip, icon `Flame` or `Target`).
+- `AppPage`: change `useState<View>("board")` → `useState<View>("today")`. Render `<TodayView ... />` branch first. Keep Kanban available via the switcher (unchanged).
+- `DemoPage`: change default from `"ai"` → `"today"`; pass the existing canned demo jobs/cv straight to TodayView.
+- Empty-state branch (jobs.length === 0) stays as-is — only triggered if no jobs.
+
+## 4. Optional flourish — Corner Talk (built last)
+
+- New ai-assist mode `corner_talk` in `supabase/functions/ai-assist/index.ts`: system prompt = terse dry corner-coach, `max_tokens ~ 40`, returns one sentence. Skip the per-user free-tier counter for this mode (small, daily-capped server side via cache check).
+- Client cache: store `{ date: 'YYYY-MM-DD', line: string }` in existing `user_preferences` JSON column under key `corner_talk`. Fetch once per UTC day; if cached for today, use it; else call edge function, on success persist, on failure pick from a 10-line hardcoded fallback array in `cornerLogic.ts`.
+- Render as a single italicised mono line under the date header.
+
+## Files
+
+- New: `src/lib/cornerLogic.ts`, `src/components/TodayView.tsx`.
+- Edit: `src/components/Dashboard.tsx` (import from cornerLogic), `src/components/layout/AppHeader.tsx` (add Today chip), `src/pages/AppPage.tsx`, `src/pages/DemoPage.tsx`, `supabase/functions/ai-assist/index.ts` (corner_talk mode, last).
+
+## Out of scope
+
+No new tables. No edge-function changes except `corner_talk`. No changes to Kanban, AI Studio, or any existing tool internals.
