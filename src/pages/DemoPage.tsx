@@ -26,6 +26,8 @@ import type { BootcampData } from "@/hooks/useBootcamp";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { DEMO_USER_CV } from "@/lib/demo-cv-data";
+import type { UserCV } from "@/hooks/useUserCV";
 
 
 const DemoPage = () => {
@@ -165,7 +167,7 @@ const DemoPage = () => {
             <AddJobDialog onAdd={addJob} open={dialogOpen} onOpenChange={setDialogOpen} jobs={jobs} />
           </motion.div>
         ) : view === "today" ? (
-          <TodayView key="today" jobs={filteredJobs} cv={null} onAction={handleCornerAction} />
+          <TodayView key="today" jobs={jobs} cv={DEMO_USER_CV as UserCV} onAction={handleCornerAction} />
         ) : view === "board" ? (
           <KanbanBoard key="board" jobs={searchQuery ? filteredJobs : jobs} setJobs={setJobs} onUpdateJob={updateJob} onDeleteJob={deleteJob} onSwitchView={(v) => setView(v as View)} />
         ) : view === "list" ? (
