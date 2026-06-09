@@ -34,6 +34,8 @@ import { Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AIStudioView from "@/components/AIStudioView";
 import { Camera, Flame, Upload, Plus } from "lucide-react";
+import TodayView from "@/components/TodayView";
+import type { CornerAction } from "@/lib/cornerLogic";
 
 const AppPage = () => {
   const { user } = useAuth();
@@ -43,7 +45,7 @@ const AppPage = () => {
   const showCvBanner = !!user && !cv?.onboarding_completed && !cvBannerDismissed;
   const { stages } = useStages();
   const { jobs, loading, searchQuery, setSearchQuery, fetchJobs, addJob, updateJob, deleteJob, setJobs } = useJobStore();
-  const [view, setView] = useState<View>("board");
+  const [view, setView] = useState<View>("today");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -111,6 +113,41 @@ const AppPage = () => {
   }, []);
 
   const handleSelectJob = useCallback((job: JobApplication) => { setSelectedJob(job); setPanelOpen(true); }, []);
+
+  const handleCornerAction = useCallback((action: CornerAction) => {
+    const job = action.jobId ? jobs.find((j) => j.id === action.jobId) ?? null : null;
+    if (job) setSelectedJob(job);
+    switch (action.tool) {
+      case "bootcamp":
+        if (job) setBootcampOpen(true);
+        break;
+      case "coach":
+        if (job) setCoachOpen(true);
+        break;
+      case "tailor":
+        if (job) setTailorOpen(true);
+        break;
+      case "cover_letter":
+        if (job) setAiPanelOpen(true);
+        break;
+      case "log_outcome":
+      case "open_job":
+        if (job) setPanelOpen(true);
+        break;
+      case "move_rejected":
+        if (job) handleUpdateJob({ ...job, columnId: "rejected" });
+        break;
+      case "roast":
+        setView("cv");
+        break;
+      case "add_job":
+        setDialogOpen(true);
+        break;
+      case "view":
+        if (action.targetView) setView(action.targetView as View);
+        break;
+    }
+  }, [jobs, handleUpdateJob]);
 
   const filteredJobs = useMemo(() => {
     if (!searchQuery) return jobs;
@@ -229,6 +266,8 @@ const AppPage = () => {
           </div>
           <AddJobDialog onAdd={handleAddJob} open={dialogOpen} onOpenChange={setDialogOpen} jobs={jobs} />
         </motion.div>
+      ) : view === "today" ? (
+        <TodayView jobs={filteredJobs} cv={cv ?? null} onAction={handleCornerAction} />
       ) : view === "ai" ? (
         <AIStudioView
           jobs={filteredJobs}
