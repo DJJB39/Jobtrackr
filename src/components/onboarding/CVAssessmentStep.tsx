@@ -77,7 +77,12 @@ const CVAssessmentStep = ({ cvText, initialAssessment, initialScore, label = "Or
       setScore(result.score);
       await onComplete(result.score, result);
     } catch (e: any) {
-      toast({ title: "Assessment failed", description: e.message, variant: "destructive" });
+      const isNetwork = e instanceof TypeError;
+      toast({
+        title: isNetwork ? "Couldn't reach the coach" : "Assessment failed",
+        description: isNetwork ? "Check your connection and try again" : e.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
