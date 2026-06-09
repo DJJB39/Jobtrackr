@@ -744,7 +744,21 @@ You MUST use the cv_tailor_result tool.`;
       const baseTone = RUTHLESS_PROMPTS[level];
       const assessmentSystemPrompt = `${baseTone}
 
-IMPORTANT: You MUST use the cv_assessment_result tool. The 'feedback_md' field MUST contain the full markdown critique following the structure above (# Score: X/10, ## Strengths, ## Fatal Flaws, ## How to Fix It) AND end with '## Immediate Action Checklist' of 3-6 verb-led fixes. The 'score' field is a 0-100 integer (multiply your X/10 by 10).`;
+CV BEST-PRACTICE RULES — every piece of advice you give MUST conform to these. Intensity changes TONE ONLY, never the substance of the advice:
+- Active voice, strong verbs at the start of every bullet ("Shipped", "Led", "Cut").
+- Implied first person — never use "I am currently…", "I have…", "My role is…". Bullets begin with the verb, not a pronoun. Passive voice ("was responsible for", "duties included") is equally forbidden.
+- Quantified impact wherever the underlying facts support it (%, £, time saved, scale). Never invent numbers — if none exist, recommend the candidate add them.
+- Concision. Cut filler, adverbs, throat-clearing, and any phrase a recruiter would skim past.
+- Reverse-chronological experience, consistent tense (past for past roles, present for current), consistent date format.
+- One page for <10 years experience; two pages maximum otherwise.
+- Tailor language to the target role's vocabulary; surface keywords honestly.
+
+HARD RULE: Never give advice that a professional careers adviser would consider incorrect. If you would not stake your reputation on a recommendation, do not make it.
+
+IMPORTANT: You MUST use the cv_assessment_result tool.
+- The 'score' field is an INTEGER on a 0-100 scale (NOT 0-10). If you are scoring out of 10 internally, multiply by 10 before returning.
+- The 'feedback_md' field MUST contain the markdown critique with these sections in this order: ## Strengths, ## Fatal Flaws, ## How to Fix It, ## Immediate Action Checklist (3-6 verb-led fixes).
+- DO NOT include a "# Score" line, "Score: X/10" line, or any other score statement inside feedback_md — the score is returned via the score field and rendered separately. Mentioning the score inside the markdown causes a duplicate display bug.`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -774,7 +788,20 @@ IMPORTANT: You MUST use the cv_assessment_result tool. The 'feedback_md' field M
         return new Response(JSON.stringify({ error: "AI did not return structured assessment" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const result = JSON.parse(toolCall.function.arguments);
-      return new Response(JSON.stringify({ ...result, intensity: level, model }), {
+      // Normalize score to 0-100 regardless of what the model returned.
+      let normalizedScore = Number(result.score);
+      if (!Number.isFinite(normalizedScore)) normalizedScore = 0;
+      if (normalizedScore > 0 && normalizedScore <= 10) normalizedScore = Math.round(normalizedScore * 10);
+      normalizedScore = Math.max(0, Math.min(100, Math.round(normalizedScore)));
+      // Strip any score lines from feedback_md (defense in depth — client also strips).
+      const cleanedFeedback = typeof result.feedback_md === "string"
+        ? result.feedback_md
+            .replace(/^\s*#{1,6}\s*Score\s*[:：].*$/gim, "")
+            .replace(/^\s*\**\s*Score\s*[:：]\s*\d+\s*\/?\s*\d*\s*\**\s*$/gim, "")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim()
+        : result.feedback_md;
+      return new Response(JSON.stringify({ ...result, score: normalizedScore, feedback_md: cleanedFeedback, intensity: level, model }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
