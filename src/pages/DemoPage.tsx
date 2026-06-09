@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import KanbanBoard from "@/components/KanbanBoard";
 import Dashboard from "@/components/Dashboard";
-import ListView from "@/components/ListView";
 import AddJobDialog from "@/components/AddJobDialog";
 import { Briefcase } from "lucide-react";
-import AIStudioView from "@/components/AIStudioView";
-import CalendarView from "@/components/CalendarView";
+import PipelineView from "@/components/PipelineView";
+import YouView, { type YouTab } from "@/components/YouView";
+import GlobalActivityTimeline from "@/components/GlobalActivityTimeline";
+import AIStudioOverlay from "@/components/AIStudioOverlay";
 import JobDetailPanel from "@/components/JobDetailPanel";
 import AIAssistPanel from "@/components/AIAssistPanel";
 import InterviewCoach from "@/components/InterviewCoach";
@@ -34,6 +34,8 @@ const DemoPage = () => {
   const { jobs, setJobs, addJob: rawAddJob, updateJob: rawUpdateJob, deleteJob: rawDeleteJob } = useGuestMode();
   // Demo lands users on Today — the coach view.
   const [view, setView] = useState<View>("today");
+  const [youTab, setYouTab] = useState<YouTab>("cv");
+  const [aiStudioOpen, setAiStudioOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -80,9 +82,17 @@ const DemoPage = () => {
       case "log_outcome":
       case "open_job": if (job) setPanelOpen(true); break;
       case "move_rejected": if (job) updateJob({ ...job, columnId: "rejected" }); break;
-      case "roast": setView("cv"); break;
+      case "roast": setYouTab("cv"); setView("you"); break;
       case "add_job": setDialogOpen(true); break;
-      case "view": if (action.targetView) setView(action.targetView as View); break;
+      case "view":
+        if (action.targetView === "ai") setAiStudioOpen(true);
+        else if (action.targetView === "board") setView("pipeline");
+        else if (action.targetView === "cv") { setYouTab("cv"); setView("you"); }
+        else if (action.targetView === "dashboard") { setYouTab("progression"); setView("you"); }
+        else if (action.targetView === "today" || action.targetView === "pipeline" || action.targetView === "you") {
+          setView(action.targetView);
+        }
+        break;
     }
   }, [jobs, updateJob]);
 
@@ -144,6 +154,7 @@ const DemoPage = () => {
         onImport={() => setImportOpen(true)}
         onExport={exportToCSV}
         onAddJob={addJob}
+        onOpenAIStudio={() => setAiStudioOpen(true)}
         isDemo
       />
 
@@ -168,27 +179,26 @@ const DemoPage = () => {
           </motion.div>
         ) : view === "today" ? (
           <TodayView key="today" jobs={jobs} cv={DEMO_USER_CV as UserCV} onAction={handleCornerAction} />
-        ) : view === "board" ? (
-          <KanbanBoard key="board" jobs={searchQuery ? filteredJobs : jobs} setJobs={setJobs} onUpdateJob={updateJob} onDeleteJob={deleteJob} onSwitchView={(v) => setView(v as View)} />
-        ) : view === "list" ? (
-          <ListView key="list" jobs={jobs} onSelectJob={handleSelectJob} searchQuery={searchQuery} />
-        ) : view === "dashboard" ? (
-          <Dashboard key="dashboard" jobs={filteredJobs} onUpdateJob={updateJob} />
-        ) : view === "cv" ? (
-          <DemoCVView key="cv" jobs={jobs} />
-        ) : view === "ai" ? (
-          <AIStudioView
-            key="ai"
-            jobs={filteredJobs}
-            onOpenCoach={(job) => { setSelectedJob(job); setCoachOpen(true); }}
-            onOpenBootcamp={(job) => { setSelectedJob(job); setBootcampOpen(true); }}
-            onOpenTailor={(job) => { setSelectedJob(job); setTailorOpen(true); }}
-            onOpenAI={(job) => { setSelectedJob(job); setAiPanelOpen(true); }}
-            onOpenScreenshot={() => setScreenshotOpen(true)}
-            onSwitchToCV={() => setView("cv")}
+        ) : view === "pipeline" ? (
+          <PipelineView
+            key="pipeline"
+            jobs={jobs}
+            filteredJobs={filteredJobs}
+            searchQuery={searchQuery}
+            setJobs={setJobs}
+            onUpdateJob={updateJob}
+            onDeleteJob={deleteJob}
+            onSelectJob={handleSelectJob}
+            onSwitchToYou={() => { setYouTab("cv"); setView("you"); }}
           />
         ) : (
-          <CalendarView key="calendar" jobs={filteredJobs} onSelectJob={handleSelectJob} />
+          <YouView
+            key="you"
+            defaultTab={youTab}
+            cvSlot={<DemoCVView jobs={jobs} />}
+            progressionSlot={<Dashboard jobs={filteredJobs} onUpdateJob={updateJob} />}
+            historySlot={<GlobalActivityTimeline jobs={jobs} onSelectJob={handleSelectJob} isDemo />}
+          />
         )}
       </AnimatePresence>
 
@@ -210,6 +220,17 @@ const DemoPage = () => {
       <CSVImportModal open={importOpen} onOpenChange={setImportOpen} onImportComplete={() => demoToast()} />
       <ScreenshotCaptureModal open={screenshotOpen} onOpenChange={setScreenshotOpen} onJobSaved={() => demoToast()} />
       <CommandPalette jobs={jobs} onSelectJob={handleSelectJob} onSwitchView={setView} onAddJob={() => setDialogOpen(true)} onExport={exportToCSV} />
+      <AIStudioOverlay
+        open={aiStudioOpen}
+        onOpenChange={setAiStudioOpen}
+        jobs={filteredJobs}
+        onOpenCoach={(job) => { setSelectedJob(job); setCoachOpen(true); }}
+        onOpenBootcamp={(job) => { setSelectedJob(job); setBootcampOpen(true); }}
+        onOpenTailor={(job) => { setSelectedJob(job); setTailorOpen(true); }}
+        onOpenAI={(job) => { setSelectedJob(job); setAiPanelOpen(true); }}
+        onOpenScreenshot={() => setScreenshotOpen(true)}
+        onSwitchToCV={() => { setYouTab("cv"); setView("you"); }}
+      />
     </div>
   );
 };

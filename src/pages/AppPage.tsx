@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import KanbanBoard from "@/components/KanbanBoard";
 import Dashboard from "@/components/Dashboard";
-import ListView from "@/components/ListView";
 import AddJobDialog from "@/components/AddJobDialog";
 import { Briefcase, X } from "lucide-react";
-import CalendarView from "@/components/CalendarView";
 import CVView from "@/components/CVView";
+import PipelineView from "@/components/PipelineView";
+import YouView, { type YouTab } from "@/components/YouView";
+import GlobalActivityTimeline from "@/components/GlobalActivityTimeline";
+import AIStudioOverlay from "@/components/AIStudioOverlay";
 import JobDetailPanel from "@/components/JobDetailPanel";
 import AIAssistPanel from "@/components/AIAssistPanel";
 import InterviewCoach from "@/components/InterviewCoach";
@@ -32,7 +33,6 @@ import { useUserCV } from "@/hooks/useUserCV";
 import { useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import AIStudioView from "@/components/AIStudioView";
 import { Camera, Flame, Upload, Plus } from "lucide-react";
 import TodayView from "@/components/TodayView";
 import type { CornerAction } from "@/lib/cornerLogic";
@@ -46,6 +46,8 @@ const AppPage = () => {
   const { stages } = useStages();
   const { jobs, loading, searchQuery, setSearchQuery, fetchJobs, addJob, updateJob, deleteJob, setJobs } = useJobStore();
   const [view, setView] = useState<View>("today");
+  const [youTab, setYouTab] = useState<YouTab>("cv");
+  const [aiStudioOpen, setAiStudioOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -138,13 +140,20 @@ const AppPage = () => {
         if (job) handleUpdateJob({ ...job, columnId: "rejected" });
         break;
       case "roast":
-        setView("cv");
+        setYouTab("cv");
+        setView("you");
         break;
       case "add_job":
         setDialogOpen(true);
         break;
       case "view":
-        if (action.targetView) setView(action.targetView as View);
+        if (action.targetView === "ai") setAiStudioOpen(true);
+        else if (action.targetView === "board") setView("pipeline");
+        else if (action.targetView === "cv") { setYouTab("cv"); setView("you"); }
+        else if (action.targetView === "dashboard") { setYouTab("progression"); setView("you"); }
+        else if (action.targetView === "today" || action.targetView === "pipeline" || action.targetView === "you") {
+          setView(action.targetView);
+        }
         break;
     }
   }, [jobs, handleUpdateJob]);
@@ -210,6 +219,7 @@ const AppPage = () => {
         onImport={() => setImportOpen(true)}
         onExport={exportToCSV}
         onAddJob={handleAddJob}
+        onOpenAIStudio={() => setAiStudioOpen(true)}
       />
 
       {/* Soft CV onboarding banner for legacy users */}
@@ -255,7 +265,7 @@ const AppPage = () => {
               <Camera className="h-5 w-5 text-purple-500" />
               <span className="text-[11px] text-muted-foreground text-center leading-tight">Screenshot a job listing</span>
             </button>
-            <button onClick={() => setView("cv")} className="flex flex-col items-center gap-1.5 rounded-xl border border-border glass p-3 w-28 hover:border-border/80 transition-all glow-hover">
+            <button onClick={() => { setYouTab("cv"); setView("you"); }} className="flex flex-col items-center gap-1.5 rounded-xl border border-border glass p-3 w-28 hover:border-border/80 transition-all glow-hover">
               <Flame className="h-5 w-5 text-amber-500" />
               <span className="text-[11px] text-muted-foreground text-center leading-tight">Roast your CV first</span>
             </button>
@@ -268,26 +278,33 @@ const AppPage = () => {
         </motion.div>
       ) : view === "today" ? (
         <TodayView jobs={jobs} cv={cv ?? null} onAction={handleCornerAction} />
-      ) : view === "ai" ? (
-        <AIStudioView
-          jobs={filteredJobs}
-          onOpenCoach={(job) => { setSelectedJob(job); setCoachOpen(true); }}
-          onOpenBootcamp={(job) => { setSelectedJob(job); setBootcampOpen(true); }}
-          onOpenTailor={(job) => { setSelectedJob(job); setTailorOpen(true); }}
-          onOpenAI={(job) => { setSelectedJob(job); setAiPanelOpen(true); }}
-          onOpenScreenshot={() => setScreenshotOpen(true)}
-          onSwitchToCV={() => setView("cv")}
+      ) : view === "pipeline" ? (
+        <PipelineView
+          jobs={jobs}
+          filteredJobs={filteredJobs}
+          searchQuery={searchQuery}
+          setJobs={setJobs}
+          onUpdateJob={handleUpdateJob}
+          onDeleteJob={handleDeleteJob}
+          onSelectJob={handleSelectJob}
+          onSwitchToYou={() => { setYouTab("cv"); setView("you"); }}
         />
-      ) : view === "board" ? (
-        <KanbanBoard jobs={searchQuery ? filteredJobs : jobs} setJobs={setJobs} onUpdateJob={handleUpdateJob} onDeleteJob={handleDeleteJob} onSwitchView={(v) => setView(v as View)} />
-      ) : view === "list" ? (
-        <ListView jobs={jobs} onSelectJob={handleSelectJob} searchQuery={searchQuery} />
-      ) : view === "dashboard" ? (
-        <Dashboard jobs={filteredJobs} onUpdateJob={handleUpdateJob} onFilterByStage={(stageId) => { const col = stages.find((c) => c.id === stageId); if (col) { setSearchQuery(col.title); setView("list"); } }} />
-      ) : view === "cv" ? (
-        <CVView jobs={filteredJobs} onSelectJob={handleSelectJob} />
       ) : (
-        <CalendarView jobs={filteredJobs} onSelectJob={handleSelectJob} />
+        <YouView
+          defaultTab={youTab}
+          cvSlot={<CVView jobs={filteredJobs} onSelectJob={handleSelectJob} />}
+          progressionSlot={
+            <Dashboard
+              jobs={filteredJobs}
+              onUpdateJob={handleUpdateJob}
+              onFilterByStage={(stageId) => {
+                const col = stages.find((c) => c.id === stageId);
+                if (col) { setSearchQuery(col.title); setView("pipeline"); }
+              }}
+            />
+          }
+          historySlot={<GlobalActivityTimeline jobs={jobs} onSelectJob={handleSelectJob} />}
+        />
       )}
 
       {/* Mobile FAB */}
@@ -311,6 +328,17 @@ const AppPage = () => {
       <CSVImportModal open={importOpen} onOpenChange={setImportOpen} onImportComplete={() => { if (user) fetchJobs(user.id); }} />
       <ScreenshotCaptureModal open={screenshotOpen} onOpenChange={setScreenshotOpen} onJobSaved={() => { if (user) fetchJobs(user.id); }} />
       <CommandPalette jobs={jobs} onSelectJob={handleSelectJob} onSwitchView={setView} onAddJob={() => setDialogOpen(true)} onExport={exportToCSV} />
+      <AIStudioOverlay
+        open={aiStudioOpen}
+        onOpenChange={setAiStudioOpen}
+        jobs={filteredJobs}
+        onOpenCoach={(job) => { setSelectedJob(job); setCoachOpen(true); }}
+        onOpenBootcamp={(job) => { setSelectedJob(job); setBootcampOpen(true); }}
+        onOpenTailor={(job) => { setSelectedJob(job); setTailorOpen(true); }}
+        onOpenAI={(job) => { setSelectedJob(job); setAiPanelOpen(true); }}
+        onOpenScreenshot={() => setScreenshotOpen(true)}
+        onSwitchToCV={() => { setYouTab("cv"); setView("you"); }}
+      />
       <OnboardingTour active={tour.active} step={tour.step} currentStep={tour.currentStep} totalSteps={tour.totalSteps} onAdvance={tour.advance} onSkip={tour.skip} />
     </div>
   );
