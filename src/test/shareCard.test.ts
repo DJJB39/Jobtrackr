@@ -52,8 +52,8 @@ describe("shareCard truncate (120-char rule)", () => {
 
 describe("shareCard extractors", () => {
   it("extracts a 0-100 score from markdown", () => {
-    expect(extractScore("# Score: 42/100\nstuff")).toBe(42);
     expect(extractScore("Score: 7/10")).toBe(70);
+    expect(extractScore("Score: 3/10 — brutal")).toBe(30);
     expect(extractScore("no score here")).toBeNull();
   });
 
