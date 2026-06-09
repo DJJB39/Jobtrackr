@@ -62,7 +62,8 @@ const BreakdownBar = ({ label, score }: { label: string; score: number }) => {
 
 const InterviewCoach = ({ job, open, onOpenChange, preferredModel, onUsageIncrement, isLimitReached }: InterviewCoachProps) => {
   const coach = useInterviewCoach(preferredModel, onUsageIncrement);
-  const [useTextInput, setUseTextInput] = useState(!coach.hasSpeechRecognition);
+  const voiceUnavailable = !coach.hasSpeechRecognition || !coach.hasSpeechSynthesis;
+  const [useTextInput, setUseTextInput] = useState(voiceUnavailable);
 
   const modelLabel = coach.lastModel ? AI_MODELS.find((m) => m.id === coach.lastModel)?.label : null;
 
@@ -181,21 +182,29 @@ const InterviewCoach = ({ job, open, onOpenChange, preferredModel, onUsageIncrem
                   <div className="rounded-xl border border-border/50 bg-card/60 p-5 space-y-3">
                     <p className="text-lg font-semibold text-foreground leading-relaxed">{coach.currentQuestion.question}</p>
                     <p className="text-xs text-muted-foreground/70 italic">💡 {coach.currentQuestion.tip}</p>
-                    <Button
-                      variant="ghost" size="sm"
-                      onClick={() => coach.speakQuestion(coach.currentQuestion!.question)}
-                      disabled={coach.state === "speaking"}
-                      className="gap-1.5 text-xs"
-                    >
-                      <Volume2 className="h-3.5 w-3.5" />
-                      {coach.state === "speaking" ? "Speaking…" : "Listen"}
-                    </Button>
+                    {coach.hasSpeechSynthesis && (
+                      <Button
+                        variant="ghost" size="sm"
+                        onClick={() => coach.speakQuestion(coach.currentQuestion!.question)}
+                        disabled={coach.state === "speaking"}
+                        className="gap-1.5 text-xs"
+                      >
+                        <Volume2 className="h-3.5 w-3.5" />
+                        {coach.state === "speaking" ? "Speaking…" : "Listen"}
+                      </Button>
+                    )}
                   </div>
+
+                  {voiceUnavailable && (
+                    <p className="text-xs font-mono text-muted-foreground">
+                      Voice spar needs Chrome. Text spar is live.
+                    </p>
+                  )}
 
                   {/* Answer area — only show if no feedback yet for this question */}
                   {coach.state !== "analyzing" && !feedbackForCurrent && (
                     <div className="space-y-4">
-                      {!useTextInput && coach.hasSpeechRecognition ? (
+                      {!useTextInput && !voiceUnavailable ? (
                         <div className="flex flex-col items-center gap-4">
                           <button
                             onClick={coach.isListening ? coach.stopListening : coach.startListening}
@@ -237,7 +246,7 @@ const InterviewCoach = ({ job, open, onOpenChange, preferredModel, onUsageIncrem
                             rows={4}
                             className="resize-none"
                           />
-                          {coach.hasSpeechRecognition && (
+                          {!voiceUnavailable && (
                             <button onClick={() => setUseTextInput(false)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                               <Mic className="h-3 w-3" /> Use voice instead
                             </button>
