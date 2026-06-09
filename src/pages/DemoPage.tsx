@@ -242,6 +242,14 @@ const DemoPage = () => {
         onOpenScreenshot={() => setScreenshotOpen(true)}
         onSwitchToCV={() => { setYouTab("cv"); setView("you"); }}
       />
+      <OnboardingTour
+        active={tour.active}
+        step={tour.step}
+        currentStep={tour.currentStep}
+        totalSteps={tour.totalSteps}
+        onAdvance={tour.advance}
+        onSkip={tour.skip}
+      />
     </div>
   );
 };
