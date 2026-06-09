@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
-import { Briefcase, Columns3, Download, CalendarDays, X, List, Search, FileUp, Upload, LayoutDashboard, ArrowLeft, Sparkles, Target } from "lucide-react";
+import { Briefcase, Columns3, Download, X, Search, Upload, ArrowLeft, Sparkles, Target, User } from "lucide-react";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
 import ShareStats from "@/components/ShareStats";
@@ -9,16 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import type { JobApplication, ColumnId } from "@/types/job";
 
-export type View = "today" | "board" | "dashboard" | "calendar" | "list" | "cv" | "ai";
+export type View = "today" | "pipeline" | "you";
 
 export const VIEW_ITEMS = [
   { key: "today" as View, icon: Target, label: "Today" },
-  { key: "board" as View, icon: Columns3, label: "Board" },
-  { key: "list" as View, icon: List, label: "List" },
-  { key: "dashboard" as View, icon: LayoutDashboard, label: "Insights" },
-  { key: "calendar" as View, icon: CalendarDays, label: "Calendar" },
-  { key: "cv" as View, icon: FileUp, label: "CV" },
-  { key: "ai" as View, icon: Sparkles, label: "AI Studio" },
+  { key: "pipeline" as View, icon: Columns3, label: "Pipeline" },
+  { key: "you" as View, icon: User, label: "You" },
 ];
 
 interface AppHeaderProps {
@@ -34,12 +30,13 @@ interface AppHeaderProps {
   onAddJob: (company: string, role: string, columnId: ColumnId, applicationType?: string, extras?: {
     location?: string; description?: string; links?: string[]; salary?: string; closeDate?: string;
   }) => void;
+  onOpenAIStudio: () => void;
   isDemo?: boolean;
 }
 
 const AppHeader = memo(({
   jobs, searchQuery, setSearchQuery, view, setView,
-  searchPulse, isMac, onImport, onExport, onAddJob, isDemo,
+  searchPulse, isMac, onImport, onExport, onAddJob, onOpenAIStudio, isDemo,
 }: AppHeaderProps) => {
   return (
     <>
@@ -134,7 +131,7 @@ const AppHeader = memo(({
 
             {/* Mobile view switcher */}
             <div className="flex sm:hidden items-center rounded-xl border border-border/50 bg-secondary/30 p-0.5 mr-1">
-              {VIEW_ITEMS.filter(({ key }) => key !== "list").map(({ key, icon: Icon }) => (
+              {VIEW_ITEMS.map(({ key, icon: Icon }) => (
                 <button
                   key={key}
                   onClick={() => setView(key)}
@@ -158,17 +155,16 @@ const AppHeader = memo(({
                 <span>Export</span>
               </Button>
             </div>
-            {!isDemo && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="hidden sm:flex gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
-                onClick={() => setView("ai")}
-              >
-                <Sparkles className="h-4 w-4" />
-                <span className="hidden sm:inline">AI Studio</span>
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              data-tour="ai-studio-button"
+              className="gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
+              onClick={onOpenAIStudio}
+            >
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">AI Studio</span>
+            </Button>
             <div data-tour="add-button" className="hidden sm:block">
               <AddJobDialog onAdd={onAddJob} jobs={jobs} />
             </div>

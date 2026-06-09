@@ -7,19 +7,20 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { Briefcase, LayoutDashboard, Columns3, CalendarDays, Download, Plus, List } from "lucide-react";
+import { Briefcase, Columns3, Download, Plus, User, Sparkles, Target } from "lucide-react";
 import type { JobApplication } from "@/types/job";
 import { useStages } from "@/hooks/useStages";
 
 interface CommandPaletteProps {
   jobs: JobApplication[];
   onSelectJob: (job: JobApplication) => void;
-  onSwitchView: (view: "board" | "dashboard" | "calendar" | "list") => void;
+  onSwitchView: (view: "today" | "pipeline" | "you") => void;
   onAddJob: () => void;
   onExport: () => void;
+  onOpenAIStudio?: () => void;
 }
 
-const CommandPalette = ({ jobs, onSelectJob, onSwitchView, onAddJob, onExport }: CommandPaletteProps) => {
+const CommandPalette = ({ jobs, onSelectJob, onSwitchView, onAddJob, onExport, onOpenAIStudio }: CommandPaletteProps) => {
   const { stages } = useStages();
   const [open, setOpen] = useState(false);
 
@@ -52,22 +53,24 @@ const CommandPalette = ({ jobs, onSelectJob, onSwitchView, onAddJob, onExport }:
             <Plus className="mr-2 h-4 w-4" />
             Add New Application
           </CommandItem>
-          <CommandItem onSelect={() => { onSwitchView("board"); setOpen(false); }}>
+          <CommandItem onSelect={() => { onSwitchView("today"); setOpen(false); }}>
+            <Target className="mr-2 h-4 w-4" />
+            Switch to Today
+          </CommandItem>
+          <CommandItem onSelect={() => { onSwitchView("pipeline"); setOpen(false); }}>
             <Columns3 className="mr-2 h-4 w-4" />
-            Switch to Board
+            Switch to Pipeline
           </CommandItem>
-          <CommandItem onSelect={() => { onSwitchView("dashboard"); setOpen(false); }}>
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            Switch to Dashboard
+          <CommandItem onSelect={() => { onSwitchView("you"); setOpen(false); }}>
+            <User className="mr-2 h-4 w-4" />
+            Switch to You
           </CommandItem>
-          <CommandItem onSelect={() => { onSwitchView("calendar"); setOpen(false); }}>
-            <CalendarDays className="mr-2 h-4 w-4" />
-            Switch to Calendar
-          </CommandItem>
-          <CommandItem onSelect={() => { onSwitchView("list"); setOpen(false); }}>
-            <List className="mr-2 h-4 w-4" />
-            Switch to List
-          </CommandItem>
+          {onOpenAIStudio && (
+            <CommandItem onSelect={() => { onOpenAIStudio(); setOpen(false); }}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Open AI Studio
+            </CommandItem>
+          )}
           <CommandItem onSelect={() => { onExport(); setOpen(false); }}>
             <Download className="mr-2 h-4 w-4" />
             Export CSV

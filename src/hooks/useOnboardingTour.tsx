@@ -13,7 +13,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     target: "kanban-column",
     title: "Your Pipeline",
-    description: "This is your pipeline. Drag jobs between stages as you progress.",
+    description: "Pipeline holds Kanban, List, and Calendar — toggle between them at the top.",
   },
   {
     target: "add-button",
@@ -27,8 +27,8 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     target: "view-switcher",
-    title: "Multiple Views",
-    description: "Switch between Board, List, Insights, Calendar, and CV views.",
+    title: "Three Surfaces",
+    description: "Today is your coach. Pipeline tracks jobs. You holds CV, progression, and history.",
   },
   {
     target: "search-input",
@@ -36,9 +36,9 @@ export const TOUR_STEPS: TourStep[] = [
     description: "Search all your applications instantly. Try ⌘K too.",
   },
   {
-    target: "cv-tab",
-    title: "Get Your CV Brutally Roasted",
-    description: "Upload CV, get savage roast + fix checklist (demo shows sample).",
+    target: "ai-studio-button",
+    title: "AI Studio, anywhere",
+    description: "Open the AI Studio overlay from any view — Coach, Roast, Tailor, Cover, Bootcamp, Screenshot.",
   },
 ];
 
