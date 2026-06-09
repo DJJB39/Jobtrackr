@@ -2,12 +2,11 @@ import { useMemo, useState } from "react";
 import { type JobApplication, type ColumnId } from "@/types/job";
 import { useStages } from "@/hooks/useStages";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  AreaChart, Area, PieChart, Pie, Legend, FunnelChart, Funnel, LabelList,
+  XAxis, YAxis, Tooltip, ResponsiveContainer,
+  LineChart, Line, FunnelChart, Funnel, LabelList, CartesianGrid,
 } from "recharts";
-import { TrendingUp, Activity, Layers, CalendarDays, Zap, AlertTriangle, Ghost } from "lucide-react";
-import Achievements from "./Achievements";
-import { parseISO, format, isBefore, startOfDay, subWeeks, startOfWeek, endOfWeek, differenceInDays } from "date-fns";
+import { Activity, CalendarDays, AlertTriangle, Ghost, Flame, Dumbbell } from "lucide-react";
+import { parseISO, format, startOfDay, differenceInDays } from "date-fns";
 import {
   getStaleJobs as cornerStale,
   getGhostJobs as cornerGhosts,
@@ -18,23 +17,21 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import JobDetailPanel from "./JobDetailPanel";
+import { useUserCV, type UserCV } from "@/hooks/useUserCV";
+import { useSparHistory } from "@/hooks/useSparHistory";
 
 interface DashboardProps {
   jobs: JobApplication[];
   onUpdateJob?: (job: JobApplication) => void;
   onFilterByStage?: (stageId: ColumnId) => void;
+  /** Optional CV override (demo mode). When omitted, loads from useUserCV. */
+  cv?: UserCV | null;
+  /** Optional spar history override (demo mode). */
+  sparOverride?: { date: string; score: number }[];
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  found: "hsl(215, 80%, 55%)",
-  applied: "hsl(262, 60%, 55%)",
-  phone: "hsl(190, 75%, 42%)",
-  interview2: "hsl(36, 95%, 54%)",
-  final: "hsl(24, 85%, 52%)",
-  offer: "hsl(142, 60%, 42%)",
-  accepted: "hsl(142, 72%, 35%)",
-  rejected: "hsl(0, 72%, 51%)",
-};
+const AMBER = "hsl(36, 95%, 54%)";
+const STEEL = "hsl(215, 25%, 70%)";
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   interview: "Interview",
@@ -52,13 +49,6 @@ interface UpcomingItem {
   type: string;
 }
 
-const STAT_ACCENTS = {
-  gold: "hsl(36, 95%, 54%)",
-  blue: "hsl(215, 80%, 55%)",
-  purple: "hsl(262, 60%, 55%)",
-  green: "hsl(142, 60%, 42%)",
-};
-
 const FUNNEL_STAGES: { id: ColumnId; label: string; color: string }[] = [
   { id: "found", label: "Found", color: "hsl(215, 80%, 55%)" },
   { id: "applied", label: "Applied", color: "hsl(262, 60%, 55%)" },
@@ -69,25 +59,14 @@ const FUNNEL_STAGES: { id: ColumnId; label: string; color: string }[] = [
   { id: "accepted", label: "Accepted", color: "hsl(142, 72%, 35%)" },
 ];
 
-const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
+const Dashboard = ({ jobs, onUpdateJob, onFilterByStage, cv: cvProp, sparOverride }: DashboardProps) => {
   const { stages } = useStages();
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
-
-  const stats = useMemo(() => {
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const thisWeek = jobs.filter((j) => new Date(j.createdAt) >= weekAgo);
-    const active = jobs.filter((j) => j.columnId !== "found" && j.columnId !== "rejected");
-    const pastApplied = jobs.filter((j) => !["found", "rejected"].includes(j.columnId));
-    const funnelDropOff = jobs.length > 0 ? Math.round((pastApplied.length / jobs.length) * 100) : 0;
-    const breakdown = stages.map((col) => ({
-      name: col.title,
-      count: jobs.filter((j) => j.columnId === col.id).length,
-      id: col.id,
-    }));
-    return { thisWeek: thisWeek.length, active: active.length, funnelDropOff, breakdown, total: jobs.length };
-  }, [jobs, stages]);
+  const { cv: loadedCv } = useUserCV();
+  const cv = cvProp !== undefined ? cvProp : loadedCv;
+  const { points: sparPoints } = useSparHistory();
+  const spar = sparOverride ?? sparPoints;
 
   // Conversion funnel data — cumulative count at each stage or beyond
   const funnelData = useMemo(() => {
@@ -105,20 +84,53 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
   const staleJobs = useMemo(() => cornerStale(jobs).slice(0, 5), [jobs]);
   const ghostJobs = useMemo(() => cornerGhosts(jobs).slice(0, 5), [jobs]);
 
-  const weeklyData = useMemo(() => {
-    const weeks: { week: string; count: number }[] = [];
-    for (let i = 7; i >= 0; i--) {
-      const ws = startOfWeek(subWeeks(new Date(), i));
-      const we = endOfWeek(ws);
-      const label = format(ws, "MMM d");
-      const count = jobs.filter((j) => {
-        const d = new Date(j.createdAt);
-        return d >= ws && d <= we;
-      }).length;
-      weeks.push({ week: label, count });
+  // Roast score over time. Without a dedicated history table we plot whatever
+  // scored snapshots exist on the user_cvs row, oldest first.
+  const roastSeries = useMemo(() => {
+    if (!cv) return [] as { label: string; score: number }[];
+    const out: { label: string; score: number; t: number }[] = [];
+    if (cv.original_score != null) {
+      const t = cv.created_at ? new Date(cv.created_at).getTime() : 0;
+      out.push({ label: "Original", score: cv.original_score, t });
     }
-    return weeks;
+    if (cv.cleaned_score != null) {
+      const t = cv.updated_at ? new Date(cv.updated_at).getTime() : Date.now();
+      out.push({ label: "Cleaned", score: cv.cleaned_score, t });
+    }
+    out.sort((a, b) => a.t - b.t);
+    return out.map(({ label, score }) => ({ label, score }));
+  }, [cv]);
+
+  // Spar trend — chronological scores from interview_sessions.
+  const sparSeries = useMemo(() => {
+    return spar.map((p, i) => ({
+      label: p.date ? format(new Date(p.date), "MMM d") : `#${i + 1}`,
+      score: p.score,
+    }));
+  }, [spar]);
+
+  // Response rate — % of applied jobs that produced ANY event within 14 days.
+  const responseRate = useMemo(() => {
+    const applied = jobs.filter((j) => j.columnId !== "found");
+    if (applied.length === 0) return { pct: null as number | null, responded: 0, total: 0 };
+    const responded = applied.filter((j) => {
+      const appliedAt = new Date(j.createdAt).getTime();
+      const cutoff = appliedAt + 14 * 86400000;
+      return (j.events ?? []).some((e) => {
+        const created = e.createdAt ? new Date(e.createdAt).getTime() : NaN;
+        const dated = e.date ? parseISO(e.date).getTime() : NaN;
+        const t = !Number.isNaN(created) ? created : dated;
+        if (Number.isNaN(t)) return false;
+        return t >= appliedAt && t <= cutoff;
+      });
+    }).length;
+    return { pct: Math.round((responded / applied.length) * 100), responded, total: applied.length };
   }, [jobs]);
+
+  // Roast delta for the headline stat
+  const roastDelta = roastSeries.length >= 2 ? roastSeries[roastSeries.length - 1].score - roastSeries[0].score : null;
+  const latestRoast = roastSeries.length ? roastSeries[roastSeries.length - 1].score : null;
+  const latestSpar = sparSeries.length ? sparSeries[sparSeries.length - 1].score : null;
 
   const upcomingItems = useMemo(() => {
     const items: UpcomingItem[] = cornerUpcoming(jobs, 14);
@@ -138,95 +150,102 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
       <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left column */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Stat cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <StatCard icon={<TrendingUp className="h-4 w-4" />} label="This Week" value={stats.thisWeek} sub={`of ${stats.total} total`} accentColor={STAT_ACCENTS.gold} />
-            <StatCard icon={<Zap className="h-4 w-4" />} label="Active" value={stats.active} sub="in pipeline" accentColor={STAT_ACCENTS.green} />
-            <StatCard icon={<Activity className="h-4 w-4" />} label="Funnel Rate" value={`${stats.funnelDropOff}%`} sub="moved past Found" accentColor={STAT_ACCENTS.blue} />
-            <StatCard icon={<Layers className="h-4 w-4" />} label="Total" value={stats.total} sub={`${stages.length} stages`} accentColor={STAT_ACCENTS.purple} />
+          {/* Fighter's record header stats — mono, terse */}
+          <div className="grid grid-cols-3 gap-4">
+            <RecordStat
+              icon={<Flame className="h-4 w-4" />}
+              label="Roast"
+              value={latestRoast != null ? `${latestRoast}` : "—"}
+              sub={roastDelta != null ? `${roastDelta >= 0 ? "+" : ""}${roastDelta} since first` : "no scored CV"}
+            />
+            <RecordStat
+              icon={<Dumbbell className="h-4 w-4" />}
+              label="Spar"
+              value={latestSpar != null ? `${latestSpar}` : "—"}
+              sub={spar.length ? `${spar.length} session${spar.length === 1 ? "" : "s"}` : "no sessions"}
+            />
+            <RecordStat
+              icon={<Activity className="h-4 w-4" />}
+              label="Response Rate"
+              value={responseRate.pct != null ? `${responseRate.pct}%` : "—"}
+              sub={responseRate.total > 0 ? `${responseRate.responded}/${responseRate.total} replied in 14d` : "no applications"}
+            />
           </div>
 
-          {/* Conversion Funnel */}
+          {/* Roast score over time */}
           <Card className="glass-card">
             <CardHeader className="pb-2">
-              <h3 className="text-sm font-semibold text-foreground">Conversion Funnel</h3>
-              <p className="text-[10px] text-muted-foreground">Candidates at or beyond each stage (excl. rejected)</p>
+              <h3 className="text-xs font-mono uppercase tracking-wider text-foreground">Roast / over time</h3>
+              <p className="text-[10px] font-mono text-muted-foreground">Lower means weaker. Step on the scales regularly.</p>
             </CardHeader>
             <CardContent>
-              <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <FunnelChart>
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Funnel dataKey="value" data={funnelData} isAnimationActive>
-                      <LabelList position="right" fill="hsl(var(--foreground))" stroke="none" fontSize={11} />
-                      <LabelList position="center" fill="hsl(var(--foreground))" stroke="none" fontSize={12} dataKey="value" />
-                    </Funnel>
-                  </FunnelChart>
-                </ResponsiveContainer>
+              <div className="h-48">
+                {roastSeries.length >= 1 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={roastSeries} margin={{ top: 10, right: 16, bottom: 0, left: -20 }}>
+                      <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="2 4" vertical={false} />
+                      <XAxis dataKey="label" tick={{ fontSize: 10, fontFamily: "ui-monospace, monospace", fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 10, fontFamily: "ui-monospace, monospace", fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={tooltipStyle} />
+                      <Line type="monotone" dataKey="score" stroke={AMBER} strokeWidth={2} dot={{ r: 4, fill: AMBER, stroke: AMBER }} activeDot={{ r: 6 }} isAnimationActive={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <EmptyChart label="No roast on record. Get scored to start the trend." />
+                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Area chart */}
-          {weeklyData.length > 1 && (
-            <Card className="glass-card">
-              <CardHeader className="pb-2">
-                <h3 className="text-sm font-semibold text-foreground">Applications By Week</h3>
-              </CardHeader>
-              <CardContent>
-                <div className="h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={weeklyData} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
-                      <defs>
-                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(36, 95%, 54%)" stopOpacity={0.4} />
-                          <stop offset="95%" stopColor="hsl(36, 95%, 54%)" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="week" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Area type="monotone" dataKey="count" stroke="hsl(36, 95%, 54%)" fillOpacity={1} fill="url(#colorCount)" strokeWidth={2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Interactive bar chart — full width */}
+          {/* Spar performance trend */}
           <Card className="glass-card">
-              <CardHeader className="pb-2">
-                <h3 className="text-sm font-semibold text-foreground">By Stage</h3>
-                {onFilterByStage && <p className="text-[10px] text-muted-foreground">Click a bar to filter board</p>}
-              </CardHeader>
-              <CardContent>
-                <div className="h-56">
+            <CardHeader className="pb-2">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-foreground">Spar / performance</h3>
+              <p className="text-[10px] font-mono text-muted-foreground">Interview Coach session scores, chronological.</p>
+            </CardHeader>
+            <CardContent>
+              <div className="h-48">
+                {sparSeries.length >= 1 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={stats.breakdown}
-                      margin={{ top: 0, right: 0, bottom: 0, left: -20 }}
-                      onClick={(data) => {
-                        if (data?.activePayload?.[0] && onFilterByStage) {
-                          const stageId = data.activePayload[0].payload.id as ColumnId;
-                          onFilterByStage(stageId);
-                        }
-                      }}
-                      style={{ cursor: onFilterByStage ? "pointer" : "default" }}
-                    >
-                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                    <LineChart data={sparSeries} margin={{ top: 10, right: 16, bottom: 0, left: -20 }}>
+                      <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="2 4" vertical={false} />
+                      <XAxis dataKey="label" tick={{ fontSize: 10, fontFamily: "ui-monospace, monospace", fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 10, fontFamily: "ui-monospace, monospace", fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={tooltipStyle} />
-                      <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                        {stats.breakdown.map((entry) => (
-                          <Cell key={entry.id} fill={STATUS_COLORS[entry.id]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
+                      <Line type="monotone" dataKey="score" stroke={STEEL} strokeWidth={2} dot={{ r: 3, fill: STEEL, stroke: STEEL }} activeDot={{ r: 5 }} isAnimationActive={false} />
+                    </LineChart>
                   </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+                ) : (
+                  <EmptyChart label="No spars logged. Open the Coach to record one." />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Conversion Funnel */}
+          <Card className="glass-card">
+            <CardHeader className="pb-2">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-foreground">Conversion / funnel</h3>
+              <p className="text-[10px] font-mono text-muted-foreground">Applications at or beyond each stage. Empty stages hidden.</p>
+            </CardHeader>
+            <CardContent>
+              <div className="h-56">
+                {funnelData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <FunnelChart>
+                      <Tooltip contentStyle={tooltipStyle} />
+                      <Funnel dataKey="value" data={funnelData} isAnimationActive={false}>
+                        <LabelList position="right" fill="hsl(var(--foreground))" stroke="none" fontSize={11} />
+                        <LabelList position="center" fill="hsl(var(--foreground))" stroke="none" fontSize={12} dataKey="value" />
+                      </Funnel>
+                    </FunnelChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <EmptyChart label="Add applications to build a funnel." />
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Stale & Ghost alerts row */}
           {(staleJobs.length > 0 || ghostJobs.length > 0) && (
@@ -236,10 +255,10 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
                   <CardHeader className="pb-2">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-[hsl(36,95%,54%)]" />
-                      <h3 className="text-sm font-semibold text-foreground">Stale Applications</h3>
+                      <h3 className="text-xs font-mono uppercase tracking-wider text-foreground">Stale</h3>
                       <Badge variant="outline" className="ml-auto text-[10px]">{staleJobs.length}</Badge>
                     </div>
-                    <p className="text-[10px] text-muted-foreground">No activity for {STALE_THRESHOLD_DAYS}+ days</p>
+                    <p className="text-[10px] font-mono text-muted-foreground">No activity for {STALE_THRESHOLD_DAYS}+ days</p>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-1.5">
@@ -268,10 +287,10 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
                   <CardHeader className="pb-2">
                     <div className="flex items-center gap-2">
                       <Ghost className="h-4 w-4 text-[hsl(262,60%,55%)]" />
-                      <h3 className="text-sm font-semibold text-foreground">Possible Ghosting</h3>
+                      <h3 className="text-xs font-mono uppercase tracking-wider text-foreground">Ghosted</h3>
                       <Badge variant="outline" className="ml-auto text-[10px]">{ghostJobs.length}</Badge>
                     </div>
-                    <p className="text-[10px] text-muted-foreground">Applied/Phone with no events for {GHOST_THRESHOLD_DAYS}+ days</p>
+                    <p className="text-[10px] font-mono text-muted-foreground">No events for {GHOST_THRESHOLD_DAYS}+ days</p>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-1.5">
@@ -303,10 +322,10 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
           <Card className="sticky top-6 glass-card">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ backgroundColor: STAT_ACCENTS.gold + "20" }}>
-                  <CalendarDays className="h-4 w-4" style={{ color: STAT_ACCENTS.gold }} />
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ backgroundColor: AMBER + "20" }}>
+                  <CalendarDays className="h-4 w-4" style={{ color: AMBER }} />
                 </div>
-                <span className="text-xs font-medium uppercase tracking-wider">Upcoming</span>
+                <span className="text-xs font-mono uppercase tracking-wider">Upcoming</span>
               </div>
             </CardHeader>
             <CardContent>
@@ -331,19 +350,10 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
                   })}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground italic">Nothing upcoming</p>
+                <p className="text-xs font-mono text-muted-foreground">Nothing upcoming.</p>
               )}
             </CardContent>
           </Card>
-
-          {/* Achievements — only for power users */}
-          {jobs.length >= 10 && (
-            <Card className="mt-4 glass-card">
-              <CardContent className="pt-5">
-                <Achievements jobs={jobs} />
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
 
@@ -357,15 +367,19 @@ const Dashboard = ({ jobs, onUpdateJob, onFilterByStage }: DashboardProps) => {
   );
 };
 
-const StatCard = ({ icon, label, value, sub, accentColor }: { icon: React.ReactNode; label: string; value: string | number; sub: string; accentColor: string }) => (
-  <div className="rounded-xl glass-card p-4" style={{ borderLeftColor: accentColor, borderLeftWidth: 3 }}>
-    <div className="flex items-center gap-2 mb-1.5">
-      <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ backgroundColor: accentColor + "20", color: accentColor }}>{icon}</div>
-      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
+const RecordStat = ({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub: string }) => (
+  <div className="rounded-xl glass-card p-4 border-l-2 border-[hsl(36,95%,54%)]/60">
+    <div className="flex items-center gap-2 mb-1.5 text-muted-foreground">
+      {icon}
+      <span className="text-[10px] font-mono uppercase tracking-wider">{label}</span>
     </div>
-    <p className="text-2xl font-bold text-foreground font-mono">{value}</p>
-    <p className="mt-0.5 text-[10px] text-muted-foreground">{sub}</p>
+    <p className="text-2xl font-mono text-foreground">{value}</p>
+    <p className="mt-0.5 text-[10px] font-mono text-muted-foreground">{sub}</p>
   </div>
+);
+
+const EmptyChart = ({ label }: { label: string }) => (
+  <div className="h-full flex items-center justify-center text-[11px] font-mono text-muted-foreground">{label}</div>
 );
 
 export default Dashboard;
