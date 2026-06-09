@@ -18,6 +18,8 @@ import { useRuthlessReview, INTENSITY_OPTIONS } from "@/hooks/useRuthlessReview"
 import { useAIGeneration } from "@/hooks/useAIGeneration";
 import { useAIPreferences } from "@/hooks/useAIPreferences";
 import { Badge } from "@/components/ui/badge";
+import ShareScoreButton from "@/components/ShareScoreButton";
+import { extractRoastLine, extractScore } from "@/lib/shareCard";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assist`;
 
@@ -609,6 +611,13 @@ const CVView = ({ jobs, onSelectJob }: CVViewProps) => {
             >
               <RefreshCw className="h-4 w-4" /> Retry
             </Button>
+            {ruthless.ruthlessText && !ruthless.ruthlessLoading && (
+              <ShareScoreButton
+                score={extractScore(ruthless.ruthlessText)}
+                line={extractRoastLine(ruthless.ruthlessText)}
+                label="Share my score"
+              />
+            )}
           </SheetFooter>
         </SheetContent>
       </Sheet>
