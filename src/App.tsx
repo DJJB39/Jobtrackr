@@ -20,6 +20,7 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Roast = lazy(() => import("./pages/Roast"));
 import RequireOnboarding from "@/components/RequireOnboarding";
 
 const queryClient = new QueryClient();
@@ -49,6 +50,7 @@ const App = () => (
                   <Route path="/" element={<Landing />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/demo" element={<DemoPage />} />
+                  <Route path="/roast" element={<Roast />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
