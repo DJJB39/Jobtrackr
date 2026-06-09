@@ -26,11 +26,50 @@ export interface PastUnloggedEvent {
   daysAgo: number;
 }
 
+/**
+ * Most-recent activity timestamp for a job. Considers:
+ *   - createdAt
+ *   - latest event date (events[].date)
+ *   - latest event outcome (treated as an activity touch via event date)
+ *
+ * Notes/contacts on JobApplication do not carry per-field timestamps, so they
+ * cannot bump activity on their own — any edit that also adds/touches an event
+ * will be picked up via the event date.
+ */
+export function lastActivityDate(job: JobApplication): Date {
+  let latest = new Date(job.createdAt).getTime();
+  for (const evt of job.events ?? []) {
+    try {
+      const d = parseISO(evt.date).getTime();
+      if (!Number.isNaN(d) && d > latest) latest = d;
+    } catch { /* skip */ }
+    if (evt.createdAt) {
+      const c = new Date(evt.createdAt).getTime();
+      if (!Number.isNaN(c) && c > latest) latest = c;
+    }
+  }
+  return new Date(latest);
+}
+
+/** Latest event with a non-null outcome (most recent by event date). */
+function latestOutcomeEvent(job: JobApplication): JobEvent | null {
+  let best: { evt: JobEvent; t: number } | null = null;
+  for (const evt of job.events ?? []) {
+    if (!evt.outcome) continue;
+    try {
+      const t = parseISO(evt.date).getTime();
+      if (Number.isNaN(t)) continue;
+      if (!best || t > best.t) best = { evt, t };
+    } catch { /* skip */ }
+  }
+  return best?.evt ?? null;
+}
+
 /** Same-stage 14+ days, not accepted/rejected. */
 export function getStaleJobs(jobs: JobApplication[], today: Date = startOfDay(new Date())) {
   return jobs.filter((j) => {
     if (j.columnId === "accepted" || j.columnId === "rejected") return false;
-    const days = differenceInDays(today, new Date(j.createdAt));
+    const days = differenceInDays(today, lastActivityDate(j));
     return days >= STALE_THRESHOLD_DAYS;
   });
 }
@@ -43,7 +82,15 @@ export function getGhostJobs(jobs: JobApplication[], today: Date = startOfDay(ne
       try { return !isBefore(parseISO(e.date), today); } catch { return false; }
     });
     if (hasUpcoming) return false;
-    const days = differenceInDays(today, new Date(j.createdAt));
+    // Skip if an outcome was logged on any event within the last 7 days.
+    const recentOutcome = latestOutcomeEvent(j);
+    if (recentOutcome) {
+      try {
+        const days = differenceInDays(today, parseISO(recentOutcome.date));
+        if (days <= GHOST_THRESHOLD_DAYS) return false;
+      } catch { /* ignore */ }
+    }
+    const days = differenceInDays(today, lastActivityDate(j));
     return days >= GHOST_THRESHOLD_DAYS;
   });
 }
