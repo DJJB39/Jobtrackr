@@ -162,7 +162,10 @@ const CVAssessmentStep = ({ cvText, initialAssessment, initialScore, label = "Or
   const { session } = useAuth();
   const { toast } = useToast();
   const [intensity, setIntensity] = useState<Intensity>(initialAssessment?.intensity ?? "hard");
-  const [assessment, setAssessment] = useState<CVAssessment | null>(initialAssessment ?? null);
+  // On re-assessment, the parent passes the OLD assessment with a null score.
+  // Treat that as "no current assessment" so we auto-run instead of showing stale feedback.
+  const isReassessPending = label === "Re-assessed" && (initialScore == null);
+  const [assessment, setAssessment] = useState<CVAssessment | null>(isReassessPending ? null : (initialAssessment ?? null));
   const [score, setScore] = useState<number | null>(initialScore != null ? normaliseScore(initialScore) : null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -172,12 +175,12 @@ const CVAssessmentStep = ({ cvText, initialAssessment, initialScore, label = "Or
   // Re-assessment auto-runs so the user is never stuck on a dead screen.
   const autoRunRef = useRef(false);
   useEffect(() => {
-    if (label === "Re-assessed" && !assessment && !loading && !autoRunRef.current) {
+    if (isReassessPending && !autoRunRef.current && cvText && cvText.trim().length >= 50) {
       autoRunRef.current = true;
       void run();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [label]);
+  }, [isReassessPending, cvText]);
 
   const run = async () => {
     if (!session?.access_token) return;
