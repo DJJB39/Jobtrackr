@@ -143,6 +143,8 @@ const DemoPage = () => {
 
   const isMac = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
 
+  const tour = useOnboardingTour({ tourReady: true });
+
   // Switch views during onboarding tour when a step targets another surface
   useEffect(() => {
     if (tour.active && TOUR_STEPS[tour.step]?.switchToView && TOUR_STEPS[tour.step].switchToView !== view) {
