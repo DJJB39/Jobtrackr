@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
-import { Briefcase, Columns3, Download, CalendarDays, X, List, Search, FileUp, Upload, LayoutDashboard, ArrowLeft, Sparkles } from "lucide-react";
+import { Briefcase, Columns3, Download, CalendarDays, X, List, Search, FileUp, Upload, LayoutDashboard, ArrowLeft, Sparkles, Target } from "lucide-react";
 import AddJobDialog from "@/components/AddJobDialog";
 import UserMenu from "@/components/UserMenu";
 import ShareStats from "@/components/ShareStats";
@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import type { JobApplication, ColumnId } from "@/types/job";
 
-export type View = "board" | "dashboard" | "calendar" | "list" | "cv" | "ai";
+export type View = "today" | "board" | "dashboard" | "calendar" | "list" | "cv" | "ai";
 
 export const VIEW_ITEMS = [
+  { key: "today" as View, icon: Target, label: "Today" },
   { key: "board" as View, icon: Columns3, label: "Board" },
   { key: "list" as View, icon: List, label: "List" },
   { key: "dashboard" as View, icon: LayoutDashboard, label: "Insights" },
